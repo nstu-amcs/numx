@@ -1,0 +1,9 @@
+BasedOnStyle: Google
+
+ColumnLimit: 150
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+SkipMacroDefinitionBody: true
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false

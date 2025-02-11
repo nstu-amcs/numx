@@ -6,12 +6,12 @@
 typedef unsigned int uint;
 
 struct vec {
-  uint n;
+  int n;
 
   double* dat;
 };
 
-int vec_new_ini(struct vec* v, uint n, ...);
+int vec_new_ini(struct vec* v, int n, ...);
 int vec_cls(struct vec* v);
 
 int vec_cmb(struct vec* a, struct vec* b, struct vec* r, double k);

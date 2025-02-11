@@ -5,8 +5,8 @@
 
 struct imtx {
   struct imtx_pps {
-    uint m;
-    uint n;
+    int m;
+    int n;
   } pps;
 
   double** dat;
@@ -20,16 +20,16 @@ int imtx_mmlt(struct imtx* a, struct imtx* b, struct imtx* r);
 
 struct smtx {
   struct smtx_pps {
-    uint n;
-    uint z;
+    int n;
+    int z;
   } pps;
 
   double* dr;
   double* lr;
   double* ur;
 
-  uint* ia;
-  uint* ja;
+  int* ia;
+  int* ja;
 };
 
 int smtx_new(struct smtx* m, struct smtx_pps pps);
@@ -41,10 +41,27 @@ int smtx_dgl(struct smtx* m, struct smtx* r);
 int smtx_vmlt(struct smtx* m, struct vec* x, struct vec* f);
 int smtx_mmlt(struct smtx* a, struct smtx* b, struct smtx* r);
 
+// See https://www.ibm.com/docs/en/essl/6.2?topic=representation-compressed-diagonal-storage-mode
+struct dmtx {
+  struct dmtx_pps {
+    int n;
+    int d;
+  } pps;
+
+  double** ad;
+
+  int* la;
+};
+
+int dmtx_new(struct dmtx* m, struct dmtx_pps pps);
+int dmtx_cls(struct dmtx* m);
+
+int dmtx_vmlt(struct dmtx* m, struct vec* x, struct vec* f);
+
 struct jmtx {
   struct jmtx_pps {
-    uint m;
-    uint n;
+    int m;
+    int n;
   } pps;
 
   double (***dat)(struct vec*);
@@ -56,17 +73,19 @@ int jmtx_cls(struct jmtx* m);
 #define mtx_new(X, p) _Generic((X), \
     struct imtx*: imtx_new,         \
     struct smtx*: smtx_new,         \
+    struct dmtx*: dmtx_new,         \
     struct jmtx*: jmtx_new          \
     )(X, p)
 
 #define mtx_cls(X) _Generic((X),  \
     struct imtx*: imtx_cls,       \
     struct smtx*: smtx_cls,       \
+    struct dmtx*: dmtx_cls,       \
     struct jmtx*: jmtx_cls        \
     )(X)
 
 #define mtx_ilu(X, r) _Generic((X), \
-    struct smtx*: smtx_ilu             \
+    struct smtx*: smtx_ilu          \
     )(X, r)
 
 #define mtx_dgl(X, r) _Generic((X), \
@@ -75,7 +94,8 @@ int jmtx_cls(struct jmtx* m);
 
 #define mtx_vmlt(X, v, r) _Generic((X), \
     struct imtx*: imtx_vmlt,            \
-    struct smtx*: smtx_vmlt             \
+    struct smtx*: smtx_vmlt,            \
+    struct dmtx*: dmtx_vmlt             \
     )(X, v, r)
 
 #define mtx_mmlt(X, b, r) _Generic((X), \

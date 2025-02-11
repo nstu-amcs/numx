@@ -1,5 +1,4 @@
 #include <errno.h>
-
 #include <numx/non/apx.h>
 #include <numx/vec/dss.h>
 
@@ -13,7 +12,7 @@ int apx_cub(struct vec* xv, struct imtx* km) {
     return -1;
   }
 
-  uint n = xv->n - 1;
+  int n = xv->n - 1;
   int r = 0;
 
   struct imtx mm;
@@ -38,30 +37,30 @@ int apx_cub(struct vec* xv, struct imtx* km) {
   double* c = km->dat[2];
   double* d = km->dat[3];
 
-  for (uint i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i)
     h[i] = x[i + 1] - x[i];
 
-  for (uint i = 1; i < n; ++i)
+  for (int i = 1; i < n; ++i)
     g[i] = 3 * (a[i + 1] - a[i]) / h[i] - 3 * (a[i] - a[i - 1]) / h[i - 1];
 
   mm.dat[0][0] = 1;
   mm.dat[n][n] = 1;
 
-  for (uint i = 1; i < n; ++i) {
+  for (int i = 1; i < n; ++i) {
     mm.dat[i][i - 1] = h[i - 1];
     mm.dat[i][i] = 2 * (h[i - 1] + h[i]);
     mm.dat[i][i + 1] = h[i];
   }
 
   struct vec cv = {
-    .n = n + 1,
-    .dat = c,
+      .n = n + 1,
+      .dat = c,
   };
 
   if ((r = dss_red_slv(&mm, &cv, &gv)) && r)
     goto end;
 
-  for (uint i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     b[i] = (a[i + 1] - a[i]) / h[i] - h[i] * (c[i + 1] + 2 * c[i]) / 3;
     d[i] = (c[i + 1] - c[i]) / (3 * h[i]);
   }

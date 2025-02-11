@@ -1,7 +1,7 @@
 #include <errno.h>
 #include <numx/non/dif.h>
 
-int pdif(double (*f)(struct vec*), uint i, double hop, struct vec* p, double* r) {
+int pdif(double (*f)(struct vec*), int i, double hop, struct vec* p, double* r) {
   if (!f || !p || !r || i >= p->n) {
     errno = EINVAL;
     return -1;

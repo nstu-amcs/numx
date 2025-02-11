@@ -1,8 +1,7 @@
 #include <errno.h>
+#include <numx/vec/mtx.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <numx/vec/mtx.h>
 
 int jmtx_new(struct jmtx* m, struct jmtx_pps pps) {
   if (!m || pps.n == 0 || pps.m == 0) {
@@ -18,11 +17,11 @@ int jmtx_new(struct jmtx* m, struct jmtx_pps pps) {
     return -1;
   }
 
-  for (uint i = 0; i < pps.m; ++i) {
+  for (int i = 0; i < pps.m; ++i) {
     m->dat[i] = malloc(sizeof(double (*)(struct vec*)) * pps.n);
 
     if (!m->dat[i]) {
-      for (uint j = 0; j < i; ++j)
+      for (int j = 0; j < i; ++j)
         free(m->dat[j]);
 
       free(m->dat);
@@ -43,7 +42,7 @@ int jmtx_cls(struct jmtx* m) {
     return -1;
   }
 
-  for (uint i = 0; i < m->pps.m; ++i)
+  for (int i = 0; i < m->pps.m; ++i)
     free(m->dat[i]);
 
   free(m->dat);

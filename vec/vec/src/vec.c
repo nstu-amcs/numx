@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int vec_new_ini(struct vec* v, uint n, ...) {
+int vec_new_ini(struct vec* v, int n, ...) {
   if (!v || n == 0) {
     errno = EINVAL;
     return -1;
@@ -24,7 +24,7 @@ int vec_new_ini(struct vec* v, uint n, ...) {
   va_list arg;
   va_start(arg, n);
 
-  for (uint i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     double a = va_arg(arg, double);
 
     if (a == DBL_MAX)
@@ -55,14 +55,14 @@ int vec_cmb(struct vec* a, struct vec* b, struct vec* r, double k) {
     return -1;
   }
 
-  uint n = a->n;
+  int n = a->n;
 
   double* ad = a->dat;
   double* bd = b->dat;
   double* rd = r->dat;
 
 #pragma omp parallel for
-  for (uint i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i)
     rd[i] = ad[i] + k * bd[i];
 
   return 0;
@@ -74,7 +74,7 @@ int vec_dot(struct vec* a, struct vec* b, double* r) {
     return -1;
   }
 
-  uint dim = a->n;
+  int dim = a->n;
 
   double* ad = a->dat;
   double* bd = b->dat;
@@ -82,7 +82,7 @@ int vec_dot(struct vec* a, struct vec* b, double* r) {
   double s = 0;
 
 #pragma omp parallel for reduction(+ : s)
-  for (uint i = 0; i < dim; ++i)
+  for (int i = 0; i < dim; ++i)
     s += ad[i] * bd[i];
 
   *r = s;

@@ -9,4 +9,4 @@ add_executable(apx_test test/apx_test.c)
 
 target_link_libraries(apx_test non munit)
 
-add_test(NAME apx_test COMMAND apx_test)
+add_test(NAME apx COMMAND apx_test)

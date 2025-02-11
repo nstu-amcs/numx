@@ -1,8 +1,7 @@
 #include <errno.h>
 #include <math.h>
-#include <stdlib.h>
-
 #include <numx/vec/dss.h>
+#include <stdlib.h>
 
 int idss_red_slv(struct imtx* m, struct vec* x, struct vec* f) {
   if (!m || !x || !f || m->pps.n != m->pps.m || m->pps.n != x->n || m->pps.n != f->n) {
@@ -10,21 +9,21 @@ int idss_red_slv(struct imtx* m, struct vec* x, struct vec* f) {
     return -1;
   }
 
-  uint n = m->pps.n;
-  uint* pos = malloc(sizeof(uint) * n);
+  int n = m->pps.n;
+  int* pos = malloc(sizeof(int) * n);
 
   double** md = m->dat;
   double* xd = x->dat;
   double* fd = f->dat;
 
-  for (uint i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i)
     pos[i] = i;
 
-  for (uint i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     double mv = fabs(md[pos[i]][i]);
-    uint mi = i;
+    int mi = i;
 
-    for (uint j = i + 1; j < n; ++j) {
+    for (int j = i + 1; j < n; ++j) {
       double mij = fabs(md[pos[j]][i]);
 
       if (mij > mv) {
@@ -34,12 +33,12 @@ int idss_red_slv(struct imtx* m, struct vec* x, struct vec* f) {
     }
 
     if (i != mi) {
-      uint t = pos[i];
+      int t = pos[i];
       pos[i] = pos[mi];
       pos[mi] = t;
     }
 
-    for (uint j = i + 1; j < n; ++j) {
+    for (int j = i + 1; j < n; ++j) {
       if (fabs(md[pos[i]][i]) < 1e-200) {
         free(pos);
 
@@ -49,17 +48,17 @@ int idss_red_slv(struct imtx* m, struct vec* x, struct vec* f) {
 
       double k = md[pos[j]][i] / md[pos[i]][i];
 
-      for (uint c = i + 1; c < n; ++c)
+      for (int c = i + 1; c < n; ++c)
         md[pos[j]][c] -= md[pos[i]][c] * k;
 
       fd[pos[j]] -= fd[pos[i]] * k;
     }
   }
 
-  for (uint h = 0, i = n - 1; h < n; ++h, --i) {
+  for (int h = 0, i = n - 1; h < n; ++h, --i) {
     double sum = fd[pos[i]];
 
-    for (uint j = i + 1; j < n; ++j)
+    for (int j = i + 1; j < n; ++j)
       sum -= xd[j] * md[pos[i]][j];
 
     if (fabs(md[pos[i]][i]) < 1e-200) {

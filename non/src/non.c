@@ -1,20 +1,19 @@
 #include <errno.h>
 #include <math.h>
+#include <numx/non/dif.h>
+#include <numx/non/non.h>
+#include <numx/vec/dss.h>
+#include <numx/vec/mtx.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdx.h>
 
-#include <numx/vec/dss.h>
-#include <numx/vec/mtx.h>
-#include <numx/non/non.h>
-#include <numx/non/dif.h>
-
 struct rec {
-  uint i;
+  int i;
   double v;
 };
 
-static int rec_cmp_dsc(void*, uint n, ...) {
+static int rec_cmp_dsc(void*, int n, ...) {
   if (n < 2)
     return 0;
 
@@ -35,9 +34,7 @@ static int rec_cmp_dsc(void*, uint n, ...) {
   return 0;
 }
 
-static int non_evo_exc(
-  struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk,
-  struct non_new_opt* opt) {
+static int non_evo_exc(struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk, struct non_new_opt* opt) {
   if (fun->len < xk->n) {
     errno = EINVAL;
     return -1;
@@ -46,7 +43,7 @@ static int non_evo_exc(
   struct rec** rp = (struct rec**)rec->dat;
   double (**fp)(struct vec*) = (double (**)(struct vec*))fun->dat;
 
-  for (uint i = 0; i < rec->len; ++i) {
+  for (int i = 0; i < rec->len; ++i) {
     rp[i]->i = i;
     rp[i]->v = fp[i](xk);
   }
@@ -55,14 +52,14 @@ static int non_evo_exc(
     if (cut_srt(rec))
       return -1;
 
-  for (uint i = 0; i < xk->n; ++i) {
+  for (int i = 0; i < xk->n; ++i) {
     fk->dat[i] = -rp[i]->v;
 
     if (opt->jac)
-      for (uint j = 0; j < xk->n; ++j)
+      for (int j = 0; j < xk->n; ++j)
         jk->dat[i][j] = opt->jac->dat[rp[i]->i][j](xk);
     else
-      for (uint j = 0; j < xk->n; ++j)
+      for (int j = 0; j < xk->n; ++j)
         if (pdif(fp[rp[i]->i], j, opt->hop, xk, &jk->dat[i][j]))
           return -1;
   }
@@ -70,9 +67,7 @@ static int non_evo_exc(
   return 0;
 }
 
-static int non_evo_con(
-  struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk,
-  struct non_new_opt* opt) {
+static int non_evo_con(struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk, struct non_new_opt* opt) {
   if (non_evo_exc(rec, fun, xk, fk, jk, opt))
     return -1;
 
@@ -81,24 +76,24 @@ static int non_evo_con(
 
   struct rec** rp = (struct rec**)rec->dat;
   double (**fp)(struct vec*) = (double (**)(struct vec*))fun->dat;
-  uint l = xk->n - 1;
+  int l = xk->n - 1;
 
   if (rec->len > xk->n) {
     fk->dat[l] = 0;
 
-    for (uint j = 0; j < xk->n; ++j)
+    for (int j = 0; j < xk->n; ++j)
       jk->dat[l][j] = 0;
 
-    for (uint i = l; i < rec->len; ++i) {
+    for (int i = l; i < rec->len; ++i) {
       fk->dat[l] -= rp[i]->v * rp[i]->v;
 
       if (opt->jac)
-        for (uint j = 0; j < xk->n; ++j)
+        for (int j = 0; j < xk->n; ++j)
           jk->dat[l][j] += 2 * rp[i]->v * opt->jac->dat[rp[i]->i][j](xk);
       else {
         double pd = 0;
 
-        for (uint j = 0; j < xk->n; ++j) {
+        for (int j = 0; j < xk->n; ++j) {
           if (pdif(fp[rp[i]->i], j, opt->hop, xk, &pd))
             return -1;
 
@@ -128,7 +123,7 @@ int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_opt opt) {
   rec.ctl = true;
   rec.cmp.call = &rec_cmp_dsc;
 
-  for (uint i = 0; i < fun->len; ++i) {
+  for (int i = 0; i < fun->len; ++i) {
     struct rec* r = malloc(sizeof(struct rec));
 
     if (!r) {
@@ -145,7 +140,7 @@ int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_opt opt) {
   struct imtx jk;
 
   double nrm = 0;
-  uint dim = x->n;
+  int dim = x->n;
 
   if (vec_new(&fk, dim))
     goto err;
@@ -183,7 +178,7 @@ int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_opt opt) {
   if (opt.cbk)
     opt.cbk->call(opt.cbk->ctx, 1, opt.itr);
 
-  for (uint k = 1; k <= opt.hem; ++k) {
+  for (int k = 1; k <= opt.hem; ++k) {
     if (dss_red_slv(&jk, &dk, &fk))
       goto err;
 
