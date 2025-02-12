@@ -81,7 +81,7 @@ int dmtx_vmlt(struct dmtx* m, struct vec* x, struct vec* f) {
     for (int e = 0; e < d; ++e) {
       int j = i + m->la[e];
 
-      if (j < 0)
+      if (j < 0 || j >= n)
         continue;
 
       fv[i] += rv[e] * xv[j];
