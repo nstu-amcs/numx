@@ -1,5 +1,5 @@
 add_subdirectory(vec)
 add_subdirectory(mtx)
 add_subdirectory(dss)
-# add_subdirectory(iss)
+add_subdirectory(iss)
 # add_subdirectory(dfs)
