@@ -17,13 +17,15 @@ struct obj {
   struct pcut h;
 };
 
+int obj_new(struct obj* o);
+int obj_cls(struct obj* o);
+
 int obj_get(struct obj* o, FILE* f);
+int obj_put(struct obj* o, FILE* f);
 
 int obj_get_vtx(struct vtx* v, FILE* f);
 int obj_get_qud(struct qud* q, FILE* f);
 int obj_get_hxd(struct hxd* h, FILE* f);
-
-int obj_put(struct obj* o, FILE* f);
 
 int obj_put_vtx(struct vtx* v, FILE* f);
 int obj_put_qud(struct qud* q, FILE* f);
