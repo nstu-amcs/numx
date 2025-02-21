@@ -1,15 +1,20 @@
 #include <errno.h>
-#include <numx/geo/obj.h>
+#include <numx/pde/geo.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-int obj_new(struct obj* o) {
+int obj_new(struct obj* o, struct obj_pps p) {
   if (!o) {
     errno = ENOMEM;
     return -1;
   }
 
+  o->pps = p;
+
   if (cut_new(&o->v))
+    return -1;
+
+  if (cut_new(&o->s))
     return -1;
 
   if (cut_new(&o->q))
@@ -19,6 +24,7 @@ int obj_new(struct obj* o) {
     return -1;
 
   o->v.ctl = true;
+  o->s.ctl = true;
   o->q.ctl = true;
   o->h.ctl = true;
 
@@ -32,6 +38,7 @@ int obj_cls(struct obj* o) {
   }
 
   cut_cls(&o->v);
+  cut_cls(&o->s);
   cut_cls(&o->q);
   cut_cls(&o->h);
 
@@ -44,11 +51,11 @@ int obj_get(struct obj* o, FILE* f) {
     return -1;
   }
 
-  int c = 0;
+  char buf[64];
 
-  while ((c = fgetc(f)) && c != EOF)
-    switch (c) {
-      case (int)'v':
+  while (fgets(buf, sizeof(buf), f))
+    switch (buf[0]) {
+      case 'v':
         struct vtx* v = malloc(sizeof(struct vtx));
 
         if (!v) {
@@ -56,7 +63,7 @@ int obj_get(struct obj* o, FILE* f) {
           return -1;
         }
 
-        if (obj_get_vtx(v, f)) {
+        if (obj_get_vtx(v, buf)) {
           free(v);
           return -1;
         }
@@ -67,7 +74,32 @@ int obj_get(struct obj* o, FILE* f) {
         }
 
         break;
-      case (int)'q':
+      case 's':
+        if (!o->pps.with_seg)
+          continue;
+
+        struct seg* s = malloc(sizeof(struct seg));
+
+        if (!s) {
+          errno = ENOMEM;
+          return -1;
+        }
+
+        if (obj_get_seg(s, buf)) {
+          free(s);
+          return -1;
+        }
+
+        if (cut_add(&o->s, s)) {
+          free(s);
+          return -1;
+        }
+
+        break;
+      case 'q':
+        if (!o->pps.with_qud)
+          continue;
+
         struct qud* q = malloc(sizeof(struct qud));
 
         if (!q) {
@@ -75,7 +107,7 @@ int obj_get(struct obj* o, FILE* f) {
           return -1;
         }
 
-        if (obj_get_qud(q, f)) {
+        if (obj_get_qud(q, buf)) {
           free(q);
           return -1;
         }
@@ -86,7 +118,10 @@ int obj_get(struct obj* o, FILE* f) {
         }
 
         break;
-      case (int)'h':
+      case 'h':
+        if (!o->pps.with_hxd)
+          continue;
+
         struct hxd* h = malloc(sizeof(struct hxd));
 
         if (!h) {
@@ -94,7 +129,7 @@ int obj_get(struct obj* o, FILE* f) {
           return -1;
         }
 
-        if (obj_get_hxd(h, f)) {
+        if (obj_get_hxd(h, buf)) {
           free(h);
           return -1;
         }
@@ -110,37 +145,49 @@ int obj_get(struct obj* o, FILE* f) {
   return 0;
 }
 
-int obj_get_vtx(struct vtx* v, FILE* f) {
-  if (!v || !f) {
+int obj_get_vtx(struct vtx* v, const char* buf) {
+  if (!v || !buf) {
     errno = EINVAL;
     return -1;
   }
 
-  if (fscanf(f, "%lf %lf %lf", &v->x, &v->y, &v->z) != 3)
+  if (sscanf(buf, "v %lf %lf %lf", &v->x, &v->y, &v->z) != 3)
     return -1;
 
   return 0;
 }
 
-int obj_get_qud(struct qud* q, FILE* f) {
-  if (!q || !f) {
+int obj_get_seg(struct seg* s, const char* buf) {
+  if (!s || !buf) {
     errno = EINVAL;
     return -1;
   }
 
-  if (fscanf(f, "%d %d %d %d", &q->vtx[0], &q->vtx[1], &q->vtx[2], &q->vtx[3]) != 4)
+  if (sscanf(buf, "s %d %d", &s->vtx[0], &s->vtx[1]) != 2)
     return -1;
 
   return 0;
 }
 
-int obj_get_hxd(struct hxd* h, FILE* f) {
-  if (!h || !f) {
+int obj_get_qud(struct qud* q, const char* buf) {
+  if (!q || !buf) {
     errno = EINVAL;
     return -1;
   }
 
-  if (fscanf(f, "%d %d %d %d %d %d %d %d", &h->vtx[0], &h->vtx[1], &h->vtx[2], &h->vtx[3], &h->vtx[4], &h->vtx[5], &h->vtx[6], &h->vtx[7]) != 8)
+  if (sscanf(buf, "q %d %d %d %d", &q->vtx[0], &q->vtx[1], &q->vtx[2], &q->vtx[3]) != 4)
+    return -1;
+
+  return 0;
+}
+
+int obj_get_hxd(struct hxd* h, const char* buf) {
+  if (!h || !buf) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  if (sscanf(buf, "h %d %d %d %d %d %d %d %d", &h->vtx[0], &h->vtx[1], &h->vtx[2], &h->vtx[3], &h->vtx[4], &h->vtx[5], &h->vtx[6], &h->vtx[7]) != 8)
     return -1;
 
   return 0;
@@ -152,209 +199,122 @@ int obj_put(struct obj* o, FILE* f) {
     return -1;
   }
 
+  char buf[64];
+
   for (int i = 0; i < o->v.len; ++i) {
-    if (fprintf(f, "v ") < 0)
+    if (obj_put_vtx(o->v.dat[i], buf, sizeof(buf)))
       return -1;
 
-    if (obj_put_vtx(o->v.dat[i], f))
+    if (fputs(buf, f) == EOF)
       return -1;
 
-    if (fprintf(f, "\n") < 0)
-      return -1;
-  }
-
-  if (fprintf(f, "\n") < 0)
-    return -1;
-
-  for (int i = 0; i < o->q.len; ++i) {
-    if (fprintf(f, "q ") < 0)
-      return -1;
-
-    if (obj_put_qud(o->q.dat[i], f))
-      return -1;
-
-    if (fprintf(f, "\n") < 0)
+    if (fputc('\n', f) == EOF)
       return -1;
   }
 
-  if (fprintf(f, "\n") < 0)
-    return -1;
-
-  for (int i = 0; i < o->h.len; ++i) {
-    if (fprintf(f, "h ") < 0)
+  if (o->pps.with_seg) {
+    if (fputc('\n', f) == EOF)
       return -1;
 
-    if (obj_put_hxd(o->h.dat[i], f))
-      return -1;
-
-    if (fprintf(f, "\n") < 0)
-      return -1;
-  }
-
-  return 0;
-}
-
-int obj_put_vtx(struct vtx* v, FILE* f) {
-  if (!v || !f) {
-    errno = EINVAL;
-    return -1;
-  }
-
-  if (fprintf(f, "%lf %lf %lf", v->x, v->y, v->z) < 0)
-    return -1;
-
-  return 0;
-}
-
-int obj_put_qud(struct qud* q, FILE* f) {
-  if (!q || !f) {
-    errno = EINVAL;
-    return -1;
-  }
-
-  if (fprintf(f, "%d %d %d %d", q->vtx[0], q->vtx[1], q->vtx[2], q->vtx[3]) < 0)
-    return -1;
-
-  return 0;
-}
-
-int obj_put_hxd(struct hxd* h, FILE* f) {
-  if (!h || !f) {
-    errno = EINVAL;
-    return -1;
-  }
-
-  if (fprintf(f, "%d %d %d %d %d %d %d %d", h->vtx[0], h->vtx[1], h->vtx[2], h->vtx[3], h->vtx[4], h->vtx[5], h->vtx[6], h->vtx[7]) < 0)
-    return -1;
-
-  return 0;
-}
-
-int obj_gen_hxd(struct obj* o, int i, struct icap s) {
-  if (!o || i < 0 || i >= o->v.len || !s.call) {
-    errno = EINVAL;
-    return -1;
-  }
-
-  double xs = 0;
-  double ys = 0;
-  double zs = 0;
-
-  struct vtx* pv = o->v.dat[i];
-  struct vtx* nv = 0;
-
-  int rb = i;
-
-  double rxs = 0;
-  double rys = 0;
-  double rzs = 0;
-
-  int pb = i;
-
-  double pxs = 0;
-  double pys = 0;
-  double pzs = 0;
-
-  while (1) {
-    if (s.call(s.ctx, 4, pv, &xs, &ys, &zs))
-      return -1;
-
-    if (xs) {
-      nv = malloc(sizeof(struct vtx));
-
-      if (!nv) {
-        errno = ENOMEM;
+    for (int i = 0; i < o->s.len; ++i) {
+      if (obj_put_seg(o->s.dat[i], buf, sizeof(buf)))
         return -1;
-      }
 
-      nv->x = pv->x + xs;
-      nv->y = pv->y;
-      nv->z = pv->z;
-
-      if (cut_add(&o->v, nv)) {
-        free(nv);
+      if (fputs(buf, f) == EOF)
         return -1;
-      }
 
-      pv = nv;
-
-      continue;
+      if (fputc('\n', f) == EOF)
+        return -1;
     }
-
-    pv = o->v.dat[rb];
-
-    xs = rxs;
-    ys = rys;
-    zs = rzs;
-
-    if (s.call(s.ctx, 4, pv, &xs, &ys, &zs))
-      return -1;
-
-    if (ys) {
-      nv = malloc(sizeof(struct vtx));
-
-      if (!nv) {
-        errno = ENOMEM;
-        return -1;
-      }
-
-      nv->x = pv->x;
-      nv->y = pv->y + ys;
-      nv->z = pv->z;
-
-      if (cut_add(&o->v, nv)) {
-        free(nv);
-        return -1;
-      }
-
-      pv = nv;
-      rb = o->v.len - 1;
-
-      rxs = xs;
-      rys = ys;
-      rzs = zs;
-
-      continue;
-    }
-
-    pv = o->v.dat[pb];
-
-    xs = pxs;
-    ys = pys;
-    zs = pzs;
-
-    if (s.call(s.ctx, 4, pv, &xs, &ys, &zs))
-      return -1;
-
-    if (zs) {
-      nv = malloc(sizeof(struct vtx));
-
-      if (!nv) {
-        errno = ENOMEM;
-        return -1;
-      }
-
-      nv->x = pv->x;
-      nv->y = pv->y;
-      nv->z = pv->z + zs;
-
-      if (cut_add(&o->v, nv)) {
-        free(nv);
-        return -1;
-      }
-
-      pv = nv;
-      pb = o->v.len - 1;
-
-      pxs = xs;
-      pys = ys;
-      pzs = zs;
-
-      continue;
-    }
-
-    break;
   }
+
+  if (o->pps.with_qud) {
+    if (fputc('\n', f) == EOF)
+      return -1;
+
+    for (int i = 0; i < o->q.len; ++i) {
+      if (obj_put_qud(o->q.dat[i], buf, sizeof(buf)))
+        return -1;
+
+      if (fputs(buf, f) == EOF)
+        return -1;
+
+      if (fputc('\n', f) == EOF)
+        return -1;
+    }
+  }
+
+  if (o->pps.with_hxd) {
+    if (fputc('\n', f) == EOF)
+      return -1;
+
+    for (int i = 0; i < o->h.len; ++i) {
+      if (obj_put_seg(o->h.dat[i], buf, sizeof(buf)))
+        return -1;
+
+      if (fputs(buf, f) == EOF)
+        return -1;
+
+      if (fputc('\n', f) == EOF)
+        return -1;
+    }
+  }
+
+  return 0;
+}
+
+int obj_put_vtx(struct vtx* v, char* buf, int n) {
+  if (!v || !buf) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  int r = snprintf(buf, n, "v %lf %lf %lf", v->x, v->y, v->z);
+
+  if (r < 0 || r >= n)
+    return -1;
+
+  return 0;
+}
+
+int obj_put_seg(struct seg* s, char* buf, int n) {
+  if (!s || !buf) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  int r = snprintf(buf, n, "s %d %d", s->vtx[0], s->vtx[1]);
+
+  if (r < 0 || r >= n)
+    return -1;
+
+  return 0;
+}
+
+int obj_put_qud(struct qud* q, char* buf, int n) {
+  if (!q || !buf) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  int r = snprintf(buf, n, "q %d %d %d %d", q->vtx[0], q->vtx[1], q->vtx[2], q->vtx[3]);
+
+  if (r < 0 || r >= n)
+    return -1;
+
+  return 0;
+}
+
+int obj_put_hxd(struct hxd* h, char* buf, int n) {
+  if (!h || !buf) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  int r = snprintf(buf, n, "h %d %d %d %d %d %d %d %d", h->vtx[0], h->vtx[1], h->vtx[2], h->vtx[3], h->vtx[4], h->vtx[5], h->vtx[6], h->vtx[7]);
+
+  if (r < 0 || r >= n)
+    return -1;
 
   return 0;
 }

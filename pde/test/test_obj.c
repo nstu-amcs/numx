@@ -1,15 +1,16 @@
 #include <munit.h>
-#include <numx/geo/obj.h>
+#include <numx/pde/geo.h>
 #include <stdio.h>
 #include <string.h>
 
 static MunitResult test_obj_get(const MunitParameter[], void*) {
   struct obj o;
 
-  munit_assert_int(0, ==, obj_new(&o));
+  munit_assert_int(0, ==, obj_new(&o, (struct obj_pps){true, true, true}));
   munit_assert_int(0, ==, obj_get(&o, fopen("data/test.obj", "r")));
 
   munit_assert_int(8, ==, o.v.len);
+  munit_assert_int(2, ==, o.s.len);
   munit_assert_int(6, ==, o.q.len);
   munit_assert_int(1, ==, o.h.len);
 
@@ -44,6 +45,12 @@ static MunitResult test_obj_get(const MunitParameter[], void*) {
   munit_assert_double_equal(1.0, ((struct vtx*)o.v.dat[7])->x, 15);
   munit_assert_double_equal(1.0, ((struct vtx*)o.v.dat[7])->y, 15);
   munit_assert_double_equal(1.0, ((struct vtx*)o.v.dat[7])->z, 15);
+
+  munit_assert_int(1, ==, ((struct seg*)o.s.dat[0])->vtx[0]);
+  munit_assert_int(2, ==, ((struct seg*)o.s.dat[0])->vtx[1]);
+
+  munit_assert_int(2, ==, ((struct seg*)o.s.dat[1])->vtx[0]);
+  munit_assert_int(3, ==, ((struct seg*)o.s.dat[1])->vtx[1]);
 
   munit_assert_int(1, ==, ((struct qud*)o.q.dat[0])->vtx[0]);
   munit_assert_int(3, ==, ((struct qud*)o.q.dat[0])->vtx[1]);

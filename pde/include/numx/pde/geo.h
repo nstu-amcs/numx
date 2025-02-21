@@ -39,7 +39,6 @@ struct hxd {
 struct obj {
   /// @brief Object's properties.
   struct obj_pps {
-    bool with_img;
     bool with_seg;
     bool with_qud;
     bool with_hxd;
@@ -48,10 +47,7 @@ struct obj {
   /// @brief Object's vertices (required).
   struct pcut v;
 
-  /// @brief Object's imaginary vertices.
-  struct icut i;
-
-  /// @brief Object's segments
+  /// @brief Object's segments.
   struct pcut s;
 
   /// @brief Object's quadrangles.
@@ -61,27 +57,20 @@ struct obj {
   struct pcut h;
 };
 
-int obj_new(struct obj* o);
+int obj_new(struct obj* o, struct obj_pps pps);
 int obj_cls(struct obj* o);
 
-int obj_get(struct obj* o, FILE* f, struct obj_pps pps);
-int obj_put(struct obj* o, FILE* f, struct obj_pps pps);
+int obj_get(struct obj* o, FILE* f);
+int obj_put(struct obj* o, FILE* f);
 
-int obj_get_vtx(struct vtx* v, FILE* f);
-int obj_get_seg(struct seg* s, FILE* f);
-int obj_get_qud(struct qud* q, FILE* f);
-int obj_get_hxd(struct hxd* h, FILE* f);
+int obj_get_vtx(struct vtx* v, const char* buf);
+int obj_get_seg(struct seg* s, const char* buf);
+int obj_get_qud(struct qud* q, const char* buf);
+int obj_get_hxd(struct hxd* h, const char* buf);
 
-int obj_put_vtx(struct vtx* v, FILE* f);
-int obj_put_seg(struct seg* s, FILE* f);
-int obj_put_qud(struct qud* q, FILE* f);
-int obj_put_hxd(struct hxd* h, FILE* f);
-
-/** @brief Generate complex continuous object using supplied step function.
- *
- *  @param i initial vertex index
- *  @param s step function
- */
-int obj_gen(struct obj* o, int i, struct icap s, struct obj_pps pps);
+int obj_put_vtx(struct vtx* v, char* buf, int n);
+int obj_put_seg(struct seg* s, char* buf, int n);
+int obj_put_qud(struct qud* q, char* buf, int n);
+int obj_put_hxd(struct hxd* h, char* buf, int n);
 
 #endif  // NUMX_PDE_GEO_H
