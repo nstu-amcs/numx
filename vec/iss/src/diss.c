@@ -38,7 +38,7 @@ static inline void swap(struct vec* a, struct vec* b) {
   b->dat = t;
 }
 
-int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_opt o) {
+int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_ops o) {
   if (!m || !x || !f) {
     errno = EINVAL;
     return -1;
@@ -53,10 +53,10 @@ int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_op
   double nt = 0;
 
   double res = 1;
-  double eps = o.opt.eps;
+  double eps = o.ops.eps;
   double omg = o.omg;
 
-  int max = o.opt.max;
+  int max = o.ops.max;
 
   vec_nrm(f, &nf);
 
@@ -70,8 +70,8 @@ int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_op
 
     res = nt / nf;
 
-    if (o.opt.itr.call)
-      o.opt.itr.call(o.opt.itr.ctx, 2, k, res);
+    if (o.ops.itr.call)
+      o.ops.itr.call(o.ops.itr.ctx, 2, k, res);
   }
 
   vec_cls(&t);
@@ -79,7 +79,7 @@ int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_op
   return 0;
 }
 
-int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_opt o) {
+int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_ops o) {
   if (!m || !x || !f) {
     errno = EINVAL;
     return -1;
@@ -94,10 +94,10 @@ int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_op
   double nt = 0;
 
   double res = 1;
-  double eps = o.opt.eps;
+  double eps = o.ops.eps;
   double omg = o.omg;
 
-  int max = o.opt.max;
+  int max = o.ops.max;
 
   vec_nrm(f, &nf);
 
@@ -110,8 +110,8 @@ int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_op
 
     res = nt / nf;
 
-    if (o.opt.itr.call)
-      o.opt.itr.call(o.opt.itr.ctx, 2, k, res);
+    if (o.ops.itr.call)
+      o.ops.itr.call(o.ops.itr.ctx, 2, k, res);
   }
 
   vec_cls(&t);

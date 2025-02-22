@@ -2,7 +2,7 @@
 #include <numx/vec/iss.h>
 #include <string.h>
 
-static int siss_bcg_unc_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_opt o) {
+static int siss_bcg_unc_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_ops o) {
   int n = m->pps.n;
   int c = 0;
 
@@ -50,7 +50,7 @@ static int siss_bcg_unc_slv(struct smtx* m, struct vec* x, struct vec* f, struct
   vec_cpy(&r, &z);
   vec_cpy(&r, &p);
 
-  for (int k = 1; k <= o.opt.max; ++k) {
+  for (int k = 1; k <= o.ops.max; ++k) {
     mtx_vmlt(m, &p, &h);
 
     vec_dot(&r, &z, &tmp);
@@ -71,10 +71,10 @@ static int siss_bcg_unc_slv(struct smtx* m, struct vec* x, struct vec* f, struct
     vec_cmb(&s, &r, &r, -omg);
     vec_nrm(&r, &nrm);
 
-    if (o.opt.itr.call)
-      o.opt.itr.call(o.opt.itr.ctx, 2, k, nrm);
+    if (o.ops.itr.call)
+      o.ops.itr.call(o.ops.itr.ctx, 2, k, nrm);
 
-    if (nrm < o.opt.eps)
+    if (nrm < o.ops.eps)
       break;
 
     vec_dot(&r, &z, &bet);
@@ -158,7 +158,7 @@ static int siss_con_uslv(struct smtx* m, struct vec* x, struct vec* f) {
   return 0;
 }
 
-static int siss_bcg_con_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_opt o) {
+static int siss_bcg_con_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_ops o) {
   int n = m->pps.n;
   int c = 0;
 
@@ -219,7 +219,7 @@ static int siss_bcg_con_slv(struct smtx* m, struct vec* x, struct vec* f, struct
   vec_cpy(&r, &z);
   vec_cpy(&r, &p);
 
-  for (int k = 1; k <= o.opt.max; ++k) {
+  for (int k = 1; k <= o.ops.max; ++k) {
     siss_con_lslv(o.con.sm, &pt, &p);
     siss_con_uslv(o.con.sm, &pt, &pt);
 
@@ -246,10 +246,10 @@ static int siss_bcg_con_slv(struct smtx* m, struct vec* x, struct vec* f, struct
     vec_cmb(&s, &r, &r, -omg);
     vec_nrm(&r, &nrm);
 
-    if (o.opt.itr.call)
-      o.opt.itr.call(o.opt.itr.ctx, 2, k, nrm);
+    if (o.ops.itr.call)
+      o.ops.itr.call(o.ops.itr.ctx, 2, k, nrm);
 
-    if (nrm < o.opt.eps)
+    if (nrm < o.ops.eps)
       break;
 
     vec_dot(&r, &z, &bet);
@@ -273,7 +273,7 @@ end:
   return c;
 }
 
-int siss_bcg_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_opt o) {
+int siss_bcg_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_ops o) {
   if (!m || !x || !f) {
     errno = EINVAL;
     return -1;

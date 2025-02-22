@@ -16,7 +16,7 @@ struct non_new_itr {
   struct vec* x;
 };
 
-struct non_new_opt {
+struct non_new_ops {
   enum non_new_mod mod;
 
   int hem;
@@ -29,6 +29,6 @@ struct non_new_opt {
   struct jmtx* jac;
 };
 
-int non_new_slv(struct pcut* f, struct vec* x, struct non_new_opt opt);
+int non_new_slv(struct pcut* f, struct vec* x, struct non_new_ops o);
 
 #endif  // NUMX_NON_NON_H

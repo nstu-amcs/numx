@@ -40,8 +40,8 @@ static MunitResult test_diss_rlx_posd(const MunitParameter[], void*) {
   munit_assert_int(0, ==, vec_new(&x, 3, 1.0, 2.0, 3.0));
   munit_assert_int(0, ==, vec_new(&f, 3));
 
-  struct iss_rlx_opt opt = {
-      .opt =
+  struct iss_rlx_ops ops = {
+      .ops =
           {
               .eps = 1e-10,
               .max = 1000,
@@ -49,11 +49,11 @@ static MunitResult test_diss_rlx_posd(const MunitParameter[], void*) {
       .omg = 1,
   };
 
-  opt.opt.itr.call = &itr_log;
+  ops.ops.itr.call = &itr_log;
 
   munit_assert_int(0, ==, mtx_vmlt(&m, &x, &f));
   munit_assert_int(0, ==, vec_rst(&x));
-  munit_assert_int(0, ==, iss_rlx_slv(&m, &x, &f, opt));
+  munit_assert_int(0, ==, iss_rlx_slv(&m, &x, &f, ops));
 
   munit_assert_double_equal(1.0, x.dat[0], 5);
   munit_assert_double_equal(2.0, x.dat[1], 5);

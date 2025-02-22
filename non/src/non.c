@@ -34,7 +34,7 @@ static int rec_cmp_dsc(void*, int n, ...) {
   return 0;
 }
 
-static int non_evo_exc(struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk, struct non_new_opt* opt) {
+static int non_evo_exc(struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk, struct non_new_ops* ops) {
   if (fun->len < xk->n) {
     errno = EINVAL;
     return -1;
@@ -55,20 +55,20 @@ static int non_evo_exc(struct pcut* rec, struct pcut* fun, struct vec* xk, struc
   for (int i = 0; i < xk->n; ++i) {
     fk->dat[i] = -rp[i]->v;
 
-    if (opt->jac)
+    if (ops->jac)
       for (int j = 0; j < xk->n; ++j)
-        jk->dat[i][j] = opt->jac->dat[rp[i]->i][j](xk);
+        jk->dat[i][j] = ops->jac->dat[rp[i]->i][j](xk);
     else
       for (int j = 0; j < xk->n; ++j)
-        if (pdif(fp[rp[i]->i], j, opt->hop, xk, &jk->dat[i][j]))
+        if (pdif(fp[rp[i]->i], j, ops->hop, xk, &jk->dat[i][j]))
           return -1;
   }
 
   return 0;
 }
 
-static int non_evo_con(struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk, struct non_new_opt* opt) {
-  if (non_evo_exc(rec, fun, xk, fk, jk, opt))
+static int non_evo_con(struct pcut* rec, struct pcut* fun, struct vec* xk, struct vec* fk, struct imtx* jk, struct non_new_ops* ops) {
+  if (non_evo_exc(rec, fun, xk, fk, jk, ops))
     return -1;
 
   if (rec->len == xk->n)
@@ -87,14 +87,14 @@ static int non_evo_con(struct pcut* rec, struct pcut* fun, struct vec* xk, struc
     for (int i = l; i < rec->len; ++i) {
       fk->dat[l] -= rp[i]->v * rp[i]->v;
 
-      if (opt->jac)
+      if (ops->jac)
         for (int j = 0; j < xk->n; ++j)
-          jk->dat[l][j] += 2 * rp[i]->v * opt->jac->dat[rp[i]->i][j](xk);
+          jk->dat[l][j] += 2 * rp[i]->v * ops->jac->dat[rp[i]->i][j](xk);
       else {
         double pd = 0;
 
         for (int j = 0; j < xk->n; ++j) {
-          if (pdif(fp[rp[i]->i], j, opt->hop, xk, &pd))
+          if (pdif(fp[rp[i]->i], j, ops->hop, xk, &pd))
             return -1;
 
           jk->dat[l][j] += 2 * rp[i]->v * pd;
@@ -106,7 +106,7 @@ static int non_evo_con(struct pcut* rec, struct pcut* fun, struct vec* xk, struc
   return 0;
 }
 
-int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_opt opt) {
+int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_ops ops) {
   if (!fun || !x || fun->len < x->n) {
     errno = EINVAL;
     return -1;
@@ -153,32 +153,32 @@ int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_opt opt) {
   if (mtx_new(&jk, p))
     goto err;
 
-  switch (opt.mod) {
+  switch (ops.mod) {
     case EXC:
-      if (non_evo_exc(&rec, fun, x, &fk, &jk, &opt))
+      if (non_evo_exc(&rec, fun, x, &fk, &jk, &ops))
         goto err;
 
       break;
     case CON:
-      if (non_evo_con(&rec, fun, x, &fk, &jk, &opt))
+      if (non_evo_con(&rec, fun, x, &fk, &jk, &ops))
         goto err;
 
       break;
   }
 
-  if (opt.itr) {
-    opt.itr->k = 0;
-    opt.itr->x = x;
-    opt.itr->del = -1;
+  if (ops.itr) {
+    ops.itr->k = 0;
+    ops.itr->x = x;
+    ops.itr->del = -1;
 
-    if (vec_nrm(&fk, &opt.itr->err))
+    if (vec_nrm(&fk, &ops.itr->err))
       goto err;
   }
 
-  if (opt.cbk)
-    opt.cbk->call(opt.cbk->ctx, 1, opt.itr);
+  if (ops.cbk)
+    ops.cbk->call(ops.cbk->ctx, 1, ops.itr);
 
-  for (int k = 1; k <= opt.hem; ++k) {
+  for (int k = 1; k <= ops.hem; ++k) {
     if (dss_red_slv(&jk, &dk, &fk))
       goto err;
 
@@ -188,31 +188,31 @@ int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_opt opt) {
     if (vec_nrm(&dk, &nrm))
       goto err;
 
-    switch (opt.mod) {
+    switch (ops.mod) {
       case EXC:
-        if (non_evo_exc(&rec, fun, x, &fk, &jk, &opt))
+        if (non_evo_exc(&rec, fun, x, &fk, &jk, &ops))
           goto err;
 
         break;
       case CON:
-        if (non_evo_con(&rec, fun, x, &fk, &jk, &opt))
+        if (non_evo_con(&rec, fun, x, &fk, &jk, &ops))
           goto err;
 
         break;
     }
 
-    if (opt.itr) {
-      opt.itr->k = k;
-      opt.itr->del = nrm;
+    if (ops.itr) {
+      ops.itr->k = k;
+      ops.itr->del = nrm;
 
-      if (vec_nrm(&fk, &opt.itr->err))
+      if (vec_nrm(&fk, &ops.itr->err))
         goto err;
     }
 
-    if (opt.cbk)
-      opt.cbk->call(opt.cbk->ctx, 1, opt.itr);
+    if (ops.cbk)
+      ops.cbk->call(ops.cbk->ctx, 1, ops.itr);
 
-    if (nrm < opt.eps)
+    if (nrm < ops.eps)
       break;
   }
 
