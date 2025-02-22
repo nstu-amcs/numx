@@ -5,7 +5,7 @@
 #include <numx/vec/vec.h>
 #include <stdx/cap.h>
 
-struct iss_opt {
+struct iss_ops {
   /**
    * @brief Iteration callback closure
    *
@@ -21,22 +21,22 @@ struct iss_opt {
   int max;
 };
 
-struct iss_jac_opt {
-  struct iss_opt opt;
+struct iss_jac_ops {
+  struct iss_ops ops;
 
   /// @brief Relaxation parameter
   double omg;
 };
 
-struct iss_rlx_opt {
-  struct iss_opt opt;
+struct iss_rlx_ops {
+  struct iss_ops ops;
 
   /// @brief Relaxation parameter
   double omg;
 };
 
-struct iss_bcg_opt {
-  struct iss_opt opt;
+struct iss_bcg_ops {
+  struct iss_ops ops;
 
   /// @brief Preconditioner (maybe null)
   union con {
@@ -44,10 +44,10 @@ struct iss_bcg_opt {
   } con;
 };
 
-int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_opt o);
-int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_opt o);
+int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_ops o);
+int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_ops o);
 
-int siss_bcg_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_opt o);
+int siss_bcg_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_ops o);
 
 /// @brief Jacobi solver for systems of linear equations, Mx = f
 #define iss_jac_slv(M, x, f, o) _Generic((M), \
