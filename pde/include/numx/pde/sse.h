@@ -10,30 +10,30 @@ struct fdm_vtx_ctx {
   /// @brief Wether vertex imaginary or not.
   bool img;
 
+  /// @brief External influence.
+  double ext;
+
+  /// @brief Gamma coefficient.
+  double gam;
+
   /// @brief Boundary condition.
   struct cnd cnd;
-
-  double ext;
-  double gam;
 };
 
-struct fdm_sse_ops {
+/// @brief Options for solid-state equations.
+struct sse_ops {
+  /// @brief Diffusion coefficient.
   double lam;
-
-  int nx;
-  int ny;
 };
-
-struct fem_sse_ops {};
 
 /// @brief Finite Difference Method boundary problem solver.
 /// @param o domain object
 /// @param x solution vector
-int pde_sse_fdm_slv(struct obj* o, struct vec* x, struct fdm_sse_ops ops);
+int pde_sse_fdm_slv(struct obj* o, struct vec* x, struct sse_ops ops);
 
 /// @brief Finite Element Method boundary problem solver.
 /// @param o domain object
 /// @param x solution vector
-int pde_sse_fem_slv(struct obj* o, struct vec* x, struct fem_sse_ops ops);
+int pde_sse_fem_slv(struct obj* o, struct vec* x);
 
 #endif  // NUMX_PDE_SSE_H

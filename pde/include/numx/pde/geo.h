@@ -5,7 +5,7 @@
 #include <stdx/cap.h>
 #include <stdx/cut.h>
 
-/// @brief Geometric vertex
+/// @brief Geometric vertex.
 struct vtx {
   double x;
   double y;
@@ -14,21 +14,21 @@ struct vtx {
   void* ctx;
 };
 
-/// @brief Geometric line segment
+/// @brief Geometric line segment.
 struct seg {
   int vtx[2];
 
   void* ctx;
 };
 
-/// @brief Geometric quadrangle
+/// @brief Geometric quadrangle.
 struct qud {
   int vtx[4];
 
   void* ctx;
 };
 
-/// @brief Geometric hexahedron
+/// @brief Geometric hexahedron.
 struct hxd {
   int vtx[6];
 
@@ -39,6 +39,7 @@ struct hxd {
 struct obj {
   /// @brief Object's properties.
   struct obj_pps {
+    bool with_img;
     bool with_seg;
     bool with_qud;
     bool with_hxd;
@@ -55,6 +56,10 @@ struct obj {
 
   /// @brief Object's hexahedrons.
   struct pcut h;
+
+  int nx;
+  int ny;
+  int nz;
 };
 
 int obj_new(struct obj* o, struct obj_pps pps);
@@ -72,5 +77,11 @@ int obj_put_vtx(struct vtx* v, char* buf, int n);
 int obj_put_seg(struct seg* s, char* buf, int n);
 int obj_put_qud(struct qud* q, char* buf, int n);
 int obj_put_hxd(struct hxd* h, char* buf, int n);
+
+int obj_gen_img(struct obj* o);
+
+int obj_gen_div_x(struct obj* o, double (*s)(double, double), void (*m)(struct vtx*));
+int obj_gen_div_y(struct obj* o, double (*s)(double, double), void (*m)(struct vtx*));
+int obj_gen_div_z(struct obj* o, double (*s)(double, double), void (*m)(struct vtx*));
 
 #endif  // NUMX_PDE_GEO_H

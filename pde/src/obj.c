@@ -318,3 +318,8 @@ int obj_put_hxd(struct hxd* h, char* buf, int n) {
 
   return 0;
 }
+
+int obj_gen_img(struct obj* o);
+int obj_gen_div_x(struct obj* o, double (*s)(double, double));
+int obj_gen_div_y(struct obj* o, double (*s)(double, double));
+int obj_gen_div_z(struct obj* o, double (*s)(double, double));
