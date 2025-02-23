@@ -1,9 +1,11 @@
 set(SRC
     src/obj.c
+
+    src/sse_fdm.c
 )
 
 add_library(pde ${SRC})
-target_link_libraries(pde PUBLIC stdx)
+target_link_libraries(pde PUBLIC stdx vec iss)
 target_include_directories(pde PUBLIC include/)
 
 add_executable(test_obj test/test_obj.c)
