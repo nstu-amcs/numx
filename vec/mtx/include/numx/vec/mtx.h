@@ -3,6 +3,9 @@
 
 #include <numx/vec/vec.h>
 
+/**
+ * @brief Matrix in dense storage mode
+ */
 struct imtx {
   struct imtx_pps {
     int m;
@@ -18,6 +21,11 @@ int imtx_cls(struct imtx* m);
 int imtx_vmlt(struct imtx* m, struct vec* x, struct vec* f);
 int imtx_mmlt(struct imtx* a, struct imtx* b, struct imtx* r);
 
+/**
+ * @brief Sparse matrix in row-column storage mode
+ *
+ * See https://www.ibm.com/docs/en/essl/6.2?topic=representation-storage-by-rows
+ */
 struct smtx {
   struct smtx_pps {
     int n;
@@ -41,7 +49,11 @@ int smtx_dgl(struct smtx* m, struct smtx* r);
 int smtx_vmlt(struct smtx* m, struct vec* x, struct vec* f);
 int smtx_mmlt(struct smtx* a, struct smtx* b, struct smtx* r);
 
-// See https://www.ibm.com/docs/en/essl/6.2?topic=representation-compressed-diagonal-storage-mode
+/**
+ * @brief Sparse matrix in compressed-diagonal storage mode
+ *
+ * See https://www.ibm.com/docs/en/essl/6.2?topic=representation-compressed-diagonal-storage-mode
+ * */
 struct dmtx {
   struct dmtx_pps {
     int n;

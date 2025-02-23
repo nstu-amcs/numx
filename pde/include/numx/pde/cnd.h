@@ -1,10 +1,10 @@
 #ifndef NUMX_PDE_CND_H
 #define NUMX_PDE_CND_H
 
-#include <numx/geo/geo.h>
+#include <numx/pde/geo.h>
 
 struct cnd {
-  enum type { DIR, NEU, ROB } type;
+  enum type { NIL, DIR, NEU, ROB } type;
 
   union {
     struct {
