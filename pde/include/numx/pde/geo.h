@@ -43,6 +43,10 @@ struct obj {
     bool with_seg;
     bool with_qud;
     bool with_hxd;
+
+    int nx;
+    int ny;
+    int nz;
   } pps;
 
   /// @brief Object's vertices (required).
@@ -56,10 +60,6 @@ struct obj {
 
   /// @brief Object's hexahedrons.
   struct pcut h;
-
-  int nx;
-  int ny;
-  int nz;
 };
 
 int obj_new(struct obj* o, struct obj_pps pps);
@@ -78,10 +78,14 @@ int obj_put_seg(struct seg* s, char* buf, int n);
 int obj_put_qud(struct qud* q, char* buf, int n);
 int obj_put_hxd(struct hxd* h, char* buf, int n);
 
-int obj_gen_img(struct obj* o);
+// clang-format off
+/// @brief Generate object with imaginary vertices.
+int obj_gen_img(struct obj* o, 
+  struct dcap* xs,
+  struct dcap* ys,
+  struct dcap* zs,
+  struct vcap* m
+);
 
-int obj_gen_div_x(struct obj* o, double (*s)(double, double), void (*m)(struct vtx*));
-int obj_gen_div_y(struct obj* o, double (*s)(double, double), void (*m)(struct vtx*));
-int obj_gen_div_z(struct obj* o, double (*s)(double, double), void (*m)(struct vtx*));
 
 #endif  // NUMX_PDE_GEO_H

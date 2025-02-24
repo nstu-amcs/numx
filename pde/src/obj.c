@@ -2,6 +2,7 @@
 #include <numx/pde/geo.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdx/log.h>
 
 int obj_new(struct obj* o, struct obj_pps p) {
   if (!o) {
@@ -319,7 +320,90 @@ int obj_put_hxd(struct hxd* h, char* buf, int n) {
   return 0;
 }
 
-int obj_gen_img(struct obj* o);
-int obj_gen_div_x(struct obj* o, double (*s)(double, double));
-int obj_gen_div_y(struct obj* o, double (*s)(double, double));
-int obj_gen_div_z(struct obj* o, double (*s)(double, double));
+// clang-format off
+int obj_gen_img(struct obj* o, 
+  struct dcap* xs,
+  struct dcap* ys,
+  struct dcap* zs,
+  struct vcap* m
+) {
+  // clang-format on
+
+  if (!o) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  struct plog lays;
+
+  if (log_new(&lays)) {
+    return -1;
+  }
+
+  struct vtx** vv = (struct vtx*)o->v.dat;
+
+  double minX = vv[0]->x;
+  double minY = vv[0]->y;
+  double minZ = vv[0]->z;
+
+  double maxX = vv[0]->x;
+  double maxY = vv[0]->y;
+  double maxZ = vv[0]->z;
+
+  double y = vv[0]->y - 1;
+
+  struct plog* lay = 0;
+
+  for (int i = 0; i < o->v.len; ++i) {
+    struct vtx* v = vv[i];
+
+    if (v->y != y) {
+      lay = malloc(sizeof(struct plog));
+
+      if (!lay) {
+        errno = ENOMEM;
+        return -1;
+      }
+
+      if (log_new(&lay)) {
+        free(lay);
+        return -1;
+      }
+
+      if (log_add(&lays, lay)) {
+        free(lay);
+        return -1;
+      }
+    }
+
+    if (log_add(lay, v)) {
+      return -1;
+    }
+
+    if (v->x < minX) {
+      minX = v->x;
+    }
+
+    if (v->x > maxX) {
+      maxX = v->x;
+    }
+
+    if (v->y < minY) {
+      minY = v->y;
+    }
+
+    if (v->y > maxY) {
+      maxY = v->y;
+    }
+
+    if (v->z < minZ) {
+      minZ = v->z;
+    }
+
+    if (v->z > maxZ) {
+      maxZ = v->z;
+    }
+  }
+
+  return 0;
+}
