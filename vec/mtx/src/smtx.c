@@ -12,8 +12,8 @@ int smtx_new(struct smtx* m, struct smtx_pps pps) {
 
   m->pps = pps;
 
-  m->dr = nullptr;
-  m->ia = nullptr;
+  m->dr = 0;
+  m->ia = 0;
 
   m->dr = malloc(sizeof(double) * pps.n);
   m->ia = malloc(sizeof(int) * (pps.n + 1));
@@ -29,9 +29,9 @@ int smtx_new(struct smtx* m, struct smtx_pps pps) {
   memset(m->dr, 0, sizeof(double) * pps.n);
   memset(m->ia, 0, sizeof(int) * (pps.n + 1));
 
-  m->lr = nullptr;
-  m->ur = nullptr;
-  m->ja = nullptr;
+  m->lr = 0;
+  m->ur = 0;
+  m->ja = 0;
 
   if (pps.z > 0) {
     m->lr = malloc(sizeof(double) * pps.z);

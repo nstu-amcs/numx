@@ -2,7 +2,9 @@
 #include <numx/vec/iss.h>
 #include <stdarg.h>
 
-void itr_log(void*, int n, ...) {
+void itr_log(void* ctx, int n, ...) {
+  (void)ctx;
+
   va_list arg;
   va_start(arg, n);
 
@@ -20,7 +22,10 @@ void itr_log(void*, int n, ...) {
 //     | 1 2 0 |
 // m = | 0 7 3 |, x = (1, 2, 3), mx = f = (5, 23, 27)
 //     | 0 0 9 |
-static MunitResult test_diss_rlx_posd(const MunitParameter[], void*) {
+static MunitResult test_diss_rlx_posd(const MunitParameter pps[], void* ctx) {
+  (void)pps;
+  (void)ctx;
+
   struct dmtx m;
   struct vec x;
   struct vec f;

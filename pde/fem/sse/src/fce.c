@@ -25,10 +25,10 @@ int fce_ini(struct fce** h) {
   f->vtx[3] = 0;
 
   f->cnd.pps.rob.bet = 0;
-  f->cnd.pps.rob.tmp = nullptr;
+  f->cnd.pps.rob.tmp = 0;
 
-  f->loc.rob.b = nullptr;
-  f->loc.rob.m = nullptr;
+  f->loc.rob.b = 0;
+  f->loc.rob.m = 0;
 
   *h = f;
 
@@ -62,7 +62,7 @@ int fce_cls(struct fce** h) {
   }
 
   free(f);
-  *h = nullptr;
+  *h = 0;
 
   return 0;
 }

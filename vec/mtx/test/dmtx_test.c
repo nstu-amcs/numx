@@ -4,7 +4,10 @@
 //     | 1 2 0 |
 // m = | 0 7 3 |, x = (1, 2, 3), mx = f = (5, 23, 0)
 //     | 0 0 0 |
-static MunitResult test_dmtx_vmlt_asym(const MunitParameter[], void*) {
+static MunitResult test_dmtx_vmlt_asym(const MunitParameter pps[], void* ctx) {
+  (void)pps;
+  (void)ctx;
+
   struct dmtx m;
   struct vec x;
   struct vec f;

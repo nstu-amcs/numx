@@ -35,14 +35,14 @@ int fem_ini(struct fem** h) {
   fem->hs = 0;
   fem->fs = 0;
 
-  fem->a = nullptr;
-  fem->b = nullptr;
+  fem->a = 0;
+  fem->b = 0;
 
-  fem->vtx = nullptr;
-  fem->hex = nullptr;
-  fem->fce = nullptr;
+  fem->vtx = 0;
+  fem->hex = 0;
+  fem->fce = 0;
 
-  fem->pps.fun = nullptr;
+  fem->pps.fun = 0;
 
   *h = fem;
 
@@ -85,7 +85,7 @@ int fem_cls(struct fem** h) {
   }
 
   free(fem);
-  *h = nullptr;
+  *h = 0;
 
   return 0;
 }
@@ -182,7 +182,7 @@ int fem_evo(struct fem* fem) {
   for (int i = 0, e = 0; i < fem->vs; ++i) {
     fem->a->ia[i] = e;
 
-    struct isln* j = nullptr;
+    struct isln* j = 0;
 
     while (sll_next(l[i], &j)) {
       fem->a->ja[e] = j->e;
@@ -222,7 +222,7 @@ int fem_asm(struct fem* fem) {
     }
   }
 
-  struct isln* i = nullptr;
+  struct isln* i = 0;
 
   while (sll_next(dir, &i)) {
     struct fce* f = fem->fce[i->e];

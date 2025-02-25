@@ -5,7 +5,10 @@
 
 #include <numx/non/apx.h>
 
-static MunitResult test_cub(const MunitParameter[], void*) {
+static MunitResult test_cub(const MunitParameter p[], void* c) {
+  (void)p;
+  (void)c;
+
   struct imtx km;
   struct vec xv;
 

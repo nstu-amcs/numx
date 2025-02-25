@@ -20,8 +20,8 @@ struct fdm_vtx_ctx {
   struct cnd cnd;
 };
 
-/// @brief Options for solid-state equations.
-struct sse_ops {
+/// @brief Object context for Finite Difference Method solver.
+struct fdm_obj_ctx {
   /// @brief Diffusion coefficient.
   double lam;
 };
@@ -29,7 +29,7 @@ struct sse_ops {
 /// @brief Finite Difference Method boundary problem solver.
 /// @param o domain object
 /// @param x solution vector
-int pde_sse_fdm_slv(struct obj* o, struct vec* x, struct sse_ops ops);
+int pde_sse_fdm_slv(struct obj* o, struct vec* x);
 
 /// @brief Finite Element Method boundary problem solver.
 /// @param o domain object
