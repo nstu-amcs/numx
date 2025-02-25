@@ -28,13 +28,13 @@ int hex_ini(struct hex** h) {
   hex->vtx[6] = 0;
   hex->vtx[7] = 0;
 
-  hex->loc.b = nullptr;
-  hex->loc.m = nullptr;
+  hex->loc.b = 0;
+  hex->loc.m = 0;
 
   hex->pps.gam = 0;
   hex->pps.lam = 0;
 
-  hex->pps.f = nullptr;
+  hex->pps.f = 0;
 
   *h = hex;
 
@@ -55,7 +55,7 @@ int hex_cls(struct hex** h) {
   if (hex->loc.b)
     vec_cls(hex->loc.b);
 
-  *h = nullptr;
+  *h = 0;
   free(hex);
 
   return 0;

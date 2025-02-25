@@ -4,7 +4,9 @@
 
 // clang-format off
 
-static void* test_fde_sup(const MunitParameter pps[], void*) {
+static void* test_fde_sup(const MunitParameter pps[], void* ctx) {
+  (void)ctx;
+
   char name[16];
 
   strcpy(name, pps[0]->value);
@@ -44,8 +46,10 @@ static void test_fde_tdn(void* c) {
   free(c);
 }
 
-static MunitResult test_fde(const MunitParameter[], void* c) { 
-  struct obj* o = (struct obj*)c;
+static MunitResult test_fde(const MunitParameter pps[], void* ctx) { 
+  (void)pps;
+
+  struct obj* o = (struct obj*)ctx;
   struct vec x;
 
   if (vec_new(&x, o->v.len))

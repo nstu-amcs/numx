@@ -54,10 +54,15 @@ int obj_get(struct obj* o, FILE* f) {
 
   char buf[64];
 
+  struct vtx* v = 0;
+  struct seg* s = 0;
+  struct qud* q = 0;
+  struct hxd* h = 0;
+
   while (fgets(buf, sizeof(buf), f))
     switch (buf[0]) {
       case 'v':
-        struct vtx* v = malloc(sizeof(struct vtx));
+        v = malloc(sizeof(struct vtx));
 
         if (!v) {
           errno = ENOMEM;
@@ -79,7 +84,7 @@ int obj_get(struct obj* o, FILE* f) {
         if (!o->pps.with_seg)
           continue;
 
-        struct seg* s = malloc(sizeof(struct seg));
+        s = malloc(sizeof(struct seg));
 
         if (!s) {
           errno = ENOMEM;
@@ -101,7 +106,7 @@ int obj_get(struct obj* o, FILE* f) {
         if (!o->pps.with_qud)
           continue;
 
-        struct qud* q = malloc(sizeof(struct qud));
+        q = malloc(sizeof(struct qud));
 
         if (!q) {
           errno = ENOMEM;
@@ -123,7 +128,7 @@ int obj_get(struct obj* o, FILE* f) {
         if (!o->pps.with_hxd)
           continue;
 
-        struct hxd* h = malloc(sizeof(struct hxd));
+        h = malloc(sizeof(struct hxd));
 
         if (!h) {
           errno = ENOMEM;
@@ -329,81 +334,93 @@ int obj_gen_img(struct obj* o,
 ) {
   // clang-format on
 
+  int r = 0;
+
   if (!o) {
     errno = EINVAL;
     return -1;
   }
 
-  struct plog lays;
+  struct vtx** vv = (struct vtx**)o->v.dat;
 
-  if (log_new(&lays)) {
-    return -1;
-  }
+  struct plog ls;
+  struct ilog xa;
+  struct ilog ya;
 
-  struct vtx** vv = (struct vtx*)o->v.dat;
+  if ((r = log_new(&ls)))
+    goto end;
 
-  double minX = vv[0]->x;
-  double minY = vv[0]->y;
-  double minZ = vv[0]->z;
+  if ((r = log_new(&xa)))
+    goto end;
 
-  double maxX = vv[0]->x;
-  double maxY = vv[0]->y;
-  double maxZ = vv[0]->z;
+  if ((r = log_new(&ya)))
+    goto end;
 
+  xa.srt = true;
+  ya.srt = true;
+
+  struct plog* l = 0;
   double y = vv[0]->y - 1;
-
-  struct plog* lay = 0;
 
   for (int i = 0; i < o->v.len; ++i) {
     struct vtx* v = vv[i];
 
     if (v->y != y) {
-      lay = malloc(sizeof(struct plog));
+      l = malloc(sizeof(struct plog));
 
-      if (!lay) {
+      if (!l) {
         errno = ENOMEM;
-        return -1;
+        r = -1;
+        goto end;
       }
 
-      if (log_new(&lay)) {
-        free(lay);
-        return -1;
+      if ((r = log_new(l))) {
+        free(l);
+        goto end;
       }
 
-      if (log_add(&lays, lay)) {
-        free(lay);
-        return -1;
+      if ((r = log_add(&ls, l))) {
+        log_cls(l);
+        free(l);
+        goto end;
       }
     }
 
-    if (log_add(lay, v)) {
-      return -1;
-    }
+    if ((r = log_add(l, v)))
+      goto end;
 
-    if (v->x < minX) {
-      minX = v->x;
-    }
+    if ((r = log_add(&xa, v->x)) && errno != EALREADY)
+      goto end;
 
-    if (v->x > maxX) {
-      maxX = v->x;
-    }
+    if ((r = log_add(&ya, v->y)) && errno != EALREADY)
+      goto end;
+  }
 
-    if (v->y < minY) {
-      minY = v->y;
-    }
+  if (xs) {
+    double x = 0;
+    double s = 0;
+    double n = 0;
+    double p = 0;
 
-    if (v->y > maxY) {
-      maxY = v->y;
-    }
+    log_adv(&xa, &x);
 
-    if (v->z < minZ) {
-      minZ = v->z;
-    }
+    while (log_adv(&xa, &n) == 1) {
+      s = xs->call(xs->ctx, 2, x, s);
+      n = x + s;
 
-    if (v->z > maxZ) {
-      maxZ = v->z;
+      
     }
   }
 
-  return 0;
+end:
+  for (struct plog* i = 0; log_adv(&ls, &i);) {
+    log_cls(i);
+    free(i);
+  }
+
+  log_cls(&ls);
+  log_cls(&xa);
+  log_cls(&ya);
+
+  return r;
 }

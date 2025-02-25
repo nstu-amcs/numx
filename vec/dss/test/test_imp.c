@@ -4,7 +4,10 @@
 #include <string.h>
 #include <numx/vec/dss.h>
 
-static MunitResult test_red(const MunitParameter[], void*) {
+static MunitResult test_red(const MunitParameter p[], void* c) {
+  (void)p;
+  (void)c;
+
   struct imtx m;
   struct vec x;
   struct vec f;

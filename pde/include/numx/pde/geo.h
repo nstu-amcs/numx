@@ -60,6 +60,9 @@ struct obj {
 
   /// @brief Object's hexahedrons.
   struct pcut h;
+
+  /// @brief Object's context.
+  void* ctx;
 };
 
 int obj_new(struct obj* o, struct obj_pps pps);

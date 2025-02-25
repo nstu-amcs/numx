@@ -3,11 +3,13 @@
 #include <numx/vec/iss.h>
 #include <numx/vec/mtx.h>
 
-int pde_sse_fdm_slv(struct obj* o, struct vec* x, struct fdm_sse_ops ops) {
+int pde_sse_fdm_slv(struct obj* o, struct vec* x) {
   if (!o || !x) {
     errno = EINVAL;
     return -1;
   }
+
+  struct fdm_obj_ctx* oc = o->ctx;
 
   struct dmtx m;
   struct vec f;
@@ -26,38 +28,38 @@ int pde_sse_fdm_slv(struct obj* o, struct vec* x, struct fdm_sse_ops ops) {
 
   for (int i = 0; i < o->v.len; ++i) {
     struct vtx* v = o->v.dat[i];
-    struct fdm_vtx_ctx* c = v->ctx;
+    struct fdm_vtx_ctx* vc = v->ctx;
 
-    if (c->img) {
+    if (vc->img) {
       m.ad[0][i] = 1;
       f.dat[i] = 1;
 
       continue;
     }
 
-    switch (c->cnd.type) {
+    switch (vc->cnd.type) {
       case DIR:
         m.ad[0][i] = 1;
-        f.dat[i] = c->cnd.pps.dir.tmp(v);
+        f.dat[i] = vc->cnd.pps.dir.tmp(v);
 
         continue;
       default:
         break;
     }
 
-    double hl = v->x - ((struct vtx*)o->v.dat[i - 1])->x;
     double hr = ((struct vtx*)o->v.dat[i + 1])->x - v->x;
-    double hu = ((struct vtx*)o->v.dat[i + ops.nx])->y - v->y;
-    double hd = v->y - ((struct vtx*)o->v.dat[i - ops.nx])->y;
+    double hu = ((struct vtx*)o->v.dat[i + o->pps.nx])->y - v->y;
+    double hl = v->x - ((struct vtx*)o->v.dat[i - 1])->x;
+    double hd = v->y - ((struct vtx*)o->v.dat[i - o->pps.nx])->y;
 
-    m.ad[0][i] = 2 * ops.lam * (1 / (hl * hr) + 1 / (hd * hu)) + c->gam;
+    m.ad[0][i] = 2 * oc->lam * (1 / (hl * hr) + 1 / (hd * hu)) + vc->gam;
 
-    m.ad[1][i] = -2 * ops.lam / (hr * (hr + hl));
-    m.ad[2][i] = -2 * ops.lam / (hu * (hu + hd));
-    m.ad[3][i] = -2 * ops.lam / (hl * (hr + hl));
-    m.ad[4][i] = -2 * ops.lam / (hd * (hu + hd));
+    m.ad[1][i] = -2 * oc->lam / (hr * (hr + hl));
+    m.ad[2][i] = -2 * oc->lam / (hu * (hu + hd));
+    m.ad[3][i] = -2 * oc->lam / (hl * (hr + hl));
+    m.ad[4][i] = -2 * oc->lam / (hd * (hu + hd));
 
-    f.dat[i] = c->ext;
+    f.dat[i] = vc->ext;
   }
 
   // clang-format off

@@ -7,13 +7,16 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdx.h>
+#include <stdbool.h>
 
 struct rec {
   int i;
   double v;
 };
 
-static int rec_cmp_dsc(void*, int n, ...) {
+static int rec_cmp_dsc(void* ctx, int n, ...) {
+  (void)ctx;
+
   if (n < 2)
     return 0;
 

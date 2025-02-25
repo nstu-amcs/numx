@@ -33,7 +33,7 @@ int vtx_cls(struct vtx** h) {
   }
 
   free(*h);
-  *h = nullptr;
+  *h = 0;
 
   return 0;
 }

@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static MunitResult test_new(const MunitParameter[], void*) {
+static MunitResult test_new(const MunitParameter pps[], void* ctx) {
+  (void)pps;
+  (void)ctx;
+
   struct vec v;
 
   vec_new_ini(&v, 3, 1.0, 2.0, 3.0);
