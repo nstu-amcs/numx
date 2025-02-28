@@ -7,6 +7,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "-Wall -Werror -Wextra -Wpedantic -std=c11 -fopenmp")
 set(CMAKE_C_STANDARD 11)
 
+include(CTest)
 enable_testing()
 
 add_subdirectory(stdx)

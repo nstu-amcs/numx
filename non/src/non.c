@@ -5,9 +5,9 @@
 #include <numx/vec/dss.h>
 #include <numx/vec/mtx.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdx.h>
-#include <stdbool.h>
 
 struct rec {
   int i;
@@ -123,7 +123,6 @@ int non_new_slv(struct pcut* fun, struct vec* x, struct non_new_ops ops) {
   if (cut_exp(&rec, fun->len))
     goto err;
 
-  rec.ctl = true;
   rec.cmp.call = &rec_cmp_dsc;
 
   for (int i = 0; i < fun->len; ++i) {
@@ -227,6 +226,9 @@ err:
   r = -1;
 
 end:
+  for (int i = 0; i < rec.len; ++i)
+    free(rec.dat[i]);
+
   cut_cls(&rec);
   vec_cls(&fk);
   vec_cls(&dk);

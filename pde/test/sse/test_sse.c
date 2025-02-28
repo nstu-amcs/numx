@@ -5,57 +5,19 @@
 // clang-format off
 
 static void* test_fde_sup(const MunitParameter pps[], void* ctx) {
+  (void)pps;
   (void)ctx;
 
-  char name[16];
-
-  strcpy(name, pps[0]->value);
-  strcat(name, ".obj");
-
-  FILE *f = fopen(name, "r");
-
-  if (!f) {
-    exit(EXIT_FAILURE);
-  }
-
-  struct obj *o = malloc(sizeof(struct obj));
-
-  if (!o) {
-    fclose(f);
-    exit(EXIT_FAILURE);
-  }
-
-  if (obj_new(o, (struct obj_pps) {.with_seg = false, .with_qud = false, .with_hxd = false})) {
-    free(o);
-    fclose(f);
-    exit(EXIT_FAILURE);
-  }
-
-  if (obj_get(o, f)) {
-    free(o);
-    fclose(f);
-    exit(EXIT_FAILURE);
-  }
-
-  fclose(f);
-
-  return o;
+  return NULL;
 }
 
 static void test_fde_tdn(void* c) {
-  free(c);
+  (void)c;
 }
 
 static MunitResult test_fde(const MunitParameter pps[], void* ctx) { 
   (void)pps;
-
-  struct obj* o = (struct obj*)ctx;
-  struct vec x;
-
-  if (vec_new(&x, o->v.len))
-    return MUNIT_FAIL;
-
-  if ()
+  (void)ctx;
 
   return MUNIT_OK; 
 }

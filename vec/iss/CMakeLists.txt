@@ -4,7 +4,7 @@ set(SRC
 )
 
 add_library(iss ${SRC})
-target_link_libraries(iss PUBLIC vec mtx)
+target_link_libraries(iss PUBLIC vec mtx stdx)
 target_include_directories(iss PUBLIC include/)
 
 add_executable(diss_test test/diss_test.c)

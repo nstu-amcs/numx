@@ -6,89 +6,94 @@
 #include <stdx/cut.h>
 
 /// @brief Geometric vertex.
-struct vtx {
+typedef struct vtx {
+  int n;
+
   double x;
   double y;
   double z;
-
-  void* ctx;
-};
+} vtx;
 
 /// @brief Geometric line segment.
-struct seg {
+typedef struct seg {
   int vtx[2];
 
   void* ctx;
-};
+} seg;
 
 /// @brief Geometric quadrangle.
-struct qud {
+typedef struct qud {
   int vtx[4];
 
   void* ctx;
-};
+} qud;
 
 /// @brief Geometric hexahedron.
-struct hxd {
+typedef struct hxd {
   int vtx[6];
 
   void* ctx;
-};
+} hxd;
+
+stdx_def_cut(vcut, vtx);
+stdx_def_cut(scut, seg);
+stdx_def_cut(qcut, qud);
+stdx_def_cut(hcut, hxd);
 
 /// @brief Complex geometric object.
 struct obj {
-  /// @brief Object's properties.
-  struct obj_pps {
-    bool with_img;
-    bool with_seg;
-    bool with_qud;
-    bool with_hxd;
+  struct dcut ax;
+  struct dcut ay;
+  struct dcut az;
 
-    int nx;
-    int ny;
-    int nz;
-  } pps;
-
-  /// @brief Object's vertices (required).
-  struct pcut v;
+  /// @brief Object's vertices.
+  struct vcut vtx;
 
   /// @brief Object's segments.
-  struct pcut s;
+  struct scut seg;
 
   /// @brief Object's quadrangles.
-  struct pcut q;
+  struct qcut qud;
 
   /// @brief Object's hexahedrons.
-  struct pcut h;
+  struct hcut hxd;
 
   /// @brief Object's context.
   void* ctx;
 };
 
-int obj_new(struct obj* o, struct obj_pps pps);
-int obj_cls(struct obj* o);
+int obj_new(struct obj* obj);
+int obj_cls(struct obj* obj);
 
-int obj_get(struct obj* o, FILE* f);
-int obj_put(struct obj* o, FILE* f);
+struct obj_get_ops {
+  struct icap* get_seg_ctx;  // const char* buf, size_t n, void** ctx
+  struct icap* get_qud_ctx;  // const char* buf, size_t n, void** ctx
+  struct icap* get_hxd_ctx;  // const char* buf, size_t n, void** ctx
+};
 
-int obj_get_vtx(struct vtx* v, const char* buf);
-int obj_get_seg(struct seg* s, const char* buf);
-int obj_get_qud(struct qud* q, const char* buf);
-int obj_get_hxd(struct hxd* h, const char* buf);
+/// @brief Get object's reference elements from the file.
+int obj_get(struct obj* obj, FILE* f, struct obj_get_ops);
 
-int obj_put_vtx(struct vtx* v, char* buf, int n);
-int obj_put_seg(struct seg* s, char* buf, int n);
-int obj_put_qud(struct qud* q, char* buf, int n);
-int obj_put_hxd(struct hxd* h, char* buf, int n);
+struct obj_put_ops {
+  struct icap* put_seg_ctx;  // char* buf, size_t n, void* ctx
+  struct icap* put_qud_ctx;  // char* buf, size_t n, void* ctx
+  struct icap* put_hxd_ctx;  // char* buf, size_t n, void* ctx
+};
 
-// clang-format off
-/// @brief Generate object with imaginary vertices.
-int obj_gen_img(struct obj* o, 
-  struct dcap* xs,
-  struct dcap* ys,
-  struct dcap* zs,
-  struct vcap* m
-);
+/// @brief Put object's reference elements into the file.
+int obj_put(struct obj* obj, FILE* f, struct obj_put_ops);
 
+struct obj_gen_ops {
+  bool with_seg;
+  bool with_qud;
+  bool with_hxd;
+
+  struct dcap* sx;
+  struct dcap* sy;
+  struct dcap* sz;
+};
+
+/// @brief Generate object based on reference elements.
+int obj_gen(struct obj* obj, struct obj_gen_ops ops);
 
 #endif  // NUMX_PDE_GEO_H
