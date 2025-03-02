@@ -2,64 +2,182 @@
 #include <numx/pde/sse.h>
 #include <numx/vec/iss.h>
 #include <numx/vec/mtx.h>
+#include <stdarg.h>
+#include <stdio.h>
 
-int pde_sse_fdm_slv(struct obj* o, struct vec* x) {
-  if (!o || !x) {
+struct seg_ctx {
+  struct cnd cnd;
+};
+
+struct qud_ctx {
+  double lam;
+  double gam;
+};
+
+int get_seg_ctx(void* ctx, int n, ...) {
+  if (!ctx || n != 3) {
     errno = EINVAL;
     return -1;
   }
 
-  struct fdm_obj_ctx* oc = o->ctx;
+  struct pcut* dat = (struct pcut*)ctx;
+
+  va_list arg;
+  va_start(arg, n);
+
+  const char* buf = va_arg(arg, const char*);
+  void** sch = va_arg(arg, void**);
+
+  va_end(arg);
+
+  struct seg_ctx* sc = malloc(sizeof(struct seg_ctx));
+
+  if (!sc)
+    return -1;
+
+  if (cnd_get(&sc->cnd, buf, dat)) {
+    free(sc);
+    return -1;
+  }
+
+  *sch = sc;
+
+  return 0;
+}
+
+int get_qud_ctx(void* ctx, int n, ...) {
+  (void)ctx;
+
+  if (n != 3) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  va_list arg;
+  va_start(arg, n);
+
+  const char* buf = va_arg(arg, const char*);
+  void** qch = va_arg(arg, void**);
+
+  va_end(arg);
+
+  struct qud_ctx* qc = malloc(sizeof(struct qud_ctx));
+
+  if (!qc)
+    return -1;
+
+  if (sscanf(buf, "%lf %lf", &qc->lam, &qc->gam) != 2) {
+    free(qc);
+    return -1;
+  }
+
+  *qch = qc;
+
+  return 0;
+}
+
+enum seg_nrm { NRM_U, NRM_D, NRM_L, NRM_R };
+enum vtx_sts { VTX_NON, VTX_DIR, VTX_NEU };
+
+static enum seg_nrm seg_nrm(struct seg* seg, int nx) {
+  int x1 = seg->vtx[0] % nx;
+  int x2 = seg->vtx[1] % nx;
+  int y1 = seg->vtx[0] / nx;
+  int y2 = seg->vtx[1] / nx;
+
+  if (y1 == y2)
+    return x1 < x2 ? NRM_D : NRM_U;
+  else
+    return y1 < y2 ? NRM_R : NRM_L;
+}
+
+int pde_sse_fdm_slv(struct obj* obj, struct vec* x) {
+  if (!obj || !x) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  int r = 0;
+
+  int nx = obj->ax.len;
+  int ny = obj->ay.len;
 
   struct dmtx m;
   struct vec f;
 
-  if (mtx_new(&m, ((struct dmtx_pps){.n = o->v.len, .d = 5})))
-    return -1;
+  enum vtx_sts* sts = malloc(sizeof(enum vtx_sts) * nx * ny);
+
+  if (!sts) {
+    r = -1;
+    goto end;
+  }
+
+  if ((r = mtx_new(&m, ((struct dmtx_pps){.n = nx * ny, .d = 5}))))
+    goto end;
+
+  if ((r = vec_new(&f, nx * ny)))
+    goto end;
+
+  for (int i = 0; i < nx * ny; ++i)
+    sts[i] = VTX_NON;
 
   m.la[0] = 0;
   m.la[1] = 1;
-  m.la[2] = 5;
+  m.la[2] = nx;
   m.la[3] = -1;
-  m.la[4] = -5;
+  m.la[4] = -nx;
 
-  if (vec_new(&f, o->v.len))
-    return -1;
+  for (int i = 0; i < nx * ny; ++i)
+    m.ad[0][i] = 1;
 
-  for (int i = 0; i < o->v.len; ++i) {
-    struct vtx* v = o->v.dat[i];
-    struct fdm_vtx_ctx* vc = v->ctx;
+  struct seg* seg = obj->seg.dat;
 
-    if (vc->img) {
-      m.ad[0][i] = 1;
-      f.dat[i] = 1;
+  for (int i = 0; i < obj->seg.len; ++i) {
+    struct seg_ctx* ctx = seg[i].ctx;
+    enum seg_nrm nrm = seg_nrm(&seg[i], nx);
 
-      continue;
-    }
+    int step = 0;
 
-    switch (vc->cnd.type) {
-      case DIR:
-        m.ad[0][i] = 1;
-        f.dat[i] = vc->cnd.pps.dir.tmp(v);
-
-        continue;
-      default:
+    switch (nrm) {
+      case NRM_L:
+        step = nx;
+        break;
+      case NRM_R:
+        step = -nx;
+        break;
+      case NRM_U:
+        step = -1;
+        break;
+      case NRM_D:
+        step = 1;
         break;
     }
 
-    double hr = ((struct vtx*)o->v.dat[i + 1])->x - v->x;
-    double hu = ((struct vtx*)o->v.dat[i + o->pps.nx])->y - v->y;
-    double hl = v->x - ((struct vtx*)o->v.dat[i - 1])->x;
-    double hd = v->y - ((struct vtx*)o->v.dat[i - o->pps.nx])->y;
+    for (int i = seg[i].vtx[0]; i <= seg[i].vtx[1]; i += step) {
+      struct vtx v = {.x = obj->ax.dat[i % nx], .y = obj->ay.dat[i / nx], .z = 0, .n = i, .ctx = 0};
 
-    m.ad[0][i] = 2 * oc->lam * (1 / (hl * hr) + 1 / (hd * hu)) + vc->gam;
+      switch (sts[i]) {
+        case VTX_NON:
+          switch (ctx->cnd.type) {
+            case DIR:
+              m.ad[0][i] = 1;
+              f.dat[i] = ctx->cnd.pps.dir.tmp(&v);
+              sts[i] = VTX_DIR;
 
-    m.ad[1][i] = -2 * oc->lam / (hr * (hr + hl));
-    m.ad[2][i] = -2 * oc->lam / (hu * (hu + hd));
-    m.ad[3][i] = -2 * oc->lam / (hl * (hr + hl));
-    m.ad[4][i] = -2 * oc->lam / (hd * (hu + hd));
+              break;
+            case NEU:
+              break;
+            case ROB:
+              break;
+          }
 
-    f.dat[i] = vc->ext;
+          break;
+        case VTX_DIR:
+          break;
+        case VTX_NEU:
+          break;
+      }
+    }
   }
 
   // clang-format off
@@ -77,5 +195,11 @@ int pde_sse_fdm_slv(struct obj* o, struct vec* x) {
   }
   // clang-format on
 
-  return 0;
+end:
+  free(sts);
+
+  mtx_cls(&m);
+  vec_cls(&f);
+
+  return r;
 }

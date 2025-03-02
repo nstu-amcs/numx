@@ -12,6 +12,8 @@ typedef struct vtx {
   double x;
   double y;
   double z;
+
+  void* ctx;
 } vtx;
 
 /// @brief Geometric line segment.
@@ -30,7 +32,7 @@ typedef struct qud {
 
 /// @brief Geometric hexahedron.
 typedef struct hxd {
-  int vtx[6];
+  int vtx[8];
 
   void* ctx;
 } hxd;
@@ -66,9 +68,9 @@ int obj_new(struct obj* obj);
 int obj_cls(struct obj* obj);
 
 struct obj_get_ops {
-  struct icap* get_seg_ctx;  // const char* buf, size_t n, void** ctx
-  struct icap* get_qud_ctx;  // const char* buf, size_t n, void** ctx
-  struct icap* get_hxd_ctx;  // const char* buf, size_t n, void** ctx
+  struct icap* get_seg_ctx;  // const char* buf, void** ctx
+  struct icap* get_qud_ctx;  // const char* buf, void** ctx
+  struct icap* get_hxd_ctx;  // const char* buf, void** ctx
 };
 
 /// @brief Get object's reference elements from the file.
@@ -84,6 +86,7 @@ struct obj_put_ops {
 int obj_put(struct obj* obj, FILE* f, struct obj_put_ops);
 
 struct obj_gen_ops {
+  bool with_vtx;
   bool with_seg;
   bool with_qud;
   bool with_hxd;

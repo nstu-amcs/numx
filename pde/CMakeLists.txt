@@ -1,7 +1,7 @@
 set(SRC
     src/geo.c
 
-    # src/sse_fdm.c
+    src/sse_fdm.c
 )
 
 add_library(pde ${SRC})
