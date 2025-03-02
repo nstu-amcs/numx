@@ -4,7 +4,7 @@
 #include <numx/pde/geo.h>
 
 struct cnd {
-  enum type { NIL, DIR, NEU, ROB } type;
+  enum { DIR, NEU, ROB } type;
 
   union {
     struct {
@@ -21,5 +21,7 @@ struct cnd {
     } rob;
   } pps;
 };
+
+int cnd_get(struct cnd* cnd, const char* buf, struct pcut* dat);
 
 #endif  // NUMX_PDE_CND_H

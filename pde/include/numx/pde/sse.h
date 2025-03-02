@@ -4,6 +4,7 @@
 #include <numx/pde/cnd.h>
 #include <numx/pde/geo.h>
 #include <numx/vec/vec.h>
+#include <stdx/cut.h>
 
 /// @brief Finite Difference Method boundary problem solver.
 /// @param o domain object
