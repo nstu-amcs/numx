@@ -9,4 +9,4 @@ add_executable(vec_test test/vec_test.c)
 
 target_link_libraries(vec_test vec munit)
 
-add_test(NAME vec COMMAND vec_test)
+add_test(NAME numx/vec/vec COMMAND vec_test)

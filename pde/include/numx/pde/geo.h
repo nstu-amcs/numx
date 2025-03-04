@@ -5,6 +5,8 @@
 #include <stdx/cap.h>
 #include <stdx/cut.h>
 
+enum norm { NORM_U, NORM_D, NORM_L, NORM_R };
+
 /// @brief Geometric vertex.
 typedef struct vtx {
   int n;

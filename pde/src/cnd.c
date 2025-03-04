@@ -2,7 +2,9 @@
 #include <numx/pde/cnd.h>
 #include <stdio.h>
 
-int cnd_get(struct cnd* cnd, const char* buf, struct pcut* dat) {
+stdx_gen_cut(ocut, vfun, STDX_PUB);
+
+int cnd_get(struct cnd* cnd, const char* buf, struct ocut* dat) {
   if (!cnd || !buf) {
     errno = EINVAL;
     return -1;
@@ -12,7 +14,7 @@ int cnd_get(struct cnd* cnd, const char* buf, struct pcut* dat) {
   int f = 0;
   int n = 0;
 
-  if (sscanf(buf, "%c %d %n", &t, &f, &n) != 2)
+  if (sscanf(buf, "%c %d%n", &t, &f, &n) != 2)
     return -1;
 
   if (f >= dat->len) {
