@@ -1,8 +1,4 @@
 {
+    "C_Cpp.default.cStandard": "c17",
     "C_Cpp.errorSquiggles": "disabled",
-    "C_Cpp.default.cStandard": "c11",
-    "files.associations": {
-        "cut.h": "c",
-        "errno.h": "c"
-    }
 }

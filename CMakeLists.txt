@@ -4,8 +4,8 @@ project(numx C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_FLAGS "-Wall -Werror -Wextra -Wpedantic -std=c11 -fopenmp")
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_FLAGS "-Wall -Werror -Wextra -Wpedantic -std=c17 -fopenmp")
+set(CMAKE_C_STANDARD 17)
 
 include(CTest)
 enable_testing()
