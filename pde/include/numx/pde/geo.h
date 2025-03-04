@@ -68,18 +68,20 @@ int obj_new(struct obj* obj);
 int obj_cls(struct obj* obj);
 
 struct obj_get_ops {
-  struct icap* get_seg_ctx;  // const char* buf, void** ctx
-  struct icap* get_qud_ctx;  // const char* buf, void** ctx
-  struct icap* get_hxd_ctx;  // const char* buf, void** ctx
+  struct icap* get_vtx_ctx;
+  struct icap* get_seg_ctx;
+  struct icap* get_qud_ctx;
+  struct icap* get_hxd_ctx;
 };
 
 /// @brief Get object's reference elements from the file.
 int obj_get(struct obj* obj, FILE* f, struct obj_get_ops);
 
 struct obj_put_ops {
-  struct icap* put_seg_ctx;  // char* buf, size_t n, void* ctx
-  struct icap* put_qud_ctx;  // char* buf, size_t n, void* ctx
-  struct icap* put_hxd_ctx;  // char* buf, size_t n, void* ctx
+  struct icap* put_vtx_ctx;
+  struct icap* put_seg_ctx;
+  struct icap* put_qud_ctx;
+  struct icap* put_hxd_ctx;
 };
 
 /// @brief Put object's reference elements into the file.

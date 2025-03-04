@@ -133,6 +133,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
   int qs = obj->qud.len;
   int hs = obj->hxd.len;
 
+  struct vtx* v = 0;
   struct seg* s = 0;
   struct qud* q = 0;
   struct hxd* h = 0;
@@ -145,8 +146,14 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
         if (vcut_dev(&obj->vtx, 1))
           return -1;
 
-        if ((n = obj_get_vtx(&obj->vtx.dat[vs++], buf)) == -1)
+        v = &obj->vtx.dat[vs++];
+
+        if ((n = obj_get_vtx(v, buf)) == -1)
           return -1;
+
+        if (ops.get_vtx_ctx)
+          if (ops.get_vtx_ctx->call(ops.get_vtx_ctx->ctx, 2, buf + n, &v->ctx))
+            return -1;
 
         break;
       case 's':
@@ -159,7 +166,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
           return -1;
 
         if (ops.get_seg_ctx)
-          if (ops.get_seg_ctx->call(ops.get_seg_ctx->ctx, 3, buf + n, sizeof(buf) - n, &s->ctx) == -1)
+          if (ops.get_seg_ctx->call(ops.get_seg_ctx->ctx, 2, buf + n, &s->ctx))
             return -1;
 
         break;
@@ -173,7 +180,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
           return -1;
 
         if (ops.get_qud_ctx)
-          if (ops.get_qud_ctx->call(ops.get_qud_ctx->ctx, 3, buf + n, sizeof(buf) - n, &q->ctx) == -1)
+          if (ops.get_qud_ctx->call(ops.get_qud_ctx->ctx, 2, buf + n, &q->ctx))
             return -1;
 
         break;
@@ -183,11 +190,11 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
 
         h = &obj->hxd.dat[hs++];
 
-        if ((n = obj_get_hxd(h, buf)))
+        if ((n = obj_get_hxd(h, buf)) == -1)
           return -1;
 
         if (ops.get_hxd_ctx)
-          if (ops.get_hxd_ctx->call(ops.get_hxd_ctx->ctx, 3, buf + n, sizeof(buf) - n, &h->ctx) == -1)
+          if (ops.get_hxd_ctx->call(ops.get_hxd_ctx->ctx, 3, buf + n, &h->ctx))
             return -1;
 
         break;
@@ -239,7 +246,7 @@ int obj_put_seg(struct seg* s, char* buf, int n) {
   if (r < 0 || r >= n)
     return -1;
 
-  return 0;
+  return r;
 }
 
 int obj_put_qud(struct qud* q, char* buf, int n) {
@@ -253,7 +260,7 @@ int obj_put_qud(struct qud* q, char* buf, int n) {
   if (r < 0 || r >= n)
     return -1;
 
-  return 0;
+  return r;
 }
 
 int obj_put_hxd(struct hxd* h, char* buf, int n) {
@@ -262,39 +269,43 @@ int obj_put_hxd(struct hxd* h, char* buf, int n) {
     return -1;
   }
 
-  int r = snprintf(buf, n, "h %d %d %d %d %d %d %d %d", h->vtx[0], h->vtx[1], h->vtx[2], h->vtx[3], h->vtx[4], h->vtx[5], h->vtx[6], h->vtx[7]);
+  // clang-format off
+  int r = snprintf(buf, n, "h %d %d %d %d %d %d %d %d", 
+    h->vtx[0], h->vtx[1], h->vtx[2], h->vtx[3], 
+    h->vtx[4], h->vtx[5], h->vtx[6], h->vtx[7]);
+  // clang-format on
 
   if (r < 0 || r >= n)
     return -1;
 
-  return 0;
+  return r;
 }
 
 static int obj_axs_div(struct dlog* a, struct dcap* s) {
+  log_rst(a);
+
   double x0 = 0;
   double x1 = 0;
-  double xe = a->end->e;
   double xs = 0;
 
   if (log_adv(a, &x0))
     return -1;
 
   if (log_adv(a, &x1))
-    return -1;
+    return errno = ENOENT ? 0 : -1;
 
-  while ((xs = s->call(s->ctx, 3, xs, x0, xe)) != 0) {
+  double xb = a->beg->e;
+  double xe = a->end->e;
+
+  while ((xs = s->call(s->ctx, 4, xb, xe, xs, x0)) != 0) {
     double x2 = x0 + xs;
 
-    if (x2 > x1) {
+    if (x2 > x1 || x1 - x2 < 0.01) {
       xs = x1 - x0;
       x0 = x1;
 
-      if (log_adv(a, &x1)) {
-        if (errno = ENOENT)
-          return 0;
-
-        return -1;
-      }
+      if (log_adv(a, &x1))
+        return errno == ENOENT ? 0 : -1;
 
       continue;
     }
@@ -312,7 +323,7 @@ int obj_gen(struct obj* obj, struct obj_gen_ops ops) {
     return -1;
   }
 
-  if (ops.with_seg || ops.with_qud || ops.with_hxd) {
+  if (ops.with_vtx || ops.with_seg || ops.with_qud || ops.with_hxd) {
     errno = ENOTSUP;
     return -1;
   }
@@ -340,52 +351,82 @@ int obj_gen(struct obj* obj, struct obj_gen_ops ops) {
   ay.srt = true;
   az.srt = true;
 
-  for (int i = 0; i < obj->vtx.len; ++i) {
-    if (log_add(&ax, obj->vtx.dat[i].x))
-      goto end;
-
-    if (log_add(&ay, obj->vtx.dat[i].y))
-      goto end;
-
-    if (log_add(&az, obj->vtx.dat[i].z))
-      goto end;
-  }
-
-  if (ops.sx && obj_axs_div(&ax, ops.sx))
-    goto end;
-
-  if (ops.sy && obj_axs_div(&ay, ops.sy))
-    goto end;
-
-  if (ops.sz && obj_axs_div(&az, ops.sz))
-    goto end;
-
   struct vtx* vs = obj->vtx.dat;
 
-  int i = -1;
-  int j = 0;
-  int l = obj->vtx.len;
+  for (int i = 0; i < obj->vtx.len; ++i) {
+    if ((r = log_add(&ax, vs[i].x)) && errno != EALREADY)
+      goto end;
 
-  log_rst(&az);
+    if ((r = log_add(&ay, vs[i].y)) && errno != EALREADY)
+      goto end;
 
-  for (double z = 0; !log_adv(&az, &z);) {
-    log_rst(&ay);
-
-    for (double y = 0; !log_adv(&ay, &y);) {
-      log_rst(&ax);
-
-      for (double x = 0; !log_adv(&ax, &x) && j < l;) {
-        i += 1;
-
-        if (vs[j].x == x && vs[j].y == y && vs[j].z == z) {
-          vs[j].n = i;
-          j += 1;
-        }
-      }
-    }
+    if ((r = log_add(&az, vs[i].z)) && errno != EALREADY)
+      goto end;
   }
 
-  int* evx;
+  if (ops.sx && (r = obj_axs_div(&ax, ops.sx)))
+    goto end;
+
+  if (ops.sy && (r = obj_axs_div(&ay, ops.sy)))
+    goto end;
+
+  if (ops.sz && (r = obj_axs_div(&az, ops.sz)))
+    goto end;
+
+  if ((r = cut_exp(&obj->ax, ax.len)))
+    goto end;
+
+  if ((r = cut_exp(&obj->ay, ay.len)))
+    goto end;
+
+  if ((r = cut_exp(&obj->az, az.len)))
+    goto end;
+
+  double p = 0;
+
+  log_rst(&ax);
+  log_rst(&ay);
+  log_rst(&az);
+
+  while (!(r = log_adv(&ax, &p)))
+    if ((r = cut_add(&obj->ax, p)))
+      goto end;
+
+  if (errno != ENOENT)
+    goto end;
+
+  while (!(r = log_adv(&ay, &p)))
+    if ((r = cut_add(&obj->ay, p)))
+      goto end;
+
+  if (errno != ENOENT)
+    goto end;
+
+  while (!(r = log_adv(&az, &p)))
+    if ((r = cut_add(&obj->az, p)))
+      goto end;
+
+  if (errno != ENOENT)
+    goto end;
+
+  r = 0;
+
+  int n = 0;
+  int v = 0;
+
+  double* xs = obj->ax.dat;
+  double* ys = obj->ay.dat;
+  double* zs = obj->az.dat;
+
+  for (int i = 0; i < obj->az.len; ++i)
+    for (int j = 0; j < obj->ay.len; ++j)
+      for (int k = 0; k < obj->ax.len && v < obj->vtx.len; ++k, ++n)
+        if (vs[v].x == xs[k] && vs[v].y == ys[j] && vs[v].z == zs[i]) {
+          vs[v].n = n;
+          v += 1;
+        }
+
+  int* evx = 0;
 
   for (int i = 0; i < obj->seg.len; ++i) {
     evx = obj->seg.dat[i].vtx;
@@ -415,33 +456,6 @@ int obj_gen(struct obj* obj, struct obj_gen_ops ops) {
     evx[6] = vs[evx[6]].n;
     evx[7] = vs[evx[7]].n;
   }
-
-  if (cut_exp(&obj->ax, ax.len))
-    goto end;
-
-  if (cut_exp(&obj->ay, ay.len))
-    goto end;
-
-  if (cut_exp(&obj->az, az.len))
-    goto end;
-
-  double p = 0;
-
-  log_rst(&ax);
-  log_rst(&ay);
-  log_rst(&az);
-
-  while (!(r = log_adv(&ax, &p)))
-    if ((r = cut_add(&obj->ax, p)))
-      goto end;
-
-  while (!(r = log_adv(&ay, &p)))
-    if ((r = cut_add(&obj->ay, p)))
-      goto end;
-
-  while (!(r = log_adv(&az, &p)))
-    if ((r = cut_add(&obj->az, p)))
-      goto end;
 
 end:
   log_cls(&ax);
