@@ -12,18 +12,14 @@ int dmtx_new(struct dmtx* m, struct dmtx_pps pps) {
   m->pps = pps;
   m->la = malloc(sizeof(int) * pps.d);
 
-  if (!m->la) {
-    errno = ENOMEM;
+  if (!m->la)
     return -1;
-  }
 
   memset(m->la, 0, sizeof(int) * pps.d);
   m->ad = malloc(sizeof(double*) * pps.n);
 
   if (!m->ad) {
     free(m->la);
-
-    errno = ENOMEM;
     return -1;
   }
 
@@ -37,7 +33,6 @@ int dmtx_new(struct dmtx* m, struct dmtx_pps pps) {
       free(m->ad);
       free(m->la);
 
-      errno = ENOMEM;
       return -1;
     }
 

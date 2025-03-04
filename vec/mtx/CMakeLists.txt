@@ -7,4 +7,4 @@ target_include_directories(mtx PUBLIC include/)
 add_executable(dmtx_test test/dmtx_test.c)
 target_link_libraries(dmtx_test PRIVATE mtx munit)
 
-add_test(NAME dmtx COMMAND dmtx_test)
+add_test(NAME numx/vec/mtx/dmtx COMMAND dmtx_test)

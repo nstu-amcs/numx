@@ -6,6 +6,23 @@
 #include <numx/vec/vec.h>
 #include <stdx/cut.h>
 
+/// @brief Face's context.
+struct fctx {
+  struct cnd cnd;
+};
+
+int fctx_get(void* ctx, int n, ...);
+
+/// @brief Element's context.
+struct ectx {
+  double lam;
+  double gam;
+
+  double (*ext)(struct vtx* v);
+};
+
+int ectx_get(void* ctx, int n, ...);
+
 /// @brief Finite Difference Method boundary problem solver.
 /// @param o domain object
 /// @param x solution vector

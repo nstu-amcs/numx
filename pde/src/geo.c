@@ -152,7 +152,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
           return -1;
 
         if (ops.get_vtx_ctx)
-          if (ops.get_vtx_ctx->call(ops.get_vtx_ctx->ctx, 2, buf + n, &v->ctx))
+          if (ops.get_vtx_ctx->call(ops.get_vtx_ctx->ctx, 2, buf + n + 3, &v->ctx))
             return -1;
 
         break;
@@ -166,7 +166,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
           return -1;
 
         if (ops.get_seg_ctx)
-          if (ops.get_seg_ctx->call(ops.get_seg_ctx->ctx, 2, buf + n, &s->ctx))
+          if (ops.get_seg_ctx->call(ops.get_seg_ctx->ctx, 2, buf + n + 3, &s->ctx))
             return -1;
 
         break;
@@ -180,7 +180,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
           return -1;
 
         if (ops.get_qud_ctx)
-          if (ops.get_qud_ctx->call(ops.get_qud_ctx->ctx, 2, buf + n, &q->ctx))
+          if (ops.get_qud_ctx->call(ops.get_qud_ctx->ctx, 2, buf + n + 3, &q->ctx))
             return -1;
 
         break;
@@ -194,7 +194,7 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
           return -1;
 
         if (ops.get_hxd_ctx)
-          if (ops.get_hxd_ctx->call(ops.get_hxd_ctx->ctx, 3, buf + n, &h->ctx))
+          if (ops.get_hxd_ctx->call(ops.get_hxd_ctx->ctx, 3, buf + n + 3, &h->ctx))
             return -1;
 
         break;

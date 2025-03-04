@@ -3,6 +3,10 @@
 
 #include <numx/pde/geo.h>
 
+typedef double (*vfun)(struct vtx*);
+
+stdx_def_cut(ocut, vfun);
+
 struct cnd {
   enum { DIR, NEU, ROB } type;
 
@@ -22,6 +26,6 @@ struct cnd {
   } pps;
 };
 
-int cnd_get(struct cnd* cnd, const char* buf, struct pcut* dat);
+int cnd_get(struct cnd* cnd, const char* buf, struct ocut* dat);
 
 #endif  // NUMX_PDE_CND_H

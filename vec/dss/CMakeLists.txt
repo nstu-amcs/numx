@@ -11,7 +11,4 @@ add_executable(test_imp test/test_imp.c)
 
 target_link_libraries(test_imp dss munit)
 
-add_test(
-  NAME test_imp
-  COMMAND test_imp
-)
+add_test(NAME numx/vec/dss/idss COMMAND test_imp)

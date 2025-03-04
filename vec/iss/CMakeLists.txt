@@ -10,4 +10,4 @@ target_include_directories(iss PUBLIC include/)
 add_executable(diss_test test/diss_test.c)
 target_link_libraries(diss_test PRIVATE iss munit)
 
-add_test(NAME diss COMMAND diss_test)
+add_test(NAME numx/vec/iss/diss COMMAND diss_test)
