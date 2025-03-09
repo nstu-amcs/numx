@@ -1,13 +1,13 @@
+#include <assert.h>
 #include <errno.h>
 #include <numx/vec/mtx.h>
 #include <stdlib.h>
 #include <string.h>
 
 int dmtx_new(struct dmtx* m, struct dmtx_pps pps) {
-  if (!m || pps.n == 0 || pps.d == 0) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(m);
+  assert(pps.n > 0);
+  assert(pps.d > 0);
 
   m->pps = pps;
   m->la = malloc(sizeof(int) * pps.d);
@@ -43,10 +43,7 @@ int dmtx_new(struct dmtx* m, struct dmtx_pps pps) {
 }
 
 int dmtx_cls(struct dmtx* m) {
-  if (!m) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(m);
 
   for (int i = 0; i < m->pps.n; ++i)
     free(m->ad[i]);
@@ -58,10 +55,12 @@ int dmtx_cls(struct dmtx* m) {
 }
 
 int dmtx_vmlt(struct dmtx* m, struct vec* x, struct vec* f) {
-  if (!m || !x || !f) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(m);
+  assert(x);
+  assert(f);
+
+  assert(m->pps.n == x->n);
+  assert(m->pps.n == f->n);
 
   int n = m->pps.n;
   int d = m->pps.d;
@@ -72,6 +71,8 @@ int dmtx_vmlt(struct dmtx* m, struct vec* x, struct vec* f) {
 #pragma omp parallel for
   for (int i = 0; i < n; ++i) {
     double* rv = m->ad[i];
+
+    fv[i] = 0;
 
     for (int e = 0; e < d; ++e) {
       int j = i + m->la[e];

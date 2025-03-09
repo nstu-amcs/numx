@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+enum stat { S_NON, S_INN, S_DIR, S_NEU, S_ROB };
+
 static enum norm seg_norm(struct seg* s, int nx) {
   int x1 = s->vtx[0] % nx;
   int x2 = s->vtx[1] % nx;
@@ -18,7 +20,7 @@ static enum norm seg_norm(struct seg* s, int nx) {
     return y1 < y2 ? NORM_R : NORM_L;
 }
 
-static int seg_evo(struct obj* obj, struct dmtx* m, struct vec* f, bool* status) {
+static int seg_evo(struct obj* obj, struct dmtx* m, struct vec* f, enum stat* status) {
   int nx = obj->ax.len;
   int ns = obj->seg.len;
 
@@ -61,67 +63,113 @@ static int seg_evo(struct obj* obj, struct dmtx* m, struct vec* f, bool* status)
 
       struct vtx v = {.x = obj->ax.dat[xi], .y = obj->ay.dat[yi], .z = 0, .n = i, .ctx = 0};
 
+      double hi = 0;
+      int bi = 0;
+
       switch (ctx->cnd.type) {
         case DIR:
           m->ad[i][0] = 1;
           f->dat[i] = ctx->cnd.pps.dir.tmp(&v);
 
+          status[i] = S_DIR;
+
           break;
         case NEU:
-          if (status[i])
+          if (status[i] == S_DIR || status[i] == S_ROB)
             continue;
 
-          f->dat[i] = ctx->cnd.pps.neu.tta(&v);
+          f->dat[i] += ctx->cnd.pps.neu.tta(&v);
 
-          double hi = 0;
+          hi = 0;
+          bi = 0;
 
           switch (norm) {
             case NORM_L:
               hi = obj->ax.dat[xi + 1] - obj->ax.dat[xi];
-
-              m->ad[i][0] = 1 / hi;
-              m->ad[i][1] = -1 / hi;
+              bi = 1;
 
               break;
             case NORM_R:
               hi = obj->ax.dat[xi] - obj->ax.dat[xi - 1];
-
-              m->ad[i][0] = 1 / hi;
-              m->ad[i][3] = -1 / hi;
+              bi = 3;
 
               break;
             case NORM_U:
               hi = obj->ay.dat[yi] - obj->ay.dat[yi - 1];
-
-              m->ad[i][0] = 1 / hi;
-              m->ad[i][4] = -1 / hi;
+              bi = 4;
 
               break;
             case NORM_D:
               hi = obj->ay.dat[yi + 1] - obj->ay.dat[yi];
-
-              m->ad[i][0] = 1 / hi;
-              m->ad[i][2] = -1 / hi;
+              bi = 2;
 
               break;
           }
 
+          m->ad[i][0] += 1 / hi;
+          m->ad[i][bi] += -1 / hi;
+
+          if (status[i] == S_NEU) {
+            f->dat[i] /= 2;
+            m->ad[i][0] /= 2;
+            m->ad[i][bi] /= 2;
+          }
+
+          status[i] = S_NEU;
+
           break;
         case ROB:
-          if (status[i])
+          if (status[i] == S_DIR || status[i] == S_NEU)
             continue;
+
+          f->dat[i] += ctx->cnd.pps.rob.bet * ctx->cnd.pps.rob.tmp(&v);
+
+          hi = 0;
+          bi = 0;
+
+          switch (norm) {
+            case NORM_L:
+              hi = obj->ax.dat[xi + 1] - obj->ax.dat[xi];
+              bi = 1;
+
+              break;
+            case NORM_R:
+              hi = obj->ax.dat[xi] - obj->ax.dat[xi - 1];
+              bi = 3;
+
+              break;
+            case NORM_U:
+              hi = obj->ay.dat[yi] - obj->ay.dat[yi - 1];
+              bi = 4;
+
+              break;
+            case NORM_D:
+              hi = obj->ay.dat[yi + 1] - obj->ay.dat[yi];
+              bi = 2;
+
+              break;
+          }
+
+          m->ad[i][0] += 1 / hi + ctx->cnd.pps.rob.bet;
+          m->ad[i][bi] += -1 / hi;
+
+          if (status[i] == S_ROB) {
+            f->dat[i] /= 2;
+            m->ad[i][0] /= 2;
+            m->ad[i][bi] /= 2;
+          }
+
+          status[i] = S_ROB;
 
           break;
       }
-
-      status[i] = true;
     }
   }
 
   return 0;
 }
 
-static int qud_evo(struct obj* obj, struct dmtx* m, struct vec* f, bool* status) {
+static int qud_evo(struct obj* obj, struct dmtx* m, struct vec* f, enum stat* status) {
   int nx = obj->ax.len;
   int nq = obj->qud.len;
 
@@ -143,6 +191,11 @@ static int qud_evo(struct obj* obj, struct dmtx* m, struct vec* f, bool* status)
     struct ectx* ctx = obj->qud.dat[i].ctx;
 
     for (int i = y0, n = a; i <= y1; ++i, n += dx) {
+      if (status[n] && status[n + 1]) {
+        n += b - a + 1;
+        continue;
+      }
+
       for (int j = x0; j <= x1; ++j, ++n) {
         if (status[n])
           continue;
@@ -162,7 +215,7 @@ static int qud_evo(struct obj* obj, struct dmtx* m, struct vec* f, bool* status)
         m->ad[n][3] = -2 * ctx->lam / (hl * (hr + hl));
         m->ad[n][4] = -2 * ctx->lam / (hd * (hu + hd));
 
-        status[n] = true;
+        status[n] = S_INN;
       }
     }
   }
@@ -185,7 +238,7 @@ void cback(void* ctx, int n, ...) {
   va_end(arg);
 }
 
-int pde_sse_fdm_slv(struct obj* obj, struct vec* x) {
+int pde_sse_fdm_slv(struct obj* obj, struct vec* x, struct sse_fdm_ops ops) {
   if (!obj || !x) {
     errno = EINVAL;
     return -1;
@@ -199,7 +252,7 @@ int pde_sse_fdm_slv(struct obj* obj, struct vec* x) {
   struct dmtx m;
   struct vec f;
 
-  bool* status = malloc(sizeof(bool) * nx * ny);
+  enum stat* status = malloc(sizeof(enum stat) * nx * ny);
 
   if (!status) {
     r = -1;
@@ -223,33 +276,32 @@ int pde_sse_fdm_slv(struct obj* obj, struct vec* x) {
   m.la[3] = -1;
   m.la[4] = -nx;
 
-  for (int i = 0; i < nx * ny; ++i)
-    m.ad[i][0] = 1;
-
   if ((r = seg_evo(obj, &m, &f, status)))
     goto end;
 
   if ((r = qud_evo(obj, &m, &f, status)))
     goto end;
 
-  struct itr itr = {0, 0};
+  for (int i = 0; i < nx * ny; ++i)
+    if (!status[i])
+      m.ad[i][0] = 1;
 
-  // clang-format off
-  if ((r = iss_rlx_slv(&m, x, &f, ((struct iss_rlx_ops){
-    .omg = 1,
-    .ops = {
-      .itr.call = &cback,
-      .itr.ctx = &itr,
-      .eps = 1e-10,
-      .max = 10000,
-    }
-  })))) goto end;
-  // clang-format on
+  switch (ops.iss_type) {
+    case ISS_JAC:
+      if ((r = iss_jac_slv(&m, x, &f, ops.iss_ops.jac)))
+        goto end;
 
-  printf("Itr: %d, Res: %lf\n", itr.k, itr.r);
+      break;
+    case ISS_RLX:
+      if ((r = iss_rlx_slv(&m, x, &f, ops.iss_ops.rlx)))
+        goto end;
+
+      break;
+  }
 
 end:
   free(status);
+
   mtx_cls(&m);
   vec_cls(&f);
 

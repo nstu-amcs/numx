@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <math.h>
 #include <numx/vec/vec.h>
@@ -50,10 +51,12 @@ int vec_cls(struct vec* v) {
 }
 
 int vec_cmb(struct vec* a, struct vec* b, struct vec* r, double k) {
-  if (!a || !b || !r || a->n != r->n || b->n != r->n) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(a);
+  assert(b);
+  assert(r);
+
+  assert(a->n == b->n);
+  assert(b->n == r->n);
 
   int n = a->n;
 

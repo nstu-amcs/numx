@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <numx/pde/geo.h>
 #include <stdarg.h>
@@ -12,10 +13,7 @@ stdx_gen_cut(qcut, qud, STDX_PUB);
 stdx_gen_cut(hcut, hxd, STDX_PUB);
 
 int obj_new(struct obj* obj) {
-  if (!obj) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(obj);
 
   obj->ctx = NULL;
 
@@ -44,10 +42,7 @@ int obj_new(struct obj* obj) {
 }
 
 int obj_cls(struct obj* obj) {
-  if (!obj) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(obj);
 
   cut_cls(&obj->ax);
   cut_cls(&obj->ay);
@@ -62,10 +57,8 @@ int obj_cls(struct obj* obj) {
 }
 
 static int obj_get_vtx(struct vtx* v, const char* buf) {
-  if (!v || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(v);
+  assert(buf);
 
   int n = 0;
 
@@ -76,10 +69,8 @@ static int obj_get_vtx(struct vtx* v, const char* buf) {
 }
 
 static int obj_get_seg(struct seg* s, const char* buf) {
-  if (!s || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(s);
+  assert(buf);
 
   int n = 0;
 
@@ -90,10 +81,8 @@ static int obj_get_seg(struct seg* s, const char* buf) {
 }
 
 static int obj_get_qud(struct qud* q, const char* buf) {
-  if (!q || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(q);
+  assert(buf);
 
   int n = 0;
 
@@ -104,10 +93,8 @@ static int obj_get_qud(struct qud* q, const char* buf) {
 }
 
 static int obj_get_hxd(struct hxd* h, const char* buf) {
-  if (!h || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(h);
+  assert(buf);
 
   int n = 0;
 
@@ -121,10 +108,8 @@ static int obj_get_hxd(struct hxd* h, const char* buf) {
 }
 
 int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
-  if (!obj || !f) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(obj);
+  assert(f);
 
   int n = 0;
 
@@ -211,10 +196,8 @@ int obj_get(struct obj* obj, FILE* f, struct obj_get_ops ops) {
 int obj_put(struct obj* o, FILE* f, struct obj_put_ops ops) {
   (void)ops;
 
-  if (!o || !f) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(o);
+  assert(f);
 
   errno = ENOTSUP;
 
@@ -222,10 +205,8 @@ int obj_put(struct obj* o, FILE* f, struct obj_put_ops ops) {
 }
 
 int obj_put_vtx(struct vtx* v, char* buf, int n) {
-  if (!v || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(v);
+  assert(buf);
 
   int r = snprintf(buf, n, "v %lf %lf %lf", v->x, v->y, v->z);
 
@@ -236,10 +217,8 @@ int obj_put_vtx(struct vtx* v, char* buf, int n) {
 }
 
 int obj_put_seg(struct seg* s, char* buf, int n) {
-  if (!s || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(s);
+  assert(buf);
 
   int r = snprintf(buf, n, "s %d %d", s->vtx[0], s->vtx[1]);
 
@@ -250,10 +229,8 @@ int obj_put_seg(struct seg* s, char* buf, int n) {
 }
 
 int obj_put_qud(struct qud* q, char* buf, int n) {
-  if (!q || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(q);
+  assert(buf);
 
   int r = snprintf(buf, n, "q %d %d %d %d", q->vtx[0], q->vtx[1], q->vtx[2], q->vtx[3]);
 
@@ -264,10 +241,8 @@ int obj_put_qud(struct qud* q, char* buf, int n) {
 }
 
 int obj_put_hxd(struct hxd* h, char* buf, int n) {
-  if (!h || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(h);
+  assert(buf);
 
   // clang-format off
   int r = snprintf(buf, n, "h %d %d %d %d %d %d %d %d", 
@@ -281,7 +256,10 @@ int obj_put_hxd(struct hxd* h, char* buf, int n) {
   return r;
 }
 
-static int obj_axs_div(struct dlog* a, struct dcap* s) {
+static int obj_axs_div(struct dlog* a, struct dcap* s, double eps) {
+  assert(a);
+  assert(s);
+
   log_rst(a);
 
   double x0 = 0;
@@ -300,7 +278,7 @@ static int obj_axs_div(struct dlog* a, struct dcap* s) {
   while ((xs = s->call(s->ctx, 4, xb, xe, xs, x0)) != 0) {
     double x2 = x0 + xs;
 
-    if (x2 > x1 || x1 - x2 < 0.01) {
+    if (x2 > x1 || x1 - x2 < eps) {
       xs = x1 - x0;
       x0 = x1;
 
@@ -318,10 +296,7 @@ static int obj_axs_div(struct dlog* a, struct dcap* s) {
 }
 
 int obj_gen(struct obj* obj, struct obj_gen_ops ops) {
-  if (!obj) {
-    errno = EINVAL;
-    return -1;
-  }
+  assert(obj);
 
   if (ops.with_vtx || ops.with_seg || ops.with_qud || ops.with_hxd) {
     errno = ENOTSUP;
@@ -364,13 +339,13 @@ int obj_gen(struct obj* obj, struct obj_gen_ops ops) {
       goto end;
   }
 
-  if (ops.sx && (r = obj_axs_div(&ax, ops.sx)))
+  if (ops.sx && (r = obj_axs_div(&ax, ops.sx, ops.eps)))
     goto end;
 
-  if (ops.sy && (r = obj_axs_div(&ay, ops.sy)))
+  if (ops.sy && (r = obj_axs_div(&ay, ops.sy, ops.eps)))
     goto end;
 
-  if (ops.sz && (r = obj_axs_div(&az, ops.sz)))
+  if (ops.sz && (r = obj_axs_div(&az, ops.sz, ops.eps)))
     goto end;
 
   if ((r = cut_exp(&obj->ax, ax.len)))
@@ -463,4 +438,50 @@ end:
   log_cls(&az);
 
   return r;
+}
+
+static int bsrh(struct dcut* arr, double v) {
+  assert(arr);
+
+  double* dat = arr->dat;
+
+  int sm = 0;
+  int sl = 0;
+  int sr = arr->len - 1;
+
+  if (v <= dat[sl])
+    return sl;
+
+  if (v >= dat[sr])
+    return sr;
+
+  while (sl < sr - 1) {
+    sm = (sr + sl) / 2;
+
+    if (v == dat[sm])
+      return sm;
+
+    if (v < dat[sm])
+      sr = sm;
+    else
+      sl = sm;
+  }
+
+  if (v - dat[sl] > dat[sr] - v)
+    return sr;
+
+  return sl;
+}
+
+int obj_srh(struct obj* obj, double x, double y, double z) {
+  assert(obj);
+
+  int nx = obj->ax.len;
+  int ny = obj->ay.len;
+
+  int px = bsrh(&obj->ax, x);
+  int py = bsrh(&obj->ay, y);
+  int pz = bsrh(&obj->az, z);
+
+  return pz * nx * ny + py * nx + px;
 }

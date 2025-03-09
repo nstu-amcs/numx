@@ -98,9 +98,14 @@ struct obj_gen_ops {
   struct dcap* sx;
   struct dcap* sy;
   struct dcap* sz;
+
+  double eps;
 };
 
 /// @brief Generate object based on reference elements.
 int obj_gen(struct obj* obj, struct obj_gen_ops ops);
+
+/// @brief Search global number for specified point.
+int obj_srh(struct obj* obj, double x, double y, double z);
 
 #endif  // NUMX_PDE_GEO_H
