@@ -3,6 +3,7 @@
 
 #include <numx/pde/cnd.h>
 #include <numx/pde/geo.h>
+#include <numx/vec/iss.h>
 #include <numx/vec/vec.h>
 #include <stdx/cut.h>
 
@@ -23,10 +24,19 @@ struct ectx {
 
 int ectx_get(void* ctx, int n, ...);
 
+struct sse_fdm_ops {
+  enum { ISS_JAC, ISS_RLX } iss_type;
+
+  union {
+    struct iss_jac_ops jac;
+    struct iss_rlx_ops rlx;
+  } iss_ops;
+};
+
 /// @brief Finite Difference Method boundary problem solver.
 /// @param o domain object
 /// @param x solution vector
-int pde_sse_fdm_slv(struct obj* obj, struct vec* x);
+int pde_sse_fdm_slv(struct obj* obj, struct vec* x, struct sse_fdm_ops ops);
 
 /// @brief Finite Element Method boundary problem solver.
 /// @param o domain object
