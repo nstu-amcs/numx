@@ -24,13 +24,25 @@ struct ectx {
 
 int ectx_get(void* ctx, int n, ...);
 
-struct sse_fdm_ops {
-  enum { ISS_JAC, ISS_RLX } iss_type;
+struct sse_ops {
+  struct {
+    enum iss_mod mod;
+    union {
+      struct iss_jac_ops jac;
+      struct iss_rlx_ops rlx;
+      struct iss_bcg_ops bcg;
+    } ops;
+  } iss;
+};
 
-  union {
-    struct iss_jac_ops jac;
-    struct iss_rlx_ops rlx;
-  } iss_ops;
+struct sse_fdm_ops {
+  struct sse_ops ops;
+};
+
+struct sse_fem_ops {
+  enum { FEM_LIN } mod;
+
+  struct sse_ops ops;
 };
 
 /// @brief Finite Difference Method boundary problem solver.
@@ -41,6 +53,6 @@ int pde_sse_fdm_slv(struct obj* obj, struct vec* x, struct sse_fdm_ops ops);
 /// @brief Finite Element Method boundary problem solver.
 /// @param o domain object
 /// @param x solution vector
-int pde_sse_fem_slv(struct obj* obj, struct vec* x);
+int pde_sse_fem_slv(struct obj* obj, struct vec* x, struct sse_fem_ops ops);
 
 #endif  // NUMX_PDE_SSE_H
