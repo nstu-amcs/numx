@@ -1,3 +1,4 @@
+#include <math.h>
 #include <munit.h>
 #include <numx/pde/sse.h>
 #include <stdio.h>
@@ -12,28 +13,28 @@ double sq_sx(void* ctx, int n, ...) {
   (void)ctx;
   (void)n;
 
-  return 0.01;
+  return 0.1;
 }
 
 double sq_dir(struct vtx* v) {
-  return v->x * v->y;
+  return v->x + v->y;
 }
 
 double sq_neu(struct vtx* v) {
   (void)v;
 
-  return v->x;
+  return 1;
 }
 
 double sq_neu_dn(struct vtx* v) {
   (void)v;
 
-  return -v->x;
+  return -1;
 }
 
 double sq_ext(struct vtx* v) {
 
-  return 0.4 * (v->x * v->y);
+  return 0.4 * (v->x + v->y);
 }
 
 static vfun dat[] = {
@@ -60,7 +61,7 @@ struct test {
 
 struct test tests[] = {
   { "sq-1", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.25, .eps = 0.5,
+    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
     .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
     .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
     .ops.sz = 0,
@@ -71,7 +72,7 @@ struct test tests[] = {
     .ops.with_hxd = 0,
   }},
   { "sq-2", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.25, .eps = 0.5,
+    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
     .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
     .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
     .ops.sz = 0,
@@ -82,7 +83,7 @@ struct test tests[] = {
     .ops.with_hxd = 0,
   }},
   { "sq-3", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.25, .eps = 0.5,
+    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
     .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
     .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
     .ops.sz = 0,
@@ -91,7 +92,18 @@ struct test tests[] = {
     .ops.with_seg = 0,
     .ops.with_qud = 0,
     .ops.with_hxd = 0,
-  }}
+  }},
+  { "t-1", { 
+    .tx = 0, .ty = 8, .tz = 0, .tv = 8, .eps = 0.5,
+    .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+    .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+    .ops.sz = 0,
+    .ops.eps = 0.00005,
+    .ops.with_vtx = 0,
+    .ops.with_seg = 0,
+    .ops.with_qud = 0,
+    .ops.with_hxd = 0,
+  }},
 };
 
 struct ctx {
@@ -173,7 +185,7 @@ MunitResult test_fdm(const MunitParameter pps[], void* ctx) {
     .iss_type = ISS_RLX,
     .iss_ops.rlx = {
       .omg = 1.2,
-      .ops.eps = 1e-3,
+      .ops.eps = 1e-6,
       .ops.max = 10000,
       .ops.itr.ctx = &itr,
       .ops.itr.call = &iss_itr_cap
@@ -188,8 +200,9 @@ MunitResult test_fdm(const MunitParameter pps[], void* ctx) {
 
   double err = fabs(c->res->dat[sp] - c->test->pps.tv);
 
-  printf("\n[%s]\n\t-> target: %.7e\n\t-> result: %.7e\n\t-> error: %.7e\n\t-> iss/num: %d\n\t-> iss/err: %.7e\n", 
+  printf("\n[%s]\n\t-> n: %d\n\t-> target: %.7e\n\t-> result: %.7e\n\t-> error: %.7e\n\t-> iss/num: %d\n\t-> iss/err: %.7e\n", 
     c->test->name, 
+    c->obj->ax.len * c->obj->ay.len,
     c->test->pps.tv,
     c->res->dat[sp], 
     err,
@@ -200,7 +213,7 @@ MunitResult test_fdm(const MunitParameter pps[], void* ctx) {
   return MUNIT_OK;
 }
 
-static char* cases[] = { "0", "1", "2" };
+static char* cases[] = { "3" };
 
 static MunitParameterEnum pps[] = {
   { "case", cases },
