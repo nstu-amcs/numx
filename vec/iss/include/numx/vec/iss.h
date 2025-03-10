@@ -5,6 +5,8 @@
 #include <numx/vec/vec.h>
 #include <stdx/cap.h>
 
+enum iss_mod { ISS_JAC, ISS_RLX, ISS_BCG };
+
 struct iss_itr {
   double err;
   int num;
@@ -60,7 +62,6 @@ void iss_itr_cap(void* ctx, int n, ...);
 
 int diss_jac_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_jac_ops o);
 int diss_rlx_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_rlx_ops o);
-int diss_sor_slv(struct dmtx* m, struct vec* x, struct vec* f, struct iss_sor_ops o);
 
 int siss_bcg_slv(struct smtx* m, struct vec* x, struct vec* f, struct iss_bcg_ops o);
 

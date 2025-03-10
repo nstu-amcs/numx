@@ -286,17 +286,21 @@ int pde_sse_fdm_slv(struct obj* obj, struct vec* x, struct sse_fdm_ops ops) {
     if (!status[i])
       m.ad[i][0] = 1;
 
-  switch (ops.iss_type) {
+  switch (ops.ops.iss.mod) {
     case ISS_JAC:
-      if ((r = iss_jac_slv(&m, x, &f, ops.iss_ops.jac)))
+      if ((r = iss_jac_slv(&m, x, &f, ops.ops.iss.ops.jac)))
         goto end;
 
       break;
     case ISS_RLX:
-      if ((r = iss_rlx_slv(&m, x, &f, ops.iss_ops.rlx)))
+      if ((r = iss_rlx_slv(&m, x, &f, ops.ops.iss.ops.rlx)))
         goto end;
 
       break;
+    default:
+      r = -1;
+      errno = ENOTSUP;
+      goto end;
   }
 
 end:

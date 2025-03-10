@@ -13,17 +13,17 @@ double sq_sx(void* ctx, int n, ...) {
   (void)ctx;
   (void)n;
 
-  return 0.1;
+  return 0.5;
 }
 
 double sq_dir(struct vtx* v) {
-  return v->x + v->y;
+  return v->x * v->x * v->x + v->y * v->y;
 }
 
 double sq_neu(struct vtx* v) {
   (void)v;
 
-  return 1;
+  return 2 * v->y;
 }
 
 double sq_neu_dn(struct vtx* v) {
@@ -34,7 +34,7 @@ double sq_neu_dn(struct vtx* v) {
 
 double sq_ext(struct vtx* v) {
 
-  return 0.4 * (v->x + v->y);
+  return -10 - 10 + 0.4 * (v->x*v->x + v->y*v->y);
 }
 
 static vfun dat[] = {
@@ -62,47 +62,55 @@ struct test {
 struct test tests[] = {
   { "sq-1", { 
     .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
-    .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sz = 0,
-    .ops.eps = 0.00005,
-    .ops.with_vtx = 0,
-    .ops.with_seg = 0,
-    .ops.with_qud = 0,
-    .ops.with_hxd = 0,
+    .ops = {
+      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sz = 0,
+      .eps = 0.00005,
+      .with_vtx = 0,
+      .with_seg = 0,
+      .with_qud = 0,
+      .with_hxd = 0,
+    }
   }},
   { "sq-2", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
-    .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sz = 0,
-    .ops.eps = 0.00005,
-    .ops.with_vtx = 0,
-    .ops.with_seg = 0,
-    .ops.with_qud = 0,
-    .ops.with_hxd = 0,
+    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.841470984807, .eps = 0.5,
+    .ops = {
+      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sz = 0,
+      .eps = 0.00005,
+      .with_vtx = 0,
+      .with_seg = 0,
+      .with_qud = 0,
+      .with_hxd = 0,
+    }
   }},
   { "sq-3", { 
     .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
-    .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sz = 0,
-    .ops.eps = 0.00005,
-    .ops.with_vtx = 0,
-    .ops.with_seg = 0,
-    .ops.with_qud = 0,
-    .ops.with_hxd = 0,
+    .ops = {
+      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sz = 0,
+      .eps = 0.00005,
+      .with_vtx = 0,
+      .with_seg = 0,
+      .with_qud = 0,
+      .with_hxd = 0,
+    }
   }},
   { "t-1", { 
-    .tx = 0, .ty = 8, .tz = 0, .tv = 8, .eps = 0.5,
-    .ops.sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-    .ops.sz = 0,
-    .ops.eps = 0.00005,
-    .ops.with_vtx = 0,
-    .ops.with_seg = 0,
-    .ops.with_qud = 0,
-    .ops.with_hxd = 0,
+    .tx = 3.5, .ty = 4, .tz = 0, .tv = 28.25, .eps = 0.5,
+    .ops = {
+      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
+      .sz = 0,
+      .eps = 0.00005,
+      .with_vtx = 0,
+      .with_seg = 0,
+      .with_qud = 0,
+      .with_hxd = 0,
+    }
   }},
 };
 
@@ -182,13 +190,15 @@ MunitResult test_fdm(const MunitParameter pps[], void* ctx) {
   struct iss_itr itr;
 
   munit_assert_int(0, ==, pde_sse_fdm_slv(c->obj, c->res, (struct sse_fdm_ops){
-    .iss_type = ISS_RLX,
-    .iss_ops.rlx = {
-      .omg = 1.2,
-      .ops.eps = 1e-6,
-      .ops.max = 10000,
-      .ops.itr.ctx = &itr,
-      .ops.itr.call = &iss_itr_cap
+    .ops = {
+      .iss.mod = ISS_RLX,
+      .iss.ops.rlx = {
+        .omg = 1.2,
+        .ops.eps = 1e-10,
+        .ops.max = 10000,
+        .ops.itr.ctx = &itr,
+        .ops.itr.call = &iss_itr_cap
+      }
     }
   }));
 

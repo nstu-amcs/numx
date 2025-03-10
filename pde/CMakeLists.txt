@@ -4,6 +4,7 @@ set(SRC
 
     src/sse_ctx.c
     src/sse_fdm.c
+    src/sse_fem.c
 )
 
 add_library(pde ${SRC})
