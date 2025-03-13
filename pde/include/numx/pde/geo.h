@@ -5,7 +5,7 @@
 #include <stdx/cap.h>
 #include <stdx/cut.h>
 
-enum norm { NORM_U, NORM_D, NORM_L, NORM_R };
+enum norm { NORM_U, NORM_D, NORM_L, NORM_R, NORM_F, NORM_B };
 
 /// @brief Geometric vertex.
 typedef struct vtx {
@@ -107,5 +107,7 @@ int obj_gen(struct obj* obj, struct obj_gen_ops ops);
 
 /// @brief Search global number for specified point.
 int obj_srh(struct obj* obj, double x, double y, double z);
+
+enum norm qud_norm(struct obj* obj, struct qud* qud);
 
 #endif  // NUMX_PDE_GEO_H

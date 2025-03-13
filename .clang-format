@@ -7,3 +7,5 @@ PointerAlignment: Left
 SkipMacroDefinitionBody: true
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
+
+AlignArrayOfStructures: Left

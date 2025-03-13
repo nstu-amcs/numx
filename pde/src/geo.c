@@ -12,6 +12,32 @@ stdx_gen_cut(scut, seg, STDX_PUB);
 stdx_gen_cut(qcut, qud, STDX_PUB);
 stdx_gen_cut(hcut, hxd, STDX_PUB);
 
+enum norm qud_norm(struct obj* obj, struct qud* qud) {
+  assert(obj);
+  assert(qud);
+
+  int nx = obj->ax.len;
+
+  int v0 = qud->vtx[0];
+  int v1 = qud->vtx[0];
+  int v2 = qud->vtx[0];
+
+  int x0 = v0 % nx;
+  int x1 = v1 % nx;
+  int x2 = v2 % nx;
+  int y0 = v0 / nx;
+  int y1 = v1 / nx;
+  int y2 = v2 / nx;
+
+  if (x0 == x1 && x1 == x2)
+    return NORM_R;
+
+  if (y0 == y1 && y1 == y2)
+    return NORM_F;
+
+  return NORM_D;
+}
+
 int obj_new(struct obj* obj) {
   assert(obj);
 
