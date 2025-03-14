@@ -5,109 +5,109 @@
 #include <stdx/cap.h>
 #include <stdx/cut.h>
 
-enum norm { NORM_U, NORM_D, NORM_L, NORM_R, NORM_F, NORM_B };
+/** Normal direction (should be replaced with vector-based normal calculation). */
+enum norm
+{
+    NORM_U,
+    NORM_D,
+    NORM_L,
+    NORM_R,
+    NORM_F,
+    NORM_B
+};
 
-/// @brief Geometric vertex.
-typedef struct vtx {
-  int n;
+/** Geometric vertex. */
+typedef struct vtx
+{
+    double x;
+    double y;
+    double z;
 
-  double x;
-  double y;
-  double z;
-
-  void* ctx;
+    int   n;
+    void *ctx;
 } vtx;
 
-/// @brief Geometric line segment.
-typedef struct seg {
-  int vtx[2];
+/** Geometric line segment. */
+typedef struct seg
+{
+    int vtx[2];
 
-  void* ctx;
+    void *ctx;
 } seg;
 
-/// @brief Geometric quadrangle.
-typedef struct qud {
-  int vtx[4];
+/** Geometric quadrangle. */
+typedef struct qud
+{
+    int vtx[4];
 
-  void* ctx;
+    void *ctx;
 } qud;
 
-/// @brief Geometric hexahedron.
-typedef struct hxd {
-  int vtx[8];
+/** Geometric hexahedron. */
+typedef struct hxd
+{
+    int vtx[8];
 
-  void* ctx;
+    void *ctx;
 } hxd;
 
-stdx_def_cut(vcut, vtx);
-stdx_def_cut(scut, seg);
-stdx_def_cut(qcut, qud);
-stdx_def_cut(hcut, hxd);
+stdx_def_cut(vtx_cut, vtx);
+stdx_def_cut(seg_cut, seg);
+stdx_def_cut(qud_cut, qud);
+stdx_def_cut(hxd_cut, hxd);
 
-/// @brief Complex geometric object.
-struct obj {
-  struct dcut ax;
-  struct dcut ay;
-  struct dcut az;
+/** Complex geometric object. */
+struct obj
+{
+    struct dcut ax; // X-axis
+    struct dcut ay; // Y-axis
+    struct dcut az; // Z-axis
 
-  /// @brief Object's vertices.
-  struct vcut vtx;
+    /** Reference vertices. */
+    struct vtx_cut vtx;
 
-  /// @brief Object's segments.
-  struct scut seg;
+    /** Reference segments. */
+    struct seg_cut seg;
 
-  /// @brief Object's quadrangles.
-  struct qcut qud;
+    /** Reference quadrangles. */
+    struct qud_cut qud;
 
-  /// @brief Object's hexahedrons.
-  struct hcut hxd;
+    /** Reference hexahedrons. */
+    struct hxd_cut hxd;
 
-  /// @brief Object's context.
-  void* ctx;
+    void *ctx;
 };
 
-int obj_new(struct obj* obj);
-int obj_cls(struct obj* obj);
+int obj_new(struct obj *obj);
+int obj_cls(struct obj *obj);
 
-struct obj_get_ops {
-  struct icap* get_vtx_ctx;
-  struct icap* get_seg_ctx;
-  struct icap* get_qud_ctx;
-  struct icap* get_hxd_ctx;
+struct obj_get_ops
+{
+    struct icap *get_vtx_ctx;
+    struct icap *get_seg_ctx;
+    struct icap *get_qud_ctx;
+    struct icap *get_hxd_ctx;
 };
 
-/// @brief Get object's reference elements from the file.
-int obj_get(struct obj* obj, FILE* f, struct obj_get_ops);
+/** Get object's reference elements from the file. */
+int obj_get(struct obj *obj, FILE *f, struct obj_get_ops);
 
-struct obj_put_ops {
-  struct icap* put_vtx_ctx;
-  struct icap* put_seg_ctx;
-  struct icap* put_qud_ctx;
-  struct icap* put_hxd_ctx;
+struct obj_gen_ops
+{
+    struct dcap *sx; // X-step
+    struct dcap *sy; // Y-step
+    struct dcap *sz; // Z-step
+
+    double eps; // Reference point restricted neighborhood
 };
 
-/// @brief Put object's reference elements into the file.
-int obj_put(struct obj* obj, FILE* f, struct obj_put_ops);
+/** Generate object based on reference elements. */
+int obj_gen(struct obj *obj, struct obj_gen_ops ops);
 
-struct obj_gen_ops {
-  bool with_vtx;
-  bool with_seg;
-  bool with_qud;
-  bool with_hxd;
+/** Lookup global number for given point. */
+int obj_srh(struct obj *obj, double x, double y, double z);
 
-  struct dcap* sx;
-  struct dcap* sy;
-  struct dcap* sz;
+/** Discover normal direction for given quadrangle. */
+enum norm qud_norm(struct obj *obj, struct qud *qud);
 
-  double eps;
-};
-
-/// @brief Generate object based on reference elements.
-int obj_gen(struct obj* obj, struct obj_gen_ops ops);
-
-/// @brief Search global number for specified point.
-int obj_srh(struct obj* obj, double x, double y, double z);
-
-enum norm qud_norm(struct obj* obj, struct qud* qud);
-
-#endif  // NUMX_PDE_GEO_H
+#endif // NUMX_PDE_GEO_H
