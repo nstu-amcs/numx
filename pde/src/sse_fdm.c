@@ -4,7 +4,6 @@
 #include <numx/vec/mtx.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 enum stat
 {
@@ -251,23 +250,6 @@ static int qud_evo(struct obj *obj, struct dmtx *m, struct vec *f, enum stat *st
     return 0;
 }
 
-struct itr
-{
-    int    k;
-    double r;
-};
-
-void cback(void *ctx, int n, ...)
-{
-    va_list arg;
-    va_start(arg, n);
-
-    ((struct itr *)ctx)->k = va_arg(arg, int);
-    ((struct itr *)ctx)->r = va_arg(arg, double);
-
-    va_end(arg);
-}
-
 int pde_sse_fdm_slv(struct obj *obj, struct vec *x, struct sse_fdm_ops ops)
 {
     if (!obj || !x) {
@@ -290,7 +272,7 @@ int pde_sse_fdm_slv(struct obj *obj, struct vec *x, struct sse_fdm_ops ops)
         goto end;
     }
 
-    memset(status, 0, sizeof(bool) * nx * ny);
+    memset(status, 0, sizeof(enum stat) * nx * ny);
 
     if ((r = mtx_new(&m, ((struct dmtx_pps){.n = nx * ny, .d = 5}))))
         goto end;

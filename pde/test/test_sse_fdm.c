@@ -1,6 +1,7 @@
 #include <math.h>
 #include <munit.h>
 #include <numx/pde/sse.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 // clang-format off
@@ -9,187 +10,123 @@ double fabs(double v) {
   return v > 0 ? v : -v;
 }
 
-double sq_sx(void* ctx, int n, ...) {
+// double sx(void* ctx, int n, ...) {
+//   (void)ctx;
+//   (void)n;
+// 
+//   va_list arg;
+//   va_start(arg, n);
+// 
+//   double xb = va_arg(arg, double);
+//   double xe = va_arg(arg, double);
+//   double xs = va_arg(arg, double);
+//   double x0 = va_arg(arg, double);
+// 
+//   (void)xb;
+//   (void)xe;
+// 
+//   va_end(arg);
+// 
+//   if (xs == 0)
+//     return 0.2;
+// 
+//   if (x0 < 0.5)
+//     return xs < 0.02 ? xs : xs / 2;
+// 
+//   return xs * 2;
+// }
+
+double sx(void* ctx, int n, ...) {
   (void)ctx;
   (void)n;
 
-  return 0.5;
+  return 0.0635;
 }
 
-double sq_dir(struct vtx* v) {
-  return v->x * v->x * v->x + v->y * v->y;
+double tgt(struct vtx* v) {
+  return sin(v->x + v->y);
 }
 
-double sq_neu(struct vtx* v) {
+double lam(double n, struct vtx* v) {
+  (void)n;
   (void)v;
 
-  return 2 * v->y;
+  return 5;
 }
 
-double sq_neu_dn(struct vtx* v) {
+double gam(double n, struct vtx* v) {
+  (void)n;
   (void)v;
 
-  return -1;
+  return 0.4;
 }
 
-double sq_ext(struct vtx* v) {
+double ext(double n, struct vtx* v) {
+  (void)n;
 
-  return -10 - 10 + 0.4 * (v->x*v->x + v->y*v->y);
+  return 10.4 * sin(v->x + v->y);
 }
 
-static vfun dat[] = {
-  &sq_dir, // 0
-  &sq_ext, // 1
-  &sq_neu, // 2
-  &sq_neu_dn, // 3
-};
+double dir(double n, struct vtx* v) {
+  (void)n;
 
-struct test {
-  const char* name;
-
-  struct {
-    double tx;
-    double ty;
-    double tz;
-    double tv;
-
-    double eps;
-
-    struct obj_gen_ops ops;
-  } pps;
-};
-
-struct test tests[] = {
-  { "sq-1", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
-    .ops = {
-      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sz = 0,
-      .eps = 0.00005,
-      .with_vtx = 0,
-      .with_seg = 0,
-      .with_qud = 0,
-      .with_hxd = 0,
-    }
-  }},
-  { "sq-2", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.841470984807, .eps = 0.5,
-    .ops = {
-      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sz = 0,
-      .eps = 0.00005,
-      .with_vtx = 0,
-      .with_seg = 0,
-      .with_qud = 0,
-      .with_hxd = 0,
-    }
-  }},
-  { "sq-3", { 
-    .tx = 0.5, .ty = 0.5, .tz = 0, .tv = 0.84147, .eps = 0.5,
-    .ops = {
-      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sz = 0,
-      .eps = 0.00005,
-      .with_vtx = 0,
-      .with_seg = 0,
-      .with_qud = 0,
-      .with_hxd = 0,
-    }
-  }},
-  { "t-1", { 
-    .tx = 3.5, .ty = 4, .tz = 0, .tv = 28.25, .eps = 0.5,
-    .ops = {
-      .sx = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sy = &((struct dcap){.call = &sq_sx, .ctx = 0}),
-      .sz = 0,
-      .eps = 0.00005,
-      .with_vtx = 0,
-      .with_seg = 0,
-      .with_qud = 0,
-      .with_hxd = 0,
-    }
-  }},
-};
-
-struct ctx {
-  struct test* test;
-
-  struct obj* obj;
-  struct vec* res;
-
-  struct itr {
-    int k;
-    double res;
-  } itr;
-};
-
-void cback(void* ctx, int n, ...);
-
-void* test_sup(const MunitParameter pps[], void* non) {
-  (void)non;
-
-  int n = atoi(pps[0].value);
-
-  struct test* t = &tests[n];
-  struct obj* o = malloc(sizeof(struct obj));
-
-  struct ocut dcut;
-
-  ocut_new(&dcut);
-  ocut_cov(&dcut, dat, sizeof(dat) / sizeof(double (*)(struct vtx*)));
-  
-  char fname[64] = "obj/";
-
-  strcat(fname, t->name);
-  strcat(fname, ".obj");
-
-  FILE* f = fopen(fname, "r");
-
-  obj_get(o, f, (struct obj_get_ops){
-    .get_vtx_ctx = 0,
-    .get_hxd_ctx = 0,
-    .get_seg_ctx = &((struct icap){
-      .ctx = &dcut,
-      .call = &fctx_get,
-    }),
-    .get_qud_ctx = &((struct icap){
-      .ctx = &dcut,
-      .call = &ectx_get,
-    })
-  });
-
-  fclose(f);
-  obj_gen(o, t->pps.ops);
-
-  struct ctx* ctx = malloc(sizeof(struct ctx));
-  
-  ctx->test = t;
-  ctx->obj = o;
-  ctx->res = malloc(sizeof(struct vec));
-
-  return ctx;
+  return tgt(v);
 }
 
-void test_tdn(void* ctx) {
-  struct ctx* c = (struct ctx*)ctx;
+double neup(double n, struct vtx* v) {
+  (void)n;
+  (void)v;
 
-  obj_cls(c->obj);
-  vec_cls(c->res);
-
-  free(c->obj);
-  free(c->res);
+  return cos(v->x + v->y);
 }
+
+double neun(double n, struct vtx* v) {
+  (void)n;
+  (void)v;
+
+  return -cos(v->x + v->y);
+}
+
+
+static fun pay[] = {
+  &lam,
+  &gam,
+  &ext,
+  &dir,
+  &neun,
+  &neup,
+};
 
 MunitResult test_fdm(const MunitParameter pps[], void* ctx) {
   (void)pps;
+  (void)ctx;
 
-  struct ctx* c = (struct ctx*)ctx;
+  struct obj obj;
+  struct vec res;
   struct iss_itr itr;
 
-  munit_assert_int(0, ==, pde_sse_fdm_slv(c->obj, c->res, (struct sse_fdm_ops){
+  struct fun_cut dat;
+
+  fun_cut_new(&dat);
+  fun_cut_cov(&dat, pay, sizeof(pay) / sizeof(fun));
+
+  obj_new(&obj);
+  obj_get(&obj, fopen("obj/qud-let.obj", "r"), (struct obj_get_ops){
+      .get_vtx_ctx = 0,
+      .get_hxd_ctx = 0,
+      .get_seg_ctx = &((struct icap){.ctx = &dat, .call = &fctx_get}),
+      .get_qud_ctx = &((struct icap){.ctx = &dat, .call = &ectx_get}),
+  });
+  obj_gen(&obj, (struct obj_gen_ops){
+      .sx = &((struct dcap){.ctx = 0, .call = &sx}),
+      .sy = &((struct dcap){.ctx = 0, .call = &sx}),
+      .sz = 0,
+      .eps = 0.01,
+  });
+
+  vec_new(&res, obj.ax.len * obj.ay.len * obj.az.len);
+
+  pde_sse_fdm_slv(&obj, &res, (struct sse_fdm_ops){
     .ops = {
       .iss.mod = ISS_RLX,
       .iss.ops.rlx = {
@@ -200,38 +137,18 @@ MunitResult test_fdm(const MunitParameter pps[], void* ctx) {
         .ops.itr.call = &iss_itr_cap
       }
     }
-  }));
+  });
 
-  int sp = obj_srh(c->obj, 
-    c->test->pps.tx,
-    c->test->pps.ty,
-    c->test->pps.tz
-  );
+  int sp = obj_srh(&obj, 0.5, 0.5, 0);
+  double err = fabs(res.dat[sp] - tgt(&((struct vtx){.x = 0.5, .y = 0.5, .z = 0})));
 
-  double err = fabs(c->res->dat[sp] - c->test->pps.tv);
-
-  printf("\n[%s]\n\t-> n: %d\n\t-> target: %.7e\n\t-> result: %.7e\n\t-> error: %.7e\n\t-> iss/num: %d\n\t-> iss/err: %.7e\n", 
-    c->test->name, 
-    c->obj->ax.len * c->obj->ay.len,
-    c->test->pps.tv,
-    c->res->dat[sp], 
-    err,
-    itr.num,
-    itr.err
-  );
+  printf("\n\t-> val = %.7e\n\t-> err = %.7e\n\t-> iss/num = %d\n\t-> iss/err = %.7e\n", res.dat[sp], err, itr.num, itr.err);
 
   return MUNIT_OK;
 }
 
-static char* cases[] = { "3" };
-
-static MunitParameterEnum pps[] = {
-  { "case", cases },
-  { NULL, NULL },
-};
-
 static MunitTest test[] = {
-  { "/fdm", test_fdm, test_sup, test_tdn, MUNIT_TEST_OPTION_NONE, pps},
+  { "/fdm", test_fdm, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
   { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
 };
 
