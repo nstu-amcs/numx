@@ -41,11 +41,6 @@ static MunitResult test_gen_idle(const MunitParameter pps[], void* ctx) {
   fclose(f);
 
   munit_assert_int(0, ==, obj_gen(&obj, (struct obj_gen_ops){
-    .with_vtx = false,
-    .with_seg = false,
-    .with_qud = false,
-    .with_hxd = false,
-
     .sx = 0,
     .sy = 0,
     .sz = 0
@@ -103,11 +98,6 @@ static MunitResult test_gen_step(const MunitParameter pps[], void* ctx) {
   struct dcap s = cap(&step, 0);
 
   munit_assert_int(0, ==, obj_gen(&obj, (struct obj_gen_ops){
-    .with_vtx = false,
-    .with_seg = false,
-    .with_qud = false,
-    .with_hxd = false,
-
     .sx = &s,
     .sy = &s,
     .sz = &s
