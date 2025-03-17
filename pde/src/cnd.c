@@ -1,50 +1,68 @@
+#include <assert.h>
 #include <errno.h>
 #include <numx/pde/cnd.h>
 #include <stdio.h>
 
-stdx_gen_cut(ocut, vfun, STDX_PUB);
+stdx_gen_cut(fun_cut, fun, STDX_PUB);
 
-int cnd_get(struct cnd* cnd, const char* buf, struct ocut* dat) {
-  if (!cnd || !buf) {
-    errno = EINVAL;
-    return -1;
-  }
+static const char *skip(const char *buf)
+{
+    while (*buf == ' ' || *buf == '\t' || *buf == '|')
+        buf++;
 
-  char t = 0;
-  int f = 0;
-  int n = 0;
+    return buf;
+}
 
-  if (sscanf(buf, "%c %d%n", &t, &f, &n) != 2)
-    return -1;
+int cnd_get(struct cnd *cnd, const char *buf, struct fun_cut *dat)
+{
+    assert(cnd);
+    assert(buf);
+    assert(dat);
 
-  if (f >= dat->len) {
-    errno = EINVAL;
-    return -1;
-  }
+    buf = skip(buf);
 
-  switch (t) {
-    case 'D':
-      cnd->type = DIR;
-      cnd->pps.dir.tmp = dat->dat[f];
+    char t = *buf;
+    int  f = 0;
+    int  n = 0;
 
-      break;
-    case 'N':
-      cnd->type = NEU;
-      cnd->pps.neu.tta = dat->dat[f];
+    buf = skip(buf + 1);
 
-      break;
-    case 'R':
-      cnd->type = ROB;
-      cnd->pps.rob.tmp = dat->dat[f];
-
-      if (sscanf(buf + n, "%lf", &cnd->pps.rob.bet) != 1)
+    if (sscanf(buf, "%d%n", &f, &n) != 1)
         return -1;
 
-      break;
-    default:
-      errno = EINVAL;
-      return -1;
-  }
+    if (f < 0 || f >= dat->len)
+        return -1;
 
-  return 0;
+    switch (t) {
+        case 'D':
+            cnd->mod = CND_DIR;
+            cnd->pps.dir.tmp = dat->dat[f];
+
+            break;
+        case 'N':
+            cnd->mod = CND_NEU;
+            cnd->pps.neu.tta = dat->dat[f];
+
+            break;
+        case 'R':
+            cnd->mod = CND_ROB;
+            cnd->pps.rob.tmp = dat->dat[f];
+
+            buf = skip(buf + n);
+
+            if (sscanf(buf, "%d", &f) != 1)
+                return -1;
+
+            if (f < 0 || f >= dat->len)
+                return -1;
+
+            cnd->pps.rob.bet = dat->dat[f];
+
+            break;
+        default:
+            errno = EINVAL;
+            return -1;
+    }
+
+    return 0;
 }
