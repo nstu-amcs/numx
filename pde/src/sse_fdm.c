@@ -35,6 +35,10 @@ static int seg_evo(struct obj* obj, struct dmtx* m, struct vec* f, enum stat* st
     int st = 0;
 
     switch (norm) {
+      case NORM_F:
+      case NORM_B:
+        errno = ENOTSUP;
+        return -1;
       case NORM_L:
         i0 = ss[i].vtx[1];
         i1 = ss[i].vtx[0];
@@ -84,6 +88,10 @@ static int seg_evo(struct obj* obj, struct dmtx* m, struct vec* f, enum stat* st
           bi = 0;
 
           switch (norm) {
+            case NORM_F:
+            case NORM_B:
+              errno = ENOTSUP;
+              return -1;
             case NORM_L:
               hi = obj->ax.dat[xi + 1] - obj->ax.dat[xi];
               bi = 1;
@@ -128,6 +136,10 @@ static int seg_evo(struct obj* obj, struct dmtx* m, struct vec* f, enum stat* st
           bi = 0;
 
           switch (norm) {
+            case NORM_F:
+            case NORM_B:
+              errno = ENOTSUP;
+              return -1;
             case NORM_L:
               hi = obj->ax.dat[xi + 1] - obj->ax.dat[xi];
               bi = 1;
