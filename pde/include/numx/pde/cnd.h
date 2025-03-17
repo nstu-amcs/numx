@@ -3,29 +3,41 @@
 
 #include <numx/pde/geo.h>
 
-typedef double (*vfun)(struct vtx*);
+typedef double (*fun)(double, struct vtx *);
 
-stdx_def_cut(ocut, vfun);
+stdx_def_cut(fun_cut, fun);
 
-struct cnd {
-  enum { DIR, NEU, ROB } type;
+/** Boundary condition. */
+struct cnd
+{
+    enum cnd_mod
+    {
+        CND_DIR, // Dirichlet (1)
+        CND_NEU, // Neumann (2)
+        CND_ROB  // Robin (3)
+    } mod;
 
-  union {
-    struct {
-      double (*tmp)(struct vtx* v);
-    } dir;
+    union
+    {
+        struct
+        {
+            fun tmp;
+        } dir;
 
-    struct {
-      double (*tta)(struct vtx* v);
-    } neu;
+        struct
+        {
+            fun tta;
+        } neu;
 
-    struct {
-      double (*tmp)(struct vtx* v);
-      double bet;
-    } rob;
-  } pps;
+        struct
+        {
+            fun tmp;
+            fun bet;
+        } rob;
+    } pps;
 };
 
-int cnd_get(struct cnd* cnd, const char* buf, struct ocut* dat);
+/** Read condition from given buffer using provided dataset. */
+int cnd_get(struct cnd *cnd, const char *buf, struct fun_cut *dat);
 
-#endif  // NUMX_PDE_CND_H
+#endif // NUMX_PDE_CND_H
