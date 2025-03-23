@@ -1,43 +1,46 @@
 #ifndef NUMX_PDE_CND_H
 #define NUMX_PDE_CND_H
 
-#include <numx/pde/geo.h>
+#include <numx/com/cut.h>
+#include <numx/pde/msh.h>
+#include <numx/pde/val.h>
 
-typedef double (*fun)(double, struct vtx *);
-
-stdx_def_cut(fun_cut, fun);
-
-/** Boundary condition. */
-struct cnd
+typedef struct cnd_bnd
 {
-    enum cnd_mod
+    enum bnd_type
     {
-        CND_DIR, // Dirichlet (1)
-        CND_NEU, // Neumann (2)
-        CND_ROB  // Robin (3)
-    } mod;
+        CND_BND_DIR,
+        CND_BND_NEU,
+        CND_BND_ROB,
+    } type;
 
     union
     {
         struct
         {
-            fun tmp;
+            val tgt;
         } dir;
 
         struct
         {
-            fun tta;
+            val bet;
         } neu;
 
         struct
         {
-            fun tmp;
-            fun bet;
+            val tgt;
+            val bet;
+            val src;
         } rob;
     } pps;
-};
+} cnd_bnd;
 
-/** Read condition from given buffer using provided dataset. */
-int cnd_get(struct cnd *cnd, const char *buf, struct fun_cut *dat);
+typedef struct cnd_ini
+{
+    val tgt;
+} cnd_ini;
+
+cut_def(cnd_bnd_cut, cnd_bnd);
+cut_def(cnd_ini_cut, cnd_ini);
 
 #endif // NUMX_PDE_CND_H

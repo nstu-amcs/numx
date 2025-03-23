@@ -1,9 +1,10 @@
 #include <assert.h>
 #include <errno.h>
-#include <numx/pde/cnd.h>
 #include <stdio.h>
 
-stdx_gen_cut(fun_cut, fun, STDX_PUB);
+#include <numx/pde/cnd.h>
+
+cut_gen(fun_cut, fun, STDX_PUB);
 
 static const char *skip(const char *buf)
 {

@@ -1,4 +1,5 @@
 #include <errno.h>
+
 #include <numx/non/dif.h>
 
 int pdif(double (*f)(struct vec*), int i, double hop, struct vec* p, double* r) {
