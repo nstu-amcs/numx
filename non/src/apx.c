@@ -1,4 +1,5 @@
 #include <errno.h>
+
 #include <numx/non/apx.h>
 #include <numx/vec/dss.h>
 

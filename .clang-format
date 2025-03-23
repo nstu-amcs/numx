@@ -21,6 +21,7 @@ AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterEnum: true
@@ -32,3 +33,4 @@ BraceWrapping:
   AfterCaseLabel: false
 BreakArrays: false
 IndentCaseLabels: true
+
