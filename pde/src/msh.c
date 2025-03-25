@@ -3,9 +3,9 @@
 
 #include <numx/pde/msh.h>
 
-static int msh_get_vtx(struct msh *msh, FILE *f);
-static int msh_get_ems(struct msh *msh, FILE *f);
-static int msh_get_bnd(struct msh *msh, FILE *f);
+static int get_vtx(struct msh *msh, FILE *f);
+static int get_ems(struct msh *msh, FILE *f);
+static int get_bnd(struct msh *msh, FILE *f);
 
 int msh_new(struct msh *msh, const char *dir)
 {
@@ -14,10 +14,10 @@ int msh_new(struct msh *msh, const char *dir)
 
     int r = -1;
 
-    vtx_cut_cls(&msh->vtx);
-    seg_cut_cls(&msh->seg);
-    qud_cut_cls(&msh->qud);
-    hxd_cut_cls(&msh->hxd);
+    vtx_cut_new(&msh->vtx);
+    seg_cut_new(&msh->seg);
+    qud_cut_new(&msh->qud);
+    hxd_cut_new(&msh->hxd);
 
     FILE *hdr = 0;
     FILE *vtx = 0;
@@ -75,13 +75,13 @@ int msh_new(struct msh *msh, const char *dir)
             break;
     }
 
-    if ((r = msh_get_vtx(msh, vtx)))
+    if ((r = get_vtx(msh, vtx)))
         goto end;
 
-    if ((r = msh_get_ems(msh, ems)))
+    if ((r = get_ems(msh, ems)))
         goto end;
 
-    if ((r = msh_get_bnd(msh, bnd)))
+    if ((r = get_bnd(msh, bnd)))
         goto end;
 
 end:
@@ -93,7 +93,7 @@ end:
     return 0;
 }
 
-static int msh_get_vtx(struct msh *msh, FILE *f)
+static int get_vtx(struct msh *msh, FILE *f)
 {
     vtx *vtx = msh->vtx.dat;
 
@@ -104,7 +104,7 @@ static int msh_get_vtx(struct msh *msh, FILE *f)
     return 0;
 }
 
-static int msh_get_ems(struct msh *msh, FILE *f)
+static int get_ems(struct msh *msh, FILE *f)
 {
     qud *qud = msh->qud.dat;
     hxd *hxd = msh->hxd.dat;
@@ -130,7 +130,7 @@ static int msh_get_ems(struct msh *msh, FILE *f)
     return 0;
 }
 
-static int msh_get_bnd(struct msh *msh, FILE *f)
+static int get_bnd(struct msh *msh, FILE *f)
 {
     seg *seg = msh->seg.dat;
     qud *qud = msh->qud.dat;
