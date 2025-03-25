@@ -1,4 +1,5 @@
 add_library(com
+  src/cmp.c
   src/cut.c
   src/log.c
   src/que.c

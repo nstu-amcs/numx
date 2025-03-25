@@ -28,7 +28,7 @@ typedef struct iss_ops
      */
     struct vcap itr;
 
-    double eps; // target residual
+    double err; // target residual
     int    max; // maximum number of iterations
 } iss_ops;
 
@@ -36,14 +36,14 @@ typedef struct iss_jac_ops
 {
     struct iss_ops ops;
 
-    double omg; // relaxation parameter
+    double rlx; // relaxation parameter
 } iss_jac_ops;
 
 typedef struct iss_rlx_ops
 {
     struct iss_ops ops;
 
-    double omg; // relaxation parameter
+    double rlx; // relaxation parameter
 } iss_rlx_ops;
 
 typedef struct iss_bcg_ops

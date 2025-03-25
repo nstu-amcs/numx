@@ -24,17 +24,17 @@ typedef struct bnd
     int cnd;
 } bnd;
 
-stdx_def_cut(mat_cut, mat);
-stdx_def_cut(obj_cut, obj);
-stdx_def_cut(bnd_cut, bnd);
+cut_def(mat_cut, mat);
+cut_def(obj_cut, obj);
+cut_def(bnd_cut, bnd);
 
 struct sim_ops
 {
     struct
     {
         int    max;
-        double eps;
-        double omg;
+        double err;
+        double rlx;
     } non;
 
     struct
@@ -49,17 +49,29 @@ struct sim_ops
     } iss;
 };
 
-struct sim_sse_ops
+struct sim_ell_ops
 {
     struct sim_ops ops;
 };
 
-struct sim_tde_ops
+struct sim_pbc_ops
 {
     struct sim_ops ops;
 
     int num;
     int hop;
+
+    struct cnd_ini_cut cnd_ini;
+};
+
+struct sim_hyp_ops
+{
+    struct sim_ops ops;
+
+    int num;
+    int hop;
+
+    struct cnd_ini_cut cnd_ini;
 };
 
 struct sim
@@ -83,26 +95,26 @@ struct sim
 
     enum sim_mod
     {
-        SIM_SSE,
-        SIM_TDE,
+        SIM_ELL,
+        SIM_PBC,
+        SIM_HYP,
     } mod;
 
     union
     {
-        struct sim_sse_ops sse;
-        struct sim_tde_ops tde;
+        struct sim_ell_ops ell;
+        struct sim_pbc_ops pbc;
+        struct sim_hyp_ops hyp;
     } ops;
 
     struct msh *msh;
 
     struct mat_cut mat;
+    struct val_cut ext;
     struct obj_cut obj;
     struct bnd_cut bnd;
 
-    struct val_cut ext;
-
     struct cnd_bnd_cut cnd_bnd;
-    struct cnd_ini_cut cnd_ini;
 };
 
 int sim_new(struct sim *sim, const char *sif);

@@ -7,7 +7,7 @@
 
 typedef struct cnd_bnd
 {
-    enum bnd_type
+    enum cnd_bnd_type
     {
         CND_BND_DIR,
         CND_BND_NEU,
@@ -23,7 +23,7 @@ typedef struct cnd_bnd
 
         struct
         {
-            val bet;
+            val tta;
         } neu;
 
         struct
