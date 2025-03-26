@@ -1,7 +1,13 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include <numx/com/dev/cut.h>
 #include <numx/pde/msh.h>
+
+cut_gen(vtx_cut, vtx, PUB);
+cut_gen(seg_cut, seg, PUB);
+cut_gen(qud_cut, qud, PUB);
+cut_gen(hxd_cut, hxd, PUB);
 
 static int get_vtx(struct msh *msh, FILE *f);
 static int get_ems(struct msh *msh, FILE *f);
@@ -12,7 +18,7 @@ int msh_new(struct msh *msh, const char *dir)
     assert(msh);
     assert(dir);
 
-    int r = -1;
+    int r = 0;
 
     vtx_cut_new(&msh->vtx);
     seg_cut_new(&msh->seg);
@@ -90,7 +96,7 @@ end:
     fclose(ems);
     fclose(bnd);
 
-    return 0;
+    return r;
 }
 
 static int get_vtx(struct msh *msh, FILE *f)

@@ -6,6 +6,14 @@
 #include <numx/pde/sim.h>
 #include <numx/pde/val.h>
 
+cut_gen(val_cut, val, PUB);
+cut_gen(mat_cut, mat, PUB);
+cut_gen(obj_cut, obj, PUB);
+cut_gen(bnd_cut, bnd, PUB);
+
+cut_gen(cnd_bnd_cut, cnd_bnd, PUB);
+cut_gen(cnd_ini_cut, cnd_ini, PUB);
+
 static int get_hdr(FILE *f, struct sim *sim);
 static int get_sim(FILE *f, struct sim *sim);
 static int get_obj(FILE *f, struct sim *sim);
@@ -18,6 +26,15 @@ int sim_new(struct sim *sim, const char *sif)
 {
     assert(sim);
     assert(sif);
+
+    sim->msh = malloc(sizeof(struct msh));
+
+    mat_cut_new(&sim->mat);
+    val_cut_new(&sim->ext);
+    obj_cut_new(&sim->obj);
+    bnd_cut_new(&sim->bnd);
+
+    cnd_bnd_cut_new(&sim->cnd_bnd);
 
     FILE *f = fopen(sif, "r");
 
@@ -85,7 +102,8 @@ static int get_pt(const char **src, char *dst);
 static int get_hdr(FILE *f, struct sim *sim)
 {
     char buf[128];
-    char pt[64];
+    char cmd[256];
+    char str[64];
 
     while (fgets(buf, sizeof(buf), f)) {
         const char *cur = buf;
@@ -98,13 +116,25 @@ static int get_hdr(FILE *f, struct sim *sim)
                 return 0;
             case 'M':
                 get_pt(&cur, sim->pps.msh.dir);
-                get_pt(&cur, sim->pps.msh.pfx);
+                get_pt(&cur, str);
+
+                strcat(sim->pps.msh.dir, "/");
+                strcat(sim->pps.msh.dir, str);
+                strcat(sim->pps.msh.dir, "/");
+
+                strcpy(sim->pps.msh.pfx, "mesh");
 
                 break;
             case 'I':
-                get_pt(&cur, pt);
+                get_pt(&cur, str);
 
-                sim->pps.usr = dlopen(pt, 1);
+                if (!str[0])
+                    break;
+
+                sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s", str);
+                system(cmd);
+
+                sim->pps.usr = dlopen("/tmp/numx_usr.so", RTLD_NOW);
 
                 if (!sim->pps.usr)
                     return -1;
@@ -112,6 +142,8 @@ static int get_hdr(FILE *f, struct sim *sim)
                 break;
             case 'R':
                 get_pt(&cur, sim->pps.exp.dir);
+
+                strcat(sim->pps.exp.dir, "/");
 
                 break;
         }
@@ -144,6 +176,11 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (!strcmp("Post File", key)) {
             strcpy(strtok(val, "."), sim->pps.exp.pfx);
+            strcpy(strtok(0, "."), key);
+
+            if (!strcmp("vtu", key))
+                sim->pps.exp.mod = SIM_EXP_VTU;
+
             continue;
         }
 
@@ -440,15 +477,17 @@ static int get_bnd(FILE *f, struct sim *sim)
 static int get_pt(const char **src, char *dst)
 {
     const char *cur = *src;
+    int         len = 0;
 
     while (*cur != '"')
         ++cur;
 
     cur += 1;
 
-    for (int i = 0; *cur != '"'; ++i, ++cur)
-        dst[i] = *cur;
+    for (len = 0; *cur != '"'; ++len, ++cur)
+        dst[len] = *cur;
 
+    dst[len] = 0;
     *src = cur + 1;
 
     return 0;
@@ -469,10 +508,10 @@ static int get_kv(const char *src, char *key, char *val)
         ++src;
     }
 
-    strncpy(key, beg, act - beg);
+    strncpy(key, beg, act - beg + 1);
+    key[act - beg + 1] = 0;
 
-    while (*src == ' ')
-        ++src;
+    while (*(++src) == ' ') {}
 
     beg = src;
     act = src;
@@ -484,7 +523,8 @@ static int get_kv(const char *src, char *key, char *val)
         ++src;
     }
 
-    strncpy(val, beg, act - beg);
+    strncpy(val, beg, act - beg + 1);
+    val[act - beg + 1] = 0;
 
     return 0;
 }

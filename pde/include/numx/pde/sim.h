@@ -80,13 +80,18 @@ struct sim
     {
         struct
         {
-            char dir[64];
+            char dir[128];
             char pfx[64];
         } msh;
 
         struct
         {
-            char dir[64];
+            enum
+            {
+                SIM_EXP_VTU,
+            } mod;
+
+            char dir[128];
             char pfx[64];
         } exp;
 

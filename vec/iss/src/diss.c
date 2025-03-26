@@ -59,8 +59,8 @@ int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_op
     double nt = 0;
 
     double res = 1;
-    double eps = o.ops.eps;
-    double omg = o.omg;
+    double eps = o.ops.err;
+    double omg = o.rlx;
 
     int max = o.ops.max;
 
@@ -103,8 +103,8 @@ int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_op
     double nt = 0;
 
     double res = 1;
-    double eps = o.ops.eps;
-    double omg = o.omg;
+    double eps = o.ops.err;
+    double omg = o.rlx;
 
     int max = o.ops.max;
 

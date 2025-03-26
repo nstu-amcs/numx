@@ -17,4 +17,6 @@ int fem_slv(struct sim *sim, struct vec *q)
             return fem_hyp_slv(sim, q);
             break;
     }
+
+    return 0;
 }

@@ -4,3 +4,5 @@ add_library(dss
 
 target_link_libraries(dss PUBLIC vec mtx)
 target_include_directories(dss PUBLIC include/)
+
+install(DIRECTORY include/numx DESTINATION /usr/share/include)
