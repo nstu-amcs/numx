@@ -270,8 +270,34 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 
                 tb = ext[i] * mx[mui][muj] * my[nui][nuj] * mz[tti][ttj];
 
-                (void)tm;
-                (void)tb;
+                int vi = hxd->vtx[i];
+                int vj = hxd->vtx[j];
+
+                b->dat[vi] += tb;
+
+                if (vi > vj) {
+                    int p = m->ia[vi];
+
+                    while (m->ja[p] < vj)
+                        ++p;
+
+                    m->lr[p] += tm;
+
+                    continue;
+                }
+
+                if (vi < vj) {
+                    int p = m->ia[vj];
+
+                    while (m->ja[p] < vi)
+                        ++p;
+
+                    m->ur[p] += tm;
+
+                    continue;
+                }
+
+                m->dr[vi] += tm;
             }
         }
     }

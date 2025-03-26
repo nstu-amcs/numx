@@ -4,7 +4,7 @@ project(numx C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_FLAGS "-Wall -Werror -Wextra -Wpedantic -std=c11 -fopenmp")
+set(CMAKE_C_FLAGS "-std=c11 -Wall -Werror -Wextra -fopenmp")
 set(CMAKE_C_STANDARD 11)
 
 include(CTest)
@@ -14,3 +14,4 @@ add_subdirectory(com)
 add_subdirectory(vec)
 add_subdirectory(non)
 add_subdirectory(pde)
+add_subdirectory(cmd)

@@ -76,7 +76,7 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         if (o.ops.itr.run)
             o.ops.itr.run(o.ops.itr.ctx, 2, k, nrm);
 
-        if (nrm < o.ops.eps)
+        if (nrm < o.ops.err)
             break;
 
         vec_dot(&r, &z, &bet);
@@ -254,7 +254,7 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         if (o.ops.itr.run)
             o.ops.itr.run(o.ops.itr.ctx, 2, k, nrm);
 
-        if (nrm < o.ops.eps)
+        if (nrm < o.ops.err)
             break;
 
         vec_dot(&r, &z, &bet);
