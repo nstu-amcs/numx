@@ -1,0 +1,24 @@
+Version = 210903
+Coordinate System = Cartesian 2D
+
+Subcell Divisions in 2D = 1 1
+
+Subcell Limits 1 = 0 1
+Subcell Limits 2 = 0 1
+
+Material Structure
+ 1
+End
+
+Materials Interval = 1 1
+
+Boundary Definitions
+! t o i d
+  1 -1 1 1
+  2 -2 1 1
+  2 -3 1 1
+  2 -4 1 1
+End
+
+Element Degree = 1
+Minimum Element Divisions = 2 1
