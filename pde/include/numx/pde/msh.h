@@ -47,7 +47,7 @@ typedef struct msh
     struct hxd_cut hxd;
 } msh;
 
-int msh_new(struct msh *msh, const char *dir);
+int msh_new(struct msh *msh, const char *dir, const char *pfx);
 int msh_cls(struct msh *msh);
 
 #endif // NUMX_PDE_MSH_H
