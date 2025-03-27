@@ -16,7 +16,7 @@ typedef struct obj
 {
     int mat;
     int ini;
-    int ext;
+    int src;
 } obj;
 
 typedef struct bnd
@@ -115,7 +115,7 @@ struct sim
     struct msh *msh;
 
     struct mat_cut mat;
-    struct val_cut ext;
+    struct val_cut src;
     struct obj_cut obj;
     struct bnd_cut bnd;
 

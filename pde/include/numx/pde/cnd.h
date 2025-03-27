@@ -28,9 +28,8 @@ typedef struct cnd_bnd
 
         struct
         {
-            val tgt;
             val bet;
-            val src;
+            val ext;
         } rob;
     } pps;
 } cnd_bnd;

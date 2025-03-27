@@ -145,7 +145,7 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 {
     double lam[8];
     double gam[8];
-    double ext[8];
+    double src[8];
 
     double gx[2][2];
     double gy[2][2];
@@ -170,7 +170,7 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 
         struct obj *obj = &sim->obj.dat[hxd->pid];
         struct mat *mat = &sim->mat.dat[obj->mat];
-        struct val *val = &sim->ext.dat[obj->ext];
+        struct val *val = &sim->src.dat[obj->src];
 
         if (mat->lam.type == VAL_FUN)
             for (int k = 0; k < 8; ++k)
@@ -183,12 +183,12 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
         switch (val->type) {
             case VAL_NUM:
                 for (int k = 0; k < 8; ++k)
-                    ext[k] = val->as.num;
+                    src[k] = val->as.num;
 
                 break;
             case VAL_FUN:
                 for (int k = 0; k < 8; ++k)
-                    ext[k] = val->as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+                    src[k] = val->as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
 
                 break;
         }
@@ -268,7 +268,7 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
                         break;
                 }
 
-                tb = ext[i] * mx[mui][muj] * my[nui][nuj] * mz[tti][ttj];
+                tb = src[i] * mx[mui][muj] * my[nui][nuj] * mz[tti][ttj];
 
                 int vi = hxd->vtx[i];
                 int vj = hxd->vtx[j];

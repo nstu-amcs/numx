@@ -13,7 +13,7 @@ static int get_vtx(struct msh *msh, FILE *f);
 static int get_ems(struct msh *msh, FILE *f);
 static int get_bnd(struct msh *msh, FILE *f);
 
-int msh_new(struct msh *msh, const char *dir)
+int msh_new(struct msh *msh, const char *dir, const char *pfx)
 {
     assert(msh);
     assert(dir);
@@ -33,22 +33,22 @@ int msh_new(struct msh *msh, const char *dir)
     int  nc, ec, bc;
     char path[64];
 
-    sprintf(path, "%s/mesh.header", dir);
+    sprintf(path, "%s/%s.header", dir, pfx);
 
     if (!(hdr = fopen(path, "r")))
         goto end;
 
-    sprintf(path, "%s/mesh.nodes", dir);
+    sprintf(path, "%s/%s.nodes", dir, pfx);
 
     if (!(vtx = fopen(path, "r")))
         goto end;
 
-    sprintf(path, "%s/mesh.elements", dir);
+    sprintf(path, "%s/%s.elements", dir, pfx);
 
     if (!(ems = fopen(path, "r")))
         goto end;
 
-    sprintf(path, "%s/mesh.boundary", dir);
+    sprintf(path, "%s/%s.boundary", dir, pfx);
 
     if (!(bnd = fopen(path, "r")))
         goto end;

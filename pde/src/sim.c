@@ -18,7 +18,7 @@ static int get_hdr(FILE *f, struct sim *sim);
 static int get_sim(FILE *f, struct sim *sim);
 static int get_obj(FILE *f, struct sim *sim);
 static int get_mat(FILE *f, struct sim *sim);
-static int get_ext(FILE *f, struct sim *sim);
+static int get_src(FILE *f, struct sim *sim);
 static int get_ini(FILE *f, struct sim *sim);
 static int get_bnd(FILE *f, struct sim *sim);
 
@@ -27,65 +27,88 @@ int sim_new(struct sim *sim, const char *sif)
     assert(sim);
     assert(sif);
 
-    sim->msh = malloc(sizeof(struct msh));
+    char buf[128];
 
-    mat_cut_new(&sim->mat);
-    val_cut_new(&sim->ext);
-    obj_cut_new(&sim->obj);
-    bnd_cut_new(&sim->bnd);
+    if (!(sim->msh = malloc(sizeof(struct msh))))
+        return -1;
 
-    cnd_bnd_cut_new(&sim->cnd_bnd);
+    if (mat_cut_new(&sim->mat))
+        return -1;
+
+    if (val_cut_new(&sim->src))
+        return -1;
+
+    if (obj_cut_new(&sim->obj))
+        return -1;
+
+    if (bnd_cut_new(&sim->bnd))
+        return -1;
+
+    if (cnd_bnd_cut_new(&sim->cnd_bnd))
+        return -1;
 
     FILE *f = fopen(sif, "r");
 
     if (!f)
         return -1;
 
-    char buf[128];
-
     while (fgets(buf, sizeof(buf), f)) {
         switch (*buf) {
             case 'H':
-                if (get_hdr(f, sim))
+                if (get_hdr(f, sim)) {
+                    fclose(f);
                     return -1;
+                }
 
                 break;
             case 'S':
-                if (get_sim(f, sim))
+                if (get_sim(f, sim)) {
+                    fclose(f);
                     return -1;
+                }
 
                 break;
             case 'B':
                 if (!strncmp(buf, "Body Force", 10)) {
-                    if (get_ext(f, sim))
+                    if (get_src(f, sim)) {
+                        fclose(f);
                         return -1;
+                    }
 
                     continue;
                 }
 
                 if (!strncmp(buf, "Boundary Condition", 18)) {
-                    if (get_bnd(f, sim))
+                    if (get_bnd(f, sim)) {
+                        fclose(f);
                         return -1;
+                    }
 
                     continue;
                 }
 
                 if (!strncmp(buf, "Body", 4)) {
-                    if (get_obj(f, sim))
+                    if (get_obj(f, sim)) {
+                        fclose(f);
                         return -1;
+                    }
 
                     continue;
                 }
 
                 break;
             case 'M':
-                if (get_mat(f, sim))
+                if (get_mat(f, sim)) {
+                    fclose(f);
                     return -1;
+                }
 
                 break;
             case 'I':
-                if (get_ini(f, sim))
+                if (get_ini(f, sim)) {
+                    fclose(f);
                     return -1;
+                }
 
                 break;
         }
@@ -93,11 +116,15 @@ int sim_new(struct sim *sim, const char *sif)
 
     fclose(f);
 
+    if (msh_new(sim->msh, sim->pps.msh.dir, sim->pps.msh.pfx))
+        return -1;
+
     return 0;
 }
 
 static int get_kv(const char *src, char *key, char *val);
-static int get_pt(const char **src, char *dst);
+static int get_str(const char **src, char *dst);
+static int get_val(void *usr, const char *src, struct val *val);
 
 static int get_hdr(FILE *f, struct sim *sim)
 {
@@ -115,18 +142,16 @@ static int get_hdr(FILE *f, struct sim *sim)
             case 'E':
                 return 0;
             case 'M':
-                get_pt(&cur, sim->pps.msh.dir);
-                get_pt(&cur, str);
+                get_str(&cur, sim->pps.msh.dir);
+                get_str(&cur, str);
 
                 strcat(sim->pps.msh.dir, "/");
                 strcat(sim->pps.msh.dir, str);
-                strcat(sim->pps.msh.dir, "/");
-
                 strcpy(sim->pps.msh.pfx, "mesh");
 
                 break;
             case 'I':
-                get_pt(&cur, str);
+                get_str(&cur, str);
 
                 if (!str[0])
                     break;
@@ -141,9 +166,12 @@ static int get_hdr(FILE *f, struct sim *sim)
 
                 break;
             case 'R':
-                get_pt(&cur, sim->pps.exp.dir);
+                get_str(&cur, sim->pps.exp.dir);
 
-                strcat(sim->pps.exp.dir, "/");
+                if (!sim->pps.exp.dir[0]) {
+                    sim->pps.exp.dir[0] = '.';
+                    sim->pps.exp.dir[1] = '\0';
+                }
 
                 break;
         }
@@ -162,7 +190,8 @@ static int get_sim(FILE *f, struct sim *sim)
         if (buf[0] == 'E')
             break;
 
-        get_kv(buf, key, val);
+        if (get_kv(buf, key, val))
+            return -1;
 
         if (!strcmp("Coordinate System", key)) {
             if (!strcmp("Cartesian 2D", val))
@@ -235,20 +264,21 @@ static int get_sim(FILE *f, struct sim *sim)
 
 static int get_obj(FILE *f, struct sim *sim)
 {
+    char buf[128];
+    char key[64];
+    char val[64];
+
     if (obj_cut_dev(&sim->obj, 1))
         return -1;
 
     struct obj *obj = &sim->obj.dat[sim->obj.len - 1];
 
-    char buf[128];
-    char key[64];
-    char val[64];
-
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
 
-        get_kv(buf, key, val);
+        if (get_kv(buf, key, val))
+            return -1;
 
         if (!strcmp("Material", key)) {
             obj->mat = atoi(val);
@@ -256,7 +286,7 @@ static int get_obj(FILE *f, struct sim *sim)
         }
 
         if (!strcmp("Body Force", key)) {
-            obj->ext = atoi(val);
+            obj->src = atoi(val);
             continue;
         }
 
@@ -271,41 +301,32 @@ static int get_obj(FILE *f, struct sim *sim)
 
 static int get_mat(FILE *f, struct sim *sim)
 {
+    char buf[128];
+    char key[64];
+    char val[64];
+
     if (mat_cut_dev(&sim->mat, 1))
         return -1;
 
     struct mat *mat = &sim->mat.dat[sim->mat.len - 1];
 
-    char buf[128];
-    char key[64];
-    char val[64];
-
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
 
-        get_kv(buf, key, val);
+        if (get_kv(buf, key, val))
+            return -1;
 
-        if (!strcmp("Diffusion Coefficient", key)) {
-            if (isdigit(val[0])) {
-                mat->lam.type = VAL_NUM;
-                mat->lam.as.num = strtod(val, 0);
-            } else {
-                mat->lam.type = VAL_FUN;
-                mat->lam.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+        if (!strcmp("Lambda Coefficient", key)) {
+            if (!get_val(sim->pps.usr, val, &mat->lam))
+                return -1;
 
             continue;
         }
 
-        if (!strcmp("Reaction Coefficient", key)) {
-            if (isdigit(val[0])) {
-                mat->gam.type = VAL_NUM;
-                mat->gam.as.num = strtod(val, 0);
-            } else {
-                mat->gam.type = VAL_FUN;
-                mat->gam.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+        if (!strcmp("Gamma Coefficient", key)) {
+            if (!get_val(sim->pps.usr, val, &mat->gam))
+                return -1;
 
             continue;
         }
@@ -314,31 +335,27 @@ static int get_mat(FILE *f, struct sim *sim)
     return 0;
 }
 
-static int get_ext(FILE *f, struct sim *sim)
+static int get_src(FILE *f, struct sim *sim)
 {
-    if (val_cut_dev(&sim->ext, 1))
-        return -1;
-
-    struct val *ext = &sim->ext.dat[sim->ext.len - 1];
-
     char buf[128];
     char key[64];
     char val[64];
+
+    if (val_cut_dev(&sim->src, 1))
+        return -1;
+
+    struct val *src = &sim->src.dat[sim->src.len - 1];
 
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
 
-        get_kv(buf, key, val);
+        if (get_kv(buf, key, val))
+            return -1;
 
         if (!strcmp("Field Source", key)) {
-            if (isdigit(val[0])) {
-                ext->type = VAL_NUM;
-                ext->as.num = strtod(val, 0);
-            } else {
-                ext->type = VAL_FUN;
-                ext->as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+            if (!get_val(sim->pps.usr, val, src))
+                return -1;
 
             continue;
         }
@@ -349,29 +366,25 @@ static int get_ext(FILE *f, struct sim *sim)
 
 static int get_ini(FILE *f, struct sim *sim)
 {
+    char buf[128];
+    char key[64];
+    char val[64];
+
     if (cnd_ini_cut_dev(&sim->ops.pbc.cnd_ini, 1))
         return -1;
 
     struct cnd_ini *ini = &sim->ops.pbc.cnd_ini.dat[sim->ops.pbc.cnd_ini.len - 1];
 
-    char buf[128];
-    char key[64];
-    char val[64];
-
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
 
-        get_kv(buf, key, val);
+        if (get_kv(buf, key, val))
+            return -1;
 
         if (!strcmp("Field", key)) {
-            if (isdigit(val[0])) {
-                ini->tgt.type = VAL_NUM;
-                ini->tgt.as.num = strtod(val, 0);
-            } else {
-                ini->tgt.type = VAL_FUN;
-                ini->tgt.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+            if (get_val(sim->pps.usr, val, &ini->tgt))
+                return -1;
 
             continue;
         }
@@ -382,33 +395,31 @@ static int get_ini(FILE *f, struct sim *sim)
 
 static int get_bnd(FILE *f, struct sim *sim)
 {
+    char buf[128];
+    char key[64];
+    char val[64];
+
     if (cnd_bnd_cut_dev(&sim->cnd_bnd, 1))
         return -1;
 
     struct cnd_bnd *bnd = &sim->cnd_bnd.dat[sim->cnd_bnd.len - 1];
 
-    char buf[128];
-    char key[64];
-    char val[64];
-
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
 
-        get_kv(buf, key, val);
+        if (get_kv(buf, key, val))
+            return -1;
 
         if (!strncmp("Target Boundaries", key, 17)) {
-            char *ids = strtok(val, " ");
-
-            while (ids) {
+            for (char *ids = strtok(val, " "); ids; ids = strtok(0, " ")) {
                 int idx = atoi(ids);
 
                 if (sim->bnd.len < idx)
-                    bnd_cut_dev(&sim->bnd, idx - sim->bnd.len);
+                    if (bnd_cut_dev(&sim->bnd, idx - sim->bnd.len))
+                        return -1;
 
                 sim->bnd.dat[idx - 1].cnd = sim->cnd_bnd.len - 1;
-
-                ids = strtok(0, " ");
             }
 
             continue;
@@ -417,41 +428,26 @@ static int get_bnd(FILE *f, struct sim *sim)
         if (!strcmp("Field", key)) {
             bnd->type = CND_BND_DIR;
 
-            if (isdigit(val[0])) {
-                bnd->pps.dir.tgt.type = VAL_NUM;
-                bnd->pps.dir.tgt.as.num = strtod(val, 0);
-            } else {
-                bnd->pps.dir.tgt.type = VAL_FUN;
-                bnd->pps.dir.tgt.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+            if (get_val(sim->pps.usr, val, &bnd->pps.dir.tgt))
+                return -1;
 
             continue;
         }
 
-        if (!strcmp("Field Flux", key)) {
+        if (!strcmp("Field Flux (theta)", key)) {
             bnd->type = CND_BND_NEU;
 
-            if (isdigit(val[0])) {
-                bnd->pps.neu.tta.type = VAL_NUM;
-                bnd->pps.neu.tta.as.num = strtod(val, 0);
-            } else {
-                bnd->pps.neu.tta.type = VAL_FUN;
-                bnd->pps.neu.tta.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+            if (get_val(sim->pps.usr, val, &bnd->pps.neu.tta))
+                return -1;
 
             continue;
         }
 
-        if (!strcmp("Robin Coefficient", key)) {
+        if (!strcmp("Robin Coefficient (beta)", key)) {
             bnd->type = CND_BND_ROB;
 
-            if (isdigit(val[0])) {
-                bnd->pps.rob.bet.type = VAL_NUM;
-                bnd->pps.rob.bet.as.num = strtod(val, 0);
-            } else {
-                bnd->pps.rob.bet.type = VAL_FUN;
-                bnd->pps.rob.bet.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+            if (get_val(sim->pps.usr, val, &bnd->pps.rob.bet))
+                return -1;
 
             continue;
         }
@@ -459,36 +455,12 @@ static int get_bnd(FILE *f, struct sim *sim)
         if (!strcmp("External Field", key)) {
             bnd->type = CND_BND_ROB;
 
-            if (isdigit(val[0])) {
-                bnd->pps.rob.src.type = VAL_NUM;
-                bnd->pps.rob.src.as.num = strtod(val, 0);
-            } else {
-                bnd->pps.rob.src.type = VAL_FUN;
-                bnd->pps.rob.src.as.fun = (fun)dlsym(sim->pps.usr, val);
-            }
+            if (get_val(sim->pps.usr, val, &bnd->pps.rob.ext))
+                return -1;
 
             continue;
         }
     }
-
-    return 0;
-}
-
-static int get_pt(const char **src, char *dst)
-{
-    const char *cur = *src;
-    int         len = 0;
-
-    while (*cur != '"')
-        ++cur;
-
-    cur += 1;
-
-    for (len = 0; *cur != '"'; ++len, ++cur)
-        dst[len] = *cur;
-
-    dst[len] = 0;
-    *src = cur + 1;
 
     return 0;
 }
@@ -525,6 +497,41 @@ static int get_kv(const char *src, char *key, char *val)
 
     strncpy(val, beg, act - beg + 1);
     val[act - beg + 1] = 0;
+
+    return 0;
+}
+
+static int get_str(const char **src, char *dst)
+{
+    const char *cur = *src;
+    int         len = 0;
+
+    while (*cur != '"')
+        ++cur;
+
+    cur += 1;
+
+    for (len = 0; *cur != '"'; ++len, ++cur)
+        dst[len] = *cur;
+
+    dst[len] = 0;
+    *src = cur + 1;
+
+    return 0;
+}
+
+static int get_val(void *usr, const char *src, struct val *val)
+{
+    if (isdigit(src[0])) {
+        val->type = VAL_NUM;
+        val->as.num = strtod(src, 0);
+    } else {
+        val->type = VAL_FUN;
+        val->as.fun = (fun)dlsym(usr, src);
+
+        if (!val->as.fun)
+            return -1;
+    }
 
     return 0;
 }
