@@ -22,4 +22,7 @@ Boundary Definitions
 End
 
 Element Degree = 1
-Minimum Element Divisions = 1 2 1
+
+Element Divisions 1 = 2
+Element Divisions 2 = 2
+Element Divisions 3 = 2
