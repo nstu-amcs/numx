@@ -23,6 +23,7 @@ AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 BreakBeforeBraces: Custom
+BreakBinaryOperations: OnePerLine
 BraceWrapping:
   AfterEnum: true
   AfterStruct: true

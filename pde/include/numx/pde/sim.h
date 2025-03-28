@@ -88,6 +88,7 @@ struct sim
         {
             enum
             {
+                SIM_EXP_GNS,
                 SIM_EXP_VTU,
             } mod;
 

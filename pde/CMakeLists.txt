@@ -5,6 +5,7 @@ add_library(pde
   src/fem.c
   src/fem_ell.c
   src/fem_pbc.c
+  src/fem_hyp.c
 )
 
 target_link_libraries(pde PUBLIC com vec iss)

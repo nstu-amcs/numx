@@ -193,7 +193,7 @@
       </widget>
    </meshparameters>
    <solverparameters>
-      <item index="1" name="Elliptic Equation">
+      <item index="0" name="Heat Equation">
          <widget type="RadioButton">
             <objectName>execAlways</objectName>
             <isChecked>1</isChecked>
@@ -436,6 +436,268 @@
          </widget>
          <widget type="ComboBox">
             <objectName>nonlinSystemConvergenceMeasureCombo</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>linearSystemMultigridMethod</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>linearSystemDirectMethod</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>linearSystemIterativeMethod</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>linearSystemPreconditioning</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+      </item>
+      <item index="1" name="Elliptic Equation">
+         <widget type="RadioButton">
+            <objectName>execAlways</objectName>
+            <isChecked>1</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execBeforeSimulation</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execAfterSimulation</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execBeforeTimestep</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execAfterTimestep</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execBeforeSaving</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execAfterSaving</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>execNever</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>linearSystemSolverIterative</objectName>
+            <isChecked>1</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>linearSystemSolverDirect</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>linearSystemSolverMultigrid</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>mgEqualSplitCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>adaptiveMeshRefinementCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>adaptiveRemeshCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>adaptiveSaveMeshCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>adaptiveCoarseningCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>useHypre</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>useParasails</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>useBoomerAMG</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>stabilizeCheck</objectName>
+            <isChecked>1</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>bubblesCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>lumpedMassCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>optimizeBandwidthCheck</objectName>
+            <isChecked>1</isChecked>
+         </widget>
+         <widget type="CheckBox">
+            <objectName>linearSystemAbortWhenNotConvergedCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgLevelsEdit</objectName>
+            <text>2</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgMeshNameEdit</objectName>
+            <text></text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgPreSmoothingItersEdit</objectName>
+            <text>5</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgPostSmoothingItersEdit</objectName>
+            <text>5</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgMaxItersEdit</objectName>
+            <text>300</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgToleranceEdit</objectName>
+            <text>1.0e-8</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>mgILUTEdit</objectName>
+            <text>1.0e-3</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>adaptiveMeshNameEdit</objectName>
+            <text></text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>adaptiveErrorLimitEdit</objectName>
+            <text>0.1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>adaptiveMinHEdit</objectName>
+            <text></text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>adaptiveMaxHEdit</objectName>
+            <text></text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>adaptiveMaxChangeEdit</objectName>
+            <text>2</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>thresholdEdit</objectName>
+            <text>-0.8</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>filterEdit</objectName>
+            <text>-0.8</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>maxLevelEdit</objectName>
+            <text>1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>symmetryEdit</objectName>
+            <text>0</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>boomerMaxLevels</objectName>
+            <text>25</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>boomerSweeps</objectName>
+            <text>1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemConvergenceToleranceEdit</objectName>
+            <text>1.0e-7</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemMaxIterationEdit</objectName>
+            <text>1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemRelaxationFactorEdit</objectName>
+            <text>1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemNewtonAfterIterEdit</objectName>
+            <text>3</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemNewtonAfterTolEdit</objectName>
+            <text>1.0e-3</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>steadyStateConvergenceToleranceEdit</objectName>
+            <text>1.0e-5</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>linearSystemMaxIterationsEdit</objectName>
+            <text>500</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>linearSystemConvergenceToleranceEdit</objectName>
+            <text>1.0e-10</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>linearSystemILUTToleranceEdit</objectName>
+            <text>1.0e-3</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>linearSystemResiduaOutputEdit</objectName>
+            <text>10</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>linearSystemPreconditionRecomputeEdit</objectName>
+            <text>1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>linearSystemBiCGstablPolDeg</objectName>
+            <text>2</text>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>boomerCycle</objectName>
+            <currentIndex>1</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>boomerCoarsening</objectName>
+            <currentIndex>6</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>boomerRelaxation</objectName>
+            <currentIndex>3</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>boomerInterpolation</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>boomerSmoother</objectName>
+            <currentIndex>6</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>nonlinSystemConvergenceMeasureCombo</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
+            <objectName>steadyStateConvergenceMeasureCombo</objectName>
             <currentIndex>0</currentIndex>
          </widget>
          <widget type="ComboBox">
@@ -4510,6 +4772,536 @@
       </item>
    </boundarycondition>
    <solverspecificoptions>
+      <item index="0" id="0" name="Heat Equation">
+         <widget type="Label">
+            <key>/Navier-Stokes/Solver/Miscellaneous options/0</key>
+            <value>Miscellaneous options</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Save Geometry Ids/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Electrostatics/Solver/Calculate Electric Flux/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Combo">
+            <key>/Result Output/Solver/Output Format/0</key>
+            <value>Vtu</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Heat Equation/Solver/Update Gebhart Factors/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Procedure/0</key>
+            <value>"ResultOutputSolve" "ResultOutputSolver"</value>
+         </widget>
+         <widget type="Label">
+            <key>/Heat Equation/Solver/Miscellaneous options/0</key>
+            <value>Miscellaneous options</value>
+         </widget>
+         <widget type="Label">
+            <key>/Mesh Update/Solver/Miscellaneous options/0</key>
+            <value>Miscellaneous options</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Variable/0</key>
+            <value>Flow Solution[Velocity:cdim Pressure:1]</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Minimum Gebhart Factor/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Eigen Analysis/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Mesh Update/Solver/Additional Variables/0</key>
+            <value>Additional Variables</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Save Linear Elements/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Combo">
+            <key>/Linear elasticity/Solver/Eigen System Select/0</key>
+            <value>Smallest magnitude</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Discontinuous Galerkin/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/More Options/0</key>
+            <value>More Options</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/View Factors Geometry Tolerance/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Model Lumping/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Electrostatics/Solver/Variable/0</key>
+            <value>Potential</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Viewfactor number of rays/0</key>
+            <value></value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Result Output/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Minimum View Factor/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Procedure/0</key>
+            <value>"FlowSolve" "FlowSolver"</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Heat Equation/Solver/Calculate Loads/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Linear elasticity/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Viewfactor factor tolerance/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Eigen System Damped/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Discontinuous Bodies/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Exported Variable 1/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Exported Variable 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Helmholtz Equation/Solver/Calculate Loads/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Exported Variable 5/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Exported Variable 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Navier-Stokes/Solver/Exported Variable 4/0</key>
+            <value></value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Heat Equation/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Displace mesh/0</key>
+            <value>1</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Output File Name/0</key>
+            <value>case</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Heat Equation/Solver/Gebhart Factors Solver Iterative/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Electrostatics/Solver/Capacitance Matrix Filename/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/Model Lumping definitions/0</key>
+            <value>Model Lumping definitions</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Exported Variable 5/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Helmholtz Equation/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Exported Variable 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Mesh Update/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Exported Variable 4/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Helmholtz Equation/Solver/Miscellaneous options/0</key>
+            <value>Miscellaneous options</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Exported Variable 1/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Exported Variable 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Calculate Loads/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/View Factors Fixed After Iterations/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Navier-Stokes/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Eigen System Values/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Procedure/0</key>
+            <value>"HelmholtzSolve" "HelmholtzSolver"</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Electrostatics/Solver/Procedure/0</key>
+            <value>"StatElecSolve" "StatElecSolver"</value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/No Matrix Equation/0</key>
+            <value>1</value>
+         </widget>
+         <widget type="Label">
+            <key>/Mesh Update/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Geometric Stiffness/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Elliptic Equation/Solver/Variable/0</key>
+            <value>Field</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Save Boundaries Only/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Helmholtz Equation/Solver/Additional Variables/0</key>
+            <value>Additional Variables</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Eigen System Compute Residuals/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Exported Variable 5/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Navier-Stokes/Solver/Calculate Loads/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Exported Variable 4/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Exported Variable 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Exported Variable 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Navier-Stokes/Solver/Additional Variables/0</key>
+            <value>Additional Variables</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Exported Variable 1/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Mesh Update/Solver/Calculate Loads/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Harmonic Analysis/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Result Output/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Variable/0</key>
+            <value>Temperature</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Electrostatics/Solver/Calculate Electric Field/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Frequency/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Exported Variable 1/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Exported Variable 5/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Exported Variable 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Procedure/0</key>
+            <value>"StressSolve" "StressSolver"</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Exported Variable 4/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Exported Variable 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Viewfactor area tolerance/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Binary Output/0</key>
+            <value>1</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Save Elemental Fields/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Electrostatics/Solver/Calculate Electric Energy/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Heat Equation/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Electrostatics/Solver/Capacitance Bodies/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Heat Equation/Solver/Parameters for 2- and 3D viewfactor computation/0</key>
+            <value>Parameters for 2- and 3D viewfactor computation</value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/Additional Variables/0</key>
+            <value>Additional Variables</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Eigen Analysis/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Stability Analysis/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Scalar Field 6/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Scalar Field 5/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Scalar Field 4/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Scalar Field 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Fix Displacements/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Scalar Field 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Scalar Field 1/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Result Output/Solver/Scalar Fields/0</key>
+            <value>Scalar Fields</value>
+         </widget>
+         <widget type="Label">
+            <key>/Heat Equation/Solver/Radiation Factor computation/0</key>
+            <value>Radiation Factor computation</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Save Nodal Fields/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/Harmonic system solution/0</key>
+            <value>Harmonic system solution</value>
+         </widget>
+         <widget type="Label">
+            <key>/Heat Equation/Solver/Additional Variables/0</key>
+            <value>Additional Variables</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Model Lumping Filename/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Procedure/0</key>
+            <value>"MeshSolve" "MeshSolver"</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Vector Field 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Heat Equation/Solver/Update View Factors/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Vector Field 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Linear elasticity/Solver/Eigen System Shift/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Result Output/Solver/Vector Field 1/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Result Output/Solver/Single Precision/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Heat Equation/Solver/Gebhart Factors Solver Full/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Electrostatics/Solver/Free text input/0</key>
+            <value>Free text input</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Electrostatics/Solver/Constant Weights/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Linear elasticity/Solver/Calculate Stresses/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Implicit Gebhart Factor Fraction/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Variable/0</key>
+            <value>Pressure Wave(2)</value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Electrostatics/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Heat Equation/Solver/Matrix Topology Fixed/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/Eigen system solution/0</key>
+            <value>Eigen system solution</value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Navier-Stokes/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Mesh Update/Solver/Variable/0</key>
+            <value>Mesh Update(cdim)</value>
+         </widget>
+         <widget type="Label">
+            <key>/Result Output/Solver/Vector Fields/0</key>
+            <value>Vector Fields</value>
+         </widget>
+         <widget type="TextEdit">
+            <key>/Helmholtz Equation/Solver/Free text/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Heat Equation/Solver/Procedure/0</key>
+            <value>"HeatSolve" "HeatSolver"</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Exported Variable 5/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Exported Variable 4/0</key>
+            <value></value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Exported Variable 3/0</key>
+            <value></value>
+         </widget>
+         <widget type="Label">
+            <key>/Linear elasticity/Solver/Miscellaneous options/0</key>
+            <value>Miscellaneous options</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Exported Variable 2/0</key>
+            <value></value>
+         </widget>
+         <widget type="CheckBox">
+            <key>/Electrostatics/Solver/Calculate Capacitance Matrix/0</key>
+            <value>0</value>
+         </widget>
+         <widget type="Edit">
+            <key>/Helmholtz Equation/Solver/Exported Variable 1/0</key>
+            <value></value>
+         </widget>
+      </item>
       <item index="1" id="1" name="Elliptic Equation">
          <widget type="Label">
             <key>/Navier-Stokes/Solver/Miscellaneous options/1</key>
@@ -5049,7 +5841,7 @@
          </widget>
          <widget type="ComboBox">
             <objectName>equationCombo</objectName>
-            <currentIndex>1</currentIndex>
+            <currentIndex>0</currentIndex>
          </widget>
          <widget type="ComboBox">
             <objectName>materialCombo</objectName>

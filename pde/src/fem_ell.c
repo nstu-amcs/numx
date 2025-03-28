@@ -5,10 +5,7 @@
 #include <numx/com/log.h>
 #include <numx/pde/fem.h>
 
-static double fabs(double a)
-{
-    return a < 0 ? -a : a;
-}
+#define C 10e10
 
 const double G[2][2] = {
     {1.0,  -1.0},
@@ -34,8 +31,12 @@ const int MU[8] = {0, 1, 0, 1, 0, 1, 0, 1};
 const int NU[8] = {0, 0, 1, 1, 0, 0, 1, 1};
 const int TT[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
-const int DM[8] = {2, 3, 7, 6, 0, 1, 5, 4};
-const int RM[8] = {4, 5, 0, 1, 7, 6, 3, 2};
+const int DM[8] = {0, 1, 3, 2, 4, 5, 7, 6};
+
+static double fabs(double a)
+{
+    return a < 0 ? -a : a;
+}
 
 static int pfl(struct sim *sim, struct smtx *m);
 static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q);
@@ -128,7 +129,7 @@ static int pfl(struct sim *sim, struct smtx *m)
 
         log_rst(&map[i]);
 
-        for (int j = 0; log_adv(&map[i], &j); e++)
+        for (int j = 0; !log_adv(&map[i], &j); e++)
             m->ja[e] = j;
 
         log_cls(&map[i]);
@@ -141,166 +142,530 @@ static int pfl(struct sim *sim, struct smtx *m)
     return 0;
 }
 
+static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct hxd *hxd);
+
+static int asm_qud_dir(
+    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd);
+static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd);
+static int asm_qud_rob(
+    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd);
+
 static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 {
-    double lam[8];
-    double gam[8];
-    double src[8];
+    for (int i = 0; i < sim->msh->hxd.len; ++i)
+        if (asm_hxd(sim, m, b, q, &sim->msh->hxd.dat[i]))
+            return -1;
 
-    double gx[2][2];
-    double gy[2][2];
-    double gz[2][2];
+    struct ilog dir;
 
-    double mx[2][2];
-    double my[2][2];
-    double mz[2][2];
+    if (log_new(&dir))
+        return -1;
 
-    double gnx[2][2];
-    double gny[2][2];
-    double gnz[2][2];
+    for (int i = 0; i < sim->msh->qud.len; ++i) {
+        struct qud     *qud = &sim->msh->qud.dat[i];
+        struct bnd     *bnd = &sim->bnd.dat[qud->pid];
+        struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
 
-    double mnx[2][2][2];
-    double mny[2][2][2];
-    double mnz[2][2][2];
+        switch (cnd->type) {
+            case CND_BND_DIR:
+                if (log_add(&dir, i)) {
+                    log_cls(&dir);
+                    return -1;
+                }
+
+                break;
+            case CND_BND_NEU:
+                if (asm_qud_neu(sim, b, q, qud, cnd)) {
+                    log_cls(&dir);
+                    return -1;
+                }
+
+                break;
+            case CND_BND_ROB:
+                if (asm_qud_rob(sim, m, b, q, qud, cnd)) {
+                    log_cls(&dir);
+                    return -1;
+                }
+
+                break;
+        }
+    }
+
+    log_rst(&dir);
+
+    for (int i = 0; !log_adv(&dir, &i);) {
+        struct qud     *qud = &sim->msh->qud.dat[i];
+        struct bnd     *bnd = &sim->bnd.dat[qud->pid];
+        struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
+
+        if (asm_qud_dir(sim, m, b, q, qud, cnd)) {
+            log_cls(&dir);
+            return -1;
+        }
+    }
+
+    log_cls(&dir);
+
+    if (errno != ENOENT)
+        return -1;
+
+    errno = 0;
+
+    switch (sim->ops.ell.ops.iss.mod) {
+        case ISS_BCG:
+            if (iss_bcg_slv(m, q, b, sim->ops.ell.ops.iss.ops.bcg))
+                return -1;
+
+            break;
+        default:
+            errno = ENOTSUP;
+            return -1;
+    }
+
+    return 0;
+}
+
+static int asm_mov_mtx(struct smtx *m, int i, int j, double v);
+
+static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct hxd *hxd)
+{
+    static double lam[8];
+    static double gam[8];
+    static double src[8];
+
+    static double gx[2][2];
+    static double gy[2][2];
+    static double gz[2][2];
+
+    static double mx[2][2];
+    static double my[2][2];
+    static double mz[2][2];
+
+    static double gnx[2][2];
+    static double gny[2][2];
+    static double gnz[2][2];
+
+    static double mnx[2][2][2];
+    static double mny[2][2][2];
+    static double mnz[2][2][2];
+
+    struct obj *obj = &sim->obj.dat[hxd->pid];
+    struct mat *mat = &sim->mat.dat[obj->mat];
+    struct val *val = &sim->src.dat[obj->src];
 
     struct vtx *vtx = sim->msh->vtx.dat;
 
-    for (int h = 0; h < sim->msh->hxd.len; ++h) {
-        struct hxd *hxd = &sim->msh->hxd.dat[h];
+    if (mat->lam.type == VAL_FUN)
+        for (int k = 0; k < 8; ++k)
+            lam[k] = mat->lam.as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
 
-        struct obj *obj = &sim->obj.dat[hxd->pid];
-        struct mat *mat = &sim->mat.dat[obj->mat];
-        struct val *val = &sim->src.dat[obj->src];
+    if (mat->gam.type == VAL_FUN)
+        for (int k = 0; k < 8; ++k)
+            gam[k] = mat->gam.as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
 
-        if (mat->lam.type == VAL_FUN)
-            for (int k = 0; k < 8; ++k)
-                lam[k] = mat->lam.as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+    if (val->type == VAL_FUN)
+        for (int k = 0; k < 8; ++k)
+            src[k] = val->as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
 
-        if (mat->gam.type == VAL_FUN)
-            for (int k = 0; k < 8; ++k)
-                gam[k] = mat->gam.as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+    double hx = fabs(vtx[hxd->vtx[1]].x - vtx[hxd->vtx[0]].x);
+    double hy = fabs(vtx[hxd->vtx[2]].y - vtx[hxd->vtx[0]].y);
+    double hz = fabs(vtx[hxd->vtx[4]].z - vtx[hxd->vtx[0]].z);
 
-        switch (val->type) {
-            case VAL_NUM:
-                for (int k = 0; k < 8; ++k)
-                    src[k] = val->as.num;
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j) {
+            gx[i][j] = G[i][j] / hx;
+            gy[i][j] = G[i][j] / hy;
+            gz[i][j] = G[i][j] / hz;
 
-                break;
-            case VAL_FUN:
-                for (int k = 0; k < 8; ++k)
-                    src[k] = val->as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+            mx[i][j] = M[i][j] * hx;
+            my[i][j] = M[i][j] * hy;
+            mz[i][j] = M[i][j] * hz;
 
-                break;
-        }
+            gnx[i][j] = GN[i][j] / hx;
+            gny[i][j] = GN[i][j] / hy;
+            gnz[i][j] = GN[i][j] / hz;
 
-        double hx = fabs(vtx[1].x - vtx[0].x);
-        double hy = fabs(vtx[4].y - vtx[0].y);
-        double hz = fabs(vtx[3].z - vtx[0].z);
-
-        for (int i = 0; i < 2; ++i)
-            for (int j = 0; j < 2; ++j) {
-                gx[i][j] = G[i][j] / hx;
-                gy[i][j] = G[i][j] / hy;
-                gz[i][j] = G[i][j] / hz;
-
-                mx[i][j] = M[i][j] * hx;
-                my[i][j] = M[i][j] * hy;
-                mz[i][j] = M[i][j] * hz;
-
-                gnx[i][j] = GN[i][j] / hx;
-                gny[i][j] = GN[i][j] / hy;
-                gnz[i][j] = GN[i][j] / hz;
-
-                for (int k = 0; k < 2; ++k) {
-                    mnx[i][j][k] = MN[i][j][k] * hx;
-                    mny[i][j][k] = MN[i][j][k] * hy;
-                    mnz[i][j][k] = MN[i][j][k] * hz;
-                }
-            }
-
-        for (int i = 0; i < 8; ++i) {
-            int mui = MU[DM[i]];
-            int nui = NU[DM[i]];
-            int tti = TT[DM[i]];
-
-            for (int j = 0; j < 8; ++j) {
-                int muj = MU[DM[j]];
-                int nuj = NU[DM[j]];
-                int ttj = TT[DM[j]];
-
-                double tm = 0;
-                double tb = 0;
-
-                switch (mat->lam.type) {
-                    case VAL_NUM:
-                        tm = mat->lam.as.num *
-                             (gx[mui][muj] * my[nui][nuj] * mz[tti][ttj] + mx[mui][muj] * gy[nui][nuj] * mz[tti][ttj] +
-                                 mx[mui][muj] * my[nui][nuj] * gz[tti][ttj]);
-
-                        break;
-                    case VAL_FUN:
-                        for (int k = 0; k < 8; ++k) {
-                            int muk = MU[DM[k]];
-                            int nuk = NU[DM[k]];
-                            int ttk = TT[DM[k]];
-
-                            tm += lam[k] * (gnx[mui][muj] * mny[nuk][nui][nuj] * mnz[ttk][tti][ttj] +
-                                               mnx[muk][mui][muj] * gny[nui][nuj] * mnz[ttk][tti][ttj] +
-                                               mnx[muk][mui][muj] * mny[nuk][nui][nuj] * gnz[tti][ttj]);
-                        }
-
-                        break;
-                }
-
-                switch (mat->gam.type) {
-                    case VAL_NUM:
-                        tm = mat->gam.as.num * mx[mui][muj] * my[nui][nuj] * mz[tti][ttj];
-                        break;
-                    case VAL_FUN:
-                        for (int k = 0; k < 8; ++k) {
-                            int muk = MU[DM[k]];
-                            int nuk = NU[DM[k]];
-                            int ttk = TT[DM[k]];
-
-                            tm += gam[k] * mnx[muk][mui][muj] * mny[nuk][nui][nuj] * mnz[ttk][tti][ttj];
-                        }
-
-                        break;
-                }
-
-                tb = src[i] * mx[mui][muj] * my[nui][nuj] * mz[tti][ttj];
-
-                int vi = hxd->vtx[i];
-                int vj = hxd->vtx[j];
-
-                b->dat[vi] += tb;
-
-                if (vi > vj) {
-                    int p = m->ia[vi];
-
-                    while (m->ja[p] < vj)
-                        ++p;
-
-                    m->lr[p] += tm;
-
-                    continue;
-                }
-
-                if (vi < vj) {
-                    int p = m->ia[vj];
-
-                    while (m->ja[p] < vi)
-                        ++p;
-
-                    m->ur[p] += tm;
-
-                    continue;
-                }
-
-                m->dr[vi] += tm;
+            for (int k = 0; k < 2; ++k) {
+                mnx[i][j][k] = MN[i][j][k] * hx;
+                mny[i][j][k] = MN[i][j][k] * hy;
+                mnz[i][j][k] = MN[i][j][k] * hz;
             }
         }
+
+    for (int i = 0; i < 8; ++i) {
+        int gi = hxd->vtx[i];
+
+        int mui = MU[DM[i]];
+        int nui = NU[DM[i]];
+        int tti = TT[DM[i]];
+
+        for (int j = 0; j < 8; ++j) {
+            int gj = hxd->vtx[j];
+
+            int muj = MU[DM[j]];
+            int nuj = NU[DM[j]];
+            int ttj = TT[DM[j]];
+
+            double mij = 0;
+
+            if (mat->lam.type == VAL_FUN)
+                for (int k = 0; k < 8; ++k) {
+                    int muk = MU[DM[k]];
+                    int nuk = NU[DM[k]];
+                    int ttk = TT[DM[k]];
+
+                    mij += lam[k] * (gnx[muj][mui] *
+                                        mny[nuk][nuj][nui] *
+                                        mnz[ttk][ttj][tti] +
+                                        mnx[muk][muj][mui] *
+                                        gny[nuj][nui] *
+                                        mnz[ttk][ttj][tti] +
+                                        mnx[muk][muj][mui] *
+                                        mny[nuk][nuj][nui] *
+                                        gnz[ttj][tti]);
+                }
+            else
+                mij += mat->lam.as.num * (gx[muj][mui] *
+                                             my[nuj][nui] *
+                                             mz[ttj][tti] +
+                                             mx[muj][mui] *
+                                             gy[nuj][nui] *
+                                             mz[ttj][tti] +
+                                             mx[muj][mui] *
+                                             my[nuj][nui] *
+                                             gz[ttj][tti]);
+
+            if (mat->gam.type == VAL_FUN)
+                for (int k = 0; k < 8; ++k) {
+                    int muk = MU[DM[k]];
+                    int nuk = NU[DM[k]];
+                    int ttk = TT[DM[k]];
+
+                    mij += gam[k] * (mnx[muk][muj][mui] * mny[nuk][nuj][nui] * mnz[ttk][ttj][tti]);
+                }
+            else
+                mij += mat->gam.as.num * (mx[muj][mui] * my[nuj][nui] * mz[ttj][tti]);
+
+            asm_mov_mtx(m, gi, gj, mij);
+        }
+
+        double bi = 0;
+
+        if (val->type == VAL_FUN)
+            for (int k = 0; k < 8; ++k) {
+                int muk = MU[DM[k]];
+                int nuk = NU[DM[k]];
+                int ttk = TT[DM[k]];
+
+                bi += src[k] * (mx[muk][mui] * my[nuk][nui] * mz[ttk][tti]);
+            }
+        else
+            bi = val->as.num * hx * hy * hz / 8;
+
+        b->dat[gi] += bi;
     }
+
+    return 0;
+}
+
+static int qud_nrm(struct qud *q, struct vtx *v)
+{
+    struct vtx *a = &v[q->vtx[0]];
+    struct vtx *b = &v[q->vtx[1]];
+    struct vtx *c = &v[q->vtx[2]];
+
+    if (a->x == c->x && b->x == c->x)
+        return 0;
+
+    if (a->y == c->y && b->y == c->y)
+        return 1;
+
+    return 2;
+}
+
+static int asm_qud_dir(
+    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd)
+{
+    for (int i = 0; i < 4; ++i) {
+        int gi = qud->vtx[i];
+
+        m->dr[gi] = C;
+
+        if (cnd->pps.dir.tgt.type == VAL_FUN)
+            b->dat[gi] = C * cnd->pps.dir.tgt.as.fun(sim, gi, q->dat[gi]);
+        else
+            b->dat[gi] = C * cnd->pps.dir.tgt.as.num;
+    }
+
+    return 0;
+}
+
+static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd)
+{
+    static double tta[4];
+
+    static double mxi[2][2];
+    static double mzt[2][2];
+
+    if (cnd->pps.neu.tta.type == VAL_FUN)
+        for (int i = 0; i < 4; ++i)
+            tta[i] = cnd->pps.neu.tta.as.fun(sim, qud->vtx[i], q->dat[qud->vtx[i]]);
+
+    int    nrm = qud_nrm(qud, sim->msh->vtx.dat);
+    double hxi;
+    double hzt;
+
+    struct vtx *vtx = sim->msh->vtx.dat;
+
+    switch (nrm) {
+        case 0:
+            hxi = fabs(vtx[qud->vtx[0]].y - vtx[qud->vtx[2]].y);
+            hzt = fabs(vtx[qud->vtx[0]].z - vtx[qud->vtx[2]].z);
+
+            break;
+        case 1:
+            hxi = fabs(vtx[qud->vtx[0]].x - vtx[qud->vtx[2]].x);
+            hzt = fabs(vtx[qud->vtx[0]].z - vtx[qud->vtx[2]].z);
+
+            break;
+        case 2:
+            hxi = fabs(vtx[qud->vtx[0]].x - vtx[qud->vtx[2]].x);
+            hzt = fabs(vtx[qud->vtx[0]].y - vtx[qud->vtx[2]].y);
+
+            break;
+    }
+
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j) {
+            mxi[i][j] = M[i][j] * hxi;
+            mzt[i][j] = M[i][j] * hzt;
+        }
+
+    for (int i = 0; i < 4; ++i) {
+        int gi = qud->vtx[i];
+
+        int mui = MU[DM[i]];
+        int nui = NU[DM[i]];
+
+        double bi = 0;
+
+        if (cnd->pps.neu.tta.type == VAL_FUN)
+            for (int k = 0; k < 4; ++k) {
+                int muk = MU[DM[k]];
+                int nuk = NU[DM[k]];
+
+                bi += tta[k] * mxi[muk][mui] * mzt[nuk][nui];
+            }
+        else
+            bi = cnd->pps.neu.tta.as.num * hxi * hzt / 4;
+
+        b->dat[gi] += bi;
+    }
+
+    return 0;
+}
+
+static int asm_qud_rob(
+    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd)
+{
+    static double bet[4];
+    static double ext[4];
+
+    static double mxi[2][2];
+    static double mzt[2][2];
+
+    static double mnxi[2][2][2];
+    static double mnzt[2][2][2];
+
+    if (cnd->pps.rob.bet.type == VAL_FUN)
+        for (int i = 0; i < 4; ++i)
+            bet[i] = cnd->pps.rob.bet.as.fun(sim, qud->vtx[i], q->dat[qud->vtx[i]]);
+
+    if (cnd->pps.rob.ext.type == VAL_FUN)
+        for (int i = 0; i < 4; ++i)
+            ext[i] = cnd->pps.rob.ext.as.fun(sim, qud->vtx[i], q->dat[qud->vtx[i]]);
+
+    int    nrm = qud_nrm(qud, sim->msh->vtx.dat);
+    double hxi;
+    double hzt;
+
+    struct vtx *vtx = sim->msh->vtx.dat;
+
+    switch (nrm) {
+        case 0:
+            hxi = fabs(vtx[qud->vtx[0]].y - vtx[qud->vtx[2]].y);
+            hzt = fabs(vtx[qud->vtx[0]].z - vtx[qud->vtx[2]].z);
+
+            break;
+        case 1:
+            hxi = fabs(vtx[qud->vtx[0]].x - vtx[qud->vtx[2]].x);
+            hzt = fabs(vtx[qud->vtx[0]].z - vtx[qud->vtx[2]].z);
+
+            break;
+        case 2:
+            hxi = fabs(vtx[qud->vtx[0]].x - vtx[qud->vtx[2]].x);
+            hzt = fabs(vtx[qud->vtx[0]].y - vtx[qud->vtx[2]].y);
+
+            break;
+    }
+
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j) {
+            mxi[i][j] = M[i][j] * hxi;
+            mzt[i][j] = M[i][j] * hzt;
+
+            for (int k = 0; k < 2; ++k) {
+                mnxi[i][j][k] = MN[i][j][k] * hxi;
+                mnzt[i][j][k] = MN[i][j][k] * hzt;
+            }
+        }
+
+    switch (cnd->pps.rob.bet.type) {
+        case VAL_NUM:
+            for (int i = 0; i < 4; ++i) {
+                int gi = qud->vtx[i];
+                int mui = MU[DM[i]];
+                int nui = NU[DM[i]];
+
+                for (int j = 0; j < 4; ++j) {
+                    int gj = qud->vtx[j];
+                    int muj = MU[DM[j]];
+                    int nuj = NU[DM[j]];
+
+                    double mij = cnd->pps.rob.bet.as.num * (mxi[muj][mui] * mzt[nuj][nui]);
+
+                    if (asm_mov_mtx(m, gi, gj, mij))
+                        return -1;
+                }
+            }
+
+            switch (cnd->pps.rob.ext.type) {
+                case VAL_NUM:
+                    for (int i = 0; i < 4; ++i)
+                        b->dat[qud->vtx[i]] += cnd->pps.rob.bet.as.num * cnd->pps.rob.ext.as.num * hxi * hzt / 4;
+
+                    break;
+                case VAL_FUN:
+                    for (int i = 0; i < 4; ++i) {
+                        int mui = MU[DM[i]];
+                        int nui = NU[DM[i]];
+
+                        double bi = 0;
+
+                        for (int k = 0; k < 4; ++k) {
+                            int muk = MU[DM[k]];
+                            int nuk = NU[DM[k]];
+
+                            bi += ext[k] * mxi[muk][mui] * mzt[nuk][nui];
+                        }
+
+                        b->dat[qud->vtx[i]] += cnd->pps.rob.bet.as.num * bi;
+                    }
+
+                    break;
+            }
+
+            break;
+        case VAL_FUN:
+            for (int i = 0; i < 4; ++i) {
+                int gi = qud->vtx[i];
+                int mui = MU[DM[i]];
+                int nui = NU[DM[i]];
+
+                for (int j = 0; j < 4; ++j) {
+                    int gj = qud->vtx[j];
+                    int muj = MU[DM[j]];
+                    int nuj = NU[DM[j]];
+
+                    double mij = 0;
+
+                    for (int k = 0; k < 4; ++k) {
+                        int muk = MU[DM[k]];
+                        int nuk = NU[DM[k]];
+
+                        mij += bet[k] * (mnxi[muk][muj][mui] * mnzt[nuk][nuj][nui]);
+                    }
+
+                    if (asm_mov_mtx(m, gi, gj, mij))
+                        return -1;
+                }
+            }
+
+            switch (cnd->pps.rob.ext.type) {
+                case VAL_NUM:
+                    for (int i = 0; i < 4; ++i) {
+                        int mui = MU[DM[i]];
+                        int nui = NU[DM[i]];
+
+                        double bi = 0;
+
+                        for (int k = 0; k < 4; ++k) {
+                            int muk = MU[DM[k]];
+                            int nuk = NU[DM[k]];
+
+                            bi += bet[k] * mxi[muk][mui] * mzt[nuk][nui];
+                        }
+
+                        b->dat[qud->vtx[i]] += cnd->pps.rob.ext.as.num * bi;
+                    }
+
+                    break;
+                case VAL_FUN:
+                    for (int i = 0; i < 4; ++i) {
+                        int mui = MU[DM[i]];
+                        int nui = NU[DM[i]];
+
+                        double bi = 0;
+
+                        for (int k = 0; k < 4; ++k) {
+                            int muk = MU[DM[k]];
+                            int nuk = NU[DM[k]];
+
+                            for (int j = 0; j < 4; ++j) {
+                                int muj = MU[DM[j]];
+                                int nuj = NU[DM[j]];
+
+                                bi += bet[k] * ext[j] * mnxi[muk][muj][mui] * mnzt[nuk][nuj][nui];
+                            }
+                        }
+
+                        b->dat[qud->vtx[i]] += bi;
+                    }
+
+                    break;
+            }
+
+            break;
+    }
+
+    return 0;
+}
+
+static int asm_mov_mtx(struct smtx *m, int i, int j, double v)
+{
+    if (i < j) {
+        int p = m->ia[j];
+
+        while (m->ja[p] < i)
+            ++p;
+
+        m->ur[p] += v;
+
+        return 0;
+    }
+
+    if (j < i) {
+        int p = m->ia[i];
+
+        while (m->ja[p] < j)
+            ++p;
+
+        m->lr[p] += v;
+
+        return 0;
+    }
+
+    m->dr[i] += v;
 
     return 0;
 }

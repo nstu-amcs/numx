@@ -27,99 +27,103 @@ int sim_new(struct sim *sim, const char *sif)
     assert(sim);
     assert(sif);
 
+    sim->ops.ell.ops.iss.ops.bcg.con.sm = 0;
+
+    FILE *f = 0;
+    int   r = 0;
+
+    if (!(sim->msh = malloc(sizeof(struct msh)))) {
+        r = -1;
+        goto end;
+    }
+
+    if ((r = mat_cut_new(&sim->mat)))
+        goto end;
+
+    if ((r = val_cut_new(&sim->src)))
+        goto end;
+
+    if ((r = obj_cut_new(&sim->obj)))
+        goto end;
+
+    if ((r = bnd_cut_new(&sim->bnd)))
+        goto end;
+
+    if ((r = cnd_bnd_cut_new(&sim->cnd_bnd)))
+        goto end;
+
+    if (!(f = fopen(sif, "r"))) {
+        r = -1;
+        goto end;
+    }
+
     char buf[128];
-
-    if (!(sim->msh = malloc(sizeof(struct msh))))
-        return -1;
-
-    if (mat_cut_new(&sim->mat))
-        return -1;
-
-    if (val_cut_new(&sim->src))
-        return -1;
-
-    if (obj_cut_new(&sim->obj))
-        return -1;
-
-    if (bnd_cut_new(&sim->bnd))
-        return -1;
-
-    if (cnd_bnd_cut_new(&sim->cnd_bnd))
-        return -1;
-
-    FILE *f = fopen(sif, "r");
-
-    if (!f)
-        return -1;
 
     while (fgets(buf, sizeof(buf), f)) {
         switch (*buf) {
             case 'H':
-                if (get_hdr(f, sim)) {
-                    fclose(f);
-                    return -1;
-                }
+                if ((r = get_hdr(f, sim)))
+                    goto end;
 
                 break;
             case 'S':
-                if (get_sim(f, sim)) {
-                    fclose(f);
-                    return -1;
-                }
+                if ((r = get_sim(f, sim)))
+                    goto end;
 
                 break;
             case 'B':
                 if (!strncmp(buf, "Body Force", 10)) {
-                    if (get_src(f, sim)) {
-                        fclose(f);
-                        return -1;
-                    }
+                    if ((r = get_src(f, sim)))
+                        goto end;
 
                     continue;
                 }
 
                 if (!strncmp(buf, "Boundary Condition", 18)) {
-                    if (get_bnd(f, sim)) {
-                        fclose(f);
-                        return -1;
-                    }
+                    if ((r = get_bnd(f, sim)))
+                        goto end;
 
                     continue;
                 }
 
                 if (!strncmp(buf, "Body", 4)) {
-                    if (get_obj(f, sim)) {
-                        fclose(f);
-                        return -1;
-                    }
+                    if ((r = get_obj(f, sim)))
+                        goto end;
 
                     continue;
                 }
 
                 break;
             case 'M':
-                if (get_mat(f, sim)) {
-                    fclose(f);
-                    return -1;
-                }
+                if ((r = get_mat(f, sim)))
+                    goto end;
 
                 break;
             case 'I':
-                if (get_ini(f, sim)) {
-                    fclose(f);
-                    return -1;
-                }
+                if ((r = get_ini(f, sim)))
+                    goto end;
 
                 break;
         }
     }
 
+    if ((r = msh_new(sim->msh, sim->pps.msh.dir, sim->pps.msh.pfx)))
+        goto end;
+end:
     fclose(f);
 
-    if (msh_new(sim->msh, sim->pps.msh.dir, sim->pps.msh.pfx))
-        return -1;
+    if (r) {
+        free(sim->msh);
 
-    return 0;
+        mat_cut_cls(&sim->mat);
+        val_cut_cls(&sim->src);
+        obj_cut_cls(&sim->obj);
+        bnd_cut_cls(&sim->bnd);
+
+        cnd_bnd_cut_cls(&sim->cnd_bnd);
+    }
+
+    return r;
 }
 
 static int get_kv(const char *src, char *key, char *val);
@@ -196,8 +200,7 @@ static int get_sim(FILE *f, struct sim *sim)
         if (!strcmp("Coordinate System", key)) {
             if (!strcmp("Cartesian 2D", val))
                 sim->msh->sys = MSH_C2D;
-
-            if (!strcmp("Cartesian", val))
+            else if (!strcmp("Cartesian", val))
                 sim->msh->sys = MSH_C3D;
 
             continue;
@@ -209,6 +212,8 @@ static int get_sim(FILE *f, struct sim *sim)
 
             if (!strcmp("vtu", key))
                 sim->pps.exp.mod = SIM_EXP_VTU;
+            else if (!strcmp("cgns", key))
+                sim->pps.exp.mod = SIM_EXP_GNS;
 
             continue;
         }
@@ -216,11 +221,9 @@ static int get_sim(FILE *f, struct sim *sim)
         if (!strcmp("Equation", key)) {
             if (!strcmp("Elliptic Equation", val))
                 sim->mod = SIM_ELL;
-
-            if (!strcmp("Parabolic Equation", val))
+            else if (!strcmp("Parabolic Equation", val))
                 sim->mod = SIM_PBC;
-
-            if (!strcmp("Hyperbolic Equation", val))
+            else if (!strcmp("Hyperbolic Equation", val))
                 sim->mod = SIM_HYP;
 
             continue;
@@ -242,8 +245,9 @@ static int get_sim(FILE *f, struct sim *sim)
         }
 
         if (!strcmp("Linear System Iterative Method", key)) {
-            if (!strcmp("BiCGStab", val))
+            if (!strcmp("BiCGStab", val)) {
                 sim->ops.ell.ops.iss.mod = ISS_BCG;
+            }
 
             continue;
         }
@@ -280,20 +284,12 @@ static int get_obj(FILE *f, struct sim *sim)
         if (get_kv(buf, key, val))
             return -1;
 
-        if (!strcmp("Material", key)) {
-            obj->mat = atoi(val);
-            continue;
-        }
-
-        if (!strcmp("Body Force", key)) {
-            obj->src = atoi(val);
-            continue;
-        }
-
-        if (!strcmp("Initial condition", key)) {
-            obj->ini = atoi(val);
-            continue;
-        }
+        if (!strcmp("Material", key))
+            obj->mat = atoi(val) - 1;
+        else if (!strcmp("Body Force", key))
+            obj->src = atoi(val) - 1;
+        else if (!strcmp("Initial condition", key))
+            obj->ini = atoi(val) - 1;
     }
 
     return 0;
@@ -318,14 +314,14 @@ static int get_mat(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Lambda Coefficient", key)) {
-            if (!get_val(sim->pps.usr, val, &mat->lam))
+            if (get_val(sim->pps.usr, val, &mat->lam))
                 return -1;
 
             continue;
         }
 
         if (!strcmp("Gamma Coefficient", key)) {
-            if (!get_val(sim->pps.usr, val, &mat->gam))
+            if (get_val(sim->pps.usr, val, &mat->gam))
                 return -1;
 
             continue;
@@ -353,12 +349,9 @@ static int get_src(FILE *f, struct sim *sim)
         if (get_kv(buf, key, val))
             return -1;
 
-        if (!strcmp("Field Source", key)) {
-            if (!get_val(sim->pps.usr, val, src))
+        if (!strcmp("Field Source", key))
+            if (get_val(sim->pps.usr, val, src))
                 return -1;
-
-            continue;
-        }
     }
 
     return 0;
@@ -382,12 +375,9 @@ static int get_ini(FILE *f, struct sim *sim)
         if (get_kv(buf, key, val))
             return -1;
 
-        if (!strcmp("Field", key)) {
+        if (!strcmp("Field", key))
             if (get_val(sim->pps.usr, val, &ini->tgt))
                 return -1;
-
-            continue;
-        }
     }
 
     return 0;
@@ -421,44 +411,29 @@ static int get_bnd(FILE *f, struct sim *sim)
 
                 sim->bnd.dat[idx - 1].cnd = sim->cnd_bnd.len - 1;
             }
-
-            continue;
-        }
-
-        if (!strcmp("Field", key)) {
+        } else if (!strcmp("Field", key)) {
             bnd->type = CND_BND_DIR;
 
             if (get_val(sim->pps.usr, val, &bnd->pps.dir.tgt))
                 return -1;
 
             continue;
-        }
-
-        if (!strcmp("Field Flux (theta)", key)) {
+        } else if (!strcmp("Field Flux (theta)", key)) {
             bnd->type = CND_BND_NEU;
 
             if (get_val(sim->pps.usr, val, &bnd->pps.neu.tta))
                 return -1;
 
-            continue;
-        }
-
-        if (!strcmp("Robin Coefficient (beta)", key)) {
+        } else if (!strcmp("Robin Coefficient (beta)", key)) {
             bnd->type = CND_BND_ROB;
 
             if (get_val(sim->pps.usr, val, &bnd->pps.rob.bet))
                 return -1;
-
-            continue;
-        }
-
-        if (!strcmp("External Field", key)) {
+        } else if (!strcmp("External Field", key)) {
             bnd->type = CND_BND_ROB;
 
             if (get_val(sim->pps.usr, val, &bnd->pps.rob.ext))
                 return -1;
-
-            continue;
         }
     }
 
