@@ -30,6 +30,26 @@ cut_def(bnd_cut, bnd);
 
 struct sim_ops
 {
+    void *usr;
+
+    struct
+    {
+        char dir[128];
+        char pfx[64];
+    } msh;
+
+    struct
+    {
+        enum
+        {
+            SIM_EXP_GNS,
+            SIM_EXP_VTU,
+        } mod;
+
+        char dir[128];
+        char pfx[64];
+    } exp;
+
     struct
     {
         int    max;
@@ -60,8 +80,6 @@ struct sim_pbc_ops
 
     int num;
     int hop;
-
-    struct cnd_ini_cut cnd_ini;
 };
 
 struct sim_hyp_ops
@@ -70,36 +88,11 @@ struct sim_hyp_ops
 
     int num;
     int hop;
-
-    struct cnd_ini_cut cnd_ini;
 };
 
 struct sim
 {
-    struct
-    {
-        struct
-        {
-            char dir[128];
-            char pfx[64];
-        } msh;
-
-        struct
-        {
-            enum
-            {
-                SIM_EXP_GNS,
-                SIM_EXP_VTU,
-            } mod;
-
-            char dir[128];
-            char pfx[64];
-        } exp;
-
-        void *usr;
-    } pps;
-
-    enum sim_mod
+    enum
     {
         SIM_ELL,
         SIM_PBC,
@@ -120,9 +113,13 @@ struct sim
     struct obj_cut obj;
     struct bnd_cut bnd;
 
+    struct cnd_ini_cut cnd_ini;
     struct cnd_bnd_cut cnd_bnd;
 };
 
-int sim_new(struct sim *sim, const char *sif);
+int sim_new(struct sim *sim);
+int sim_cls(struct sim *sim);
+
+int sim_imp_elm(struct sim *sim, const char *sif);
 
 #endif // NUMX_PDE_SIM_H
