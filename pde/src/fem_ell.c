@@ -41,8 +41,10 @@ static double fabs(double a)
 static int pfl(struct sim *sim, struct smtx *m);
 static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q);
 
-int fem_ell_slv(struct sim *sim, struct vec *q)
+int fem_ell_slv(struct sim *sim, struct vec *q, struct fem_ell_ops ops)
 {
+    (void)ops;
+
     assert(sim);
     assert(q);
 

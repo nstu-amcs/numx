@@ -30,7 +30,7 @@ int pde(int argc, char **argv)
         return -1;
     }
 
-    if (fem_slv(&sim, &res)) {
+    if (fem_slv(&sim, &res, (struct fem_ops){})) {
         perror("solver");
         return -1;
     }
