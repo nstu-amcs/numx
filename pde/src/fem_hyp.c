@@ -1,12 +1,9 @@
 #include <assert.h>
-#include <numx/pde/fem.h>
+#include <numx/pde/sim.h>
 
-int fem_hyp_slv(struct sim *sim, struct vec *q, struct fem_hyp_ops ops)
+int fem_hyp_slv(struct sim *sim)
 {
-    (void)ops;
-
     assert(sim);
-    assert(q);
 
     return 0;
 }

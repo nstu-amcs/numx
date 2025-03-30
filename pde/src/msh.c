@@ -7,11 +7,9 @@ cut_gen(seg_cut, seg, PUB);
 cut_gen(qud_cut, qud, PUB);
 cut_gen(hxd_cut, hxd, PUB);
 
-int msh_imp(struct msh *msh, const char *dir, const char *pfx)
+int msh_new(struct msh *msh)
 {
     assert(msh);
-    assert(dir);
-    assert(pfx);
 
     if (vtx_cut_new(&msh->vtx))
         return -1;
@@ -25,32 +23,7 @@ int msh_imp(struct msh *msh, const char *dir, const char *pfx)
     if (hxd_cut_new(&msh->hxd))
         return -1;
 
-    switch (msh->fmt) {
-        case MSH_FMT_GRD:
-            return msh_imp_grd(msh, dir, pfx);
-        case MSH_FMT_GNS:
-            return msh_imp_gns(msh, dir, pfx);
-    }
-
-    errno = ENOTSUP;
-    return -1;
-}
-
-int msh_exp(struct msh *msh, const char *dir, const char *pfx)
-{
-    assert(msh);
-    assert(dir);
-    assert(pfx);
-
-    switch (msh->fmt) {
-        case MSH_FMT_GRD:
-            return msh_exp_grd(msh, dir, pfx);
-        case MSH_FMT_GNS:
-            return msh_exp_gns(msh, dir, pfx);
-    }
-
-    errno = ENOTSUP;
-    return -1;
+    return 0;
 }
 
 int msh_cls(struct msh *msh)

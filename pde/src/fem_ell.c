@@ -1,9 +1,11 @@
 #include <assert.h>
+#include <cgnslib.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <numx/com/cmp.h>
 #include <numx/com/log.h>
-#include <numx/pde/fem.h>
+#include <numx/pde/sim.h>
 
 #define C 10e10
 
@@ -31,27 +33,76 @@ const int MU[8] = {0, 1, 0, 1, 0, 1, 0, 1};
 const int NU[8] = {0, 0, 1, 1, 0, 0, 1, 1};
 const int TT[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
-const int DM[8] = {0, 1, 3, 2, 4, 5, 7, 6};
-
 static double fabs(double a)
 {
     return a < 0 ? -a : a;
 }
 
+static int fem_ell_std_slv(struct sim *sim);
+static int fem_ell_non_slv(struct sim *sim);
+static int fem_ell_hmc_slv(struct sim *sim);
+
 static int pfl(struct sim *sim, struct smtx *m);
-static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q);
+static int slv(struct sim *sim, struct smtx *m, struct vec *b);
 
-int fem_ell_slv(struct sim *sim, struct vec *q, struct fem_ell_ops ops)
+static int export(struct sim *sim);
+
+int fem_ell_slv(struct sim *sim)
 {
-    (void)ops;
-
     assert(sim);
-    assert(q);
 
+    switch (sim->fem.ell.ops.mod) {
+        case FEM_STD:
+            return fem_ell_std_slv(sim);
+        case FEM_NON:
+            return fem_ell_non_slv(sim);
+        case FEM_HMC:
+            return fem_ell_hmc_slv(sim);
+    }
+
+    return 0;
+}
+
+static int fem_ell_std_slv(struct sim *sim)
+{
     int r = 0;
 
-    int    max = sim->ops.ell.ops.non.max;
-    double err = sim->ops.ell.ops.non.err;
+    struct smtx m;
+    struct vec  b;
+    struct vec  t;
+
+    if ((r = pfl(sim, &m)))
+        goto end;
+
+    if ((r = vec_new(&sim->res, m.pps.n)))
+        goto end;
+
+    if ((r = vec_new(&t, m.pps.n)))
+        goto end;
+
+    if ((r = vec_new(&b, m.pps.n)))
+        goto end;
+
+    if ((r = slv(sim, &m, &b)))
+        goto end;
+
+    if (export(sim))
+        goto end;
+
+end:
+    mtx_cls(&m);
+    vec_cls(&b);
+    vec_cls(&t);
+
+    return r;
+}
+
+static int fem_ell_non_slv(struct sim *sim)
+{
+    int r = 0;
+
+    int    max = sim->fem.ell.ops.non.max;
+    double err = sim->fem.ell.ops.non.err;
     double cur = 1;
 
     struct smtx m;
@@ -64,7 +115,7 @@ int fem_ell_slv(struct sim *sim, struct vec *q, struct fem_ell_ops ops)
     if ((r = pfl(sim, &m)))
         goto end;
 
-    if ((r = vec_new(q, m.pps.n)))
+    if ((r = vec_new(&sim->res, m.pps.n)))
         goto end;
 
     if ((r = vec_new(&t, m.pps.n)))
@@ -74,10 +125,10 @@ int fem_ell_slv(struct sim *sim, struct vec *q, struct fem_ell_ops ops)
         goto end;
 
     for (int i = 0; i < max && cur > err; ++i) {
-        if ((r = slv(sim, &m, &b, q)))
+        if ((r = slv(sim, &m, &b)))
             goto end;
 
-        mtx_vmlt(&m, q, &t);
+        mtx_vmlt(&m, &sim->res, &t);
 
         vec_cmb(&t, &b, &t, -1);
         vec_nrm(&t, &tn);
@@ -85,6 +136,9 @@ int fem_ell_slv(struct sim *sim, struct vec *q, struct fem_ell_ops ops)
 
         cur = tn / bn;
     }
+
+    if (export(sim))
+        goto end;
 
 end:
     mtx_cls(&m);
@@ -96,7 +150,7 @@ end:
 
 static int pfl(struct sim *sim, struct smtx *m)
 {
-    int n = sim->msh->vtx.len;
+    int n = sim->msh.vtx.len;
     int z = 0;
 
     struct ilog *map = malloc(sizeof(struct ilog) * n);
@@ -112,8 +166,8 @@ static int pfl(struct sim *sim, struct smtx *m)
         map[i].cmp.run = iasc;
     }
 
-    for (int i = 0; i < sim->msh->hxd.len; ++i) {
-        int *vtx = sim->msh->hxd.dat[i].vtx;
+    for (int i = 0; i < sim->msh.hxd.len; ++i) {
+        int *vtx = sim->msh.hxd.dat[i].vtx;
 
         for (int j = 0; j < 8; ++j)
             for (int k = 0; k < 8; ++k)
@@ -144,18 +198,16 @@ static int pfl(struct sim *sim, struct smtx *m)
     return 0;
 }
 
-static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct hxd *hxd);
+static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct hxd *hxd);
 
-static int asm_qud_dir(
-    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd);
-static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd);
-static int asm_qud_rob(
-    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd);
+static int asm_qud_dir(struct sim *sim, struct smtx *m, struct vec *b, struct qud *qud, struct cnd_bnd *cnd);
+static int asm_qud_neu(struct sim *sim, struct vec *b, struct qud *qud, struct cnd_bnd *cnd);
+static int asm_qud_rob(struct sim *sim, struct smtx *m, struct vec *b, struct qud *qud, struct cnd_bnd *cnd);
 
-static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
+static int slv(struct sim *sim, struct smtx *m, struct vec *b)
 {
-    for (int i = 0; i < sim->msh->hxd.len; ++i)
-        if (asm_hxd(sim, m, b, q, &sim->msh->hxd.dat[i]))
+    for (int i = 0; i < sim->msh.hxd.len; ++i)
+        if (asm_hxd(sim, m, b, &sim->msh.hxd.dat[i]))
             return -1;
 
     struct ilog dir;
@@ -163,8 +215,8 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
     if (log_new(&dir))
         return -1;
 
-    for (int i = 0; i < sim->msh->qud.len; ++i) {
-        struct qud     *qud = &sim->msh->qud.dat[i];
+    for (int i = 0; i < sim->msh.qud.len; ++i) {
+        struct qud     *qud = &sim->msh.qud.dat[i];
         struct bnd     *bnd = &sim->bnd.dat[qud->pid];
         struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
 
@@ -177,14 +229,14 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 
                 break;
             case CND_BND_NEU:
-                if (asm_qud_neu(sim, b, q, qud, cnd)) {
+                if (asm_qud_neu(sim, b, qud, cnd)) {
                     log_cls(&dir);
                     return -1;
                 }
 
                 break;
             case CND_BND_ROB:
-                if (asm_qud_rob(sim, m, b, q, qud, cnd)) {
+                if (asm_qud_rob(sim, m, b, qud, cnd)) {
                     log_cls(&dir);
                     return -1;
                 }
@@ -196,11 +248,11 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
     log_rst(&dir);
 
     for (int i = 0; !log_adv(&dir, &i);) {
-        struct qud     *qud = &sim->msh->qud.dat[i];
+        struct qud     *qud = &sim->msh.qud.dat[i];
         struct bnd     *bnd = &sim->bnd.dat[qud->pid];
         struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
 
-        if (asm_qud_dir(sim, m, b, q, qud, cnd)) {
+        if (asm_qud_dir(sim, m, b, qud, cnd)) {
             log_cls(&dir);
             return -1;
         }
@@ -213,9 +265,9 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 
     errno = 0;
 
-    switch (sim->ops.ell.ops.iss.mod) {
+    switch (sim->fem.ell.ops.iss.mod) {
         case ISS_BCG:
-            if (iss_bcg_slv(m, q, b, sim->ops.ell.ops.iss.ops.bcg))
+            if (iss_bcg_slv(m, &sim->res, b, sim->fem.ell.ops.iss.ops.bcg))
                 return -1;
 
             break;
@@ -229,7 +281,7 @@ static int slv(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q)
 
 static int asm_mov_mtx(struct smtx *m, int i, int j, double v);
 
-static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct hxd *hxd)
+static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct hxd *hxd)
 {
     static double lam[8];
     static double gam[8];
@@ -255,19 +307,19 @@ static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q
     struct mat *mat = &sim->mat.dat[obj->mat];
     struct val *val = &sim->src.dat[obj->src];
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct vtx *vtx = sim->msh.vtx.dat;
 
     if (mat->lam.type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            lam[k] = mat->lam.as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+            lam[k] = mat->lam.as.fun(sim, hxd->vtx[k]);
 
     if (mat->gam.type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            gam[k] = mat->gam.as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+            gam[k] = mat->gam.as.fun(sim, hxd->vtx[k]);
 
     if (val->type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            src[k] = val->as.fun(sim, hxd->vtx[k], q->dat[hxd->vtx[k]]);
+            src[k] = val->as.fun(sim, hxd->vtx[k]);
 
     double hx = fabs(vtx[hxd->vtx[1]].x - vtx[hxd->vtx[0]].x);
     double hy = fabs(vtx[hxd->vtx[2]].y - vtx[hxd->vtx[0]].y);
@@ -297,24 +349,24 @@ static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q
     for (int i = 0; i < 8; ++i) {
         int gi = hxd->vtx[i];
 
-        int mui = MU[DM[i]];
-        int nui = NU[DM[i]];
-        int tti = TT[DM[i]];
+        int mui = MU[i];
+        int nui = NU[i];
+        int tti = TT[i];
 
         for (int j = 0; j < 8; ++j) {
             int gj = hxd->vtx[j];
 
-            int muj = MU[DM[j]];
-            int nuj = NU[DM[j]];
-            int ttj = TT[DM[j]];
+            int muj = MU[j];
+            int nuj = NU[j];
+            int ttj = TT[j];
 
             double mij = 0;
 
             if (mat->lam.type == VAL_FUN)
                 for (int k = 0; k < 8; ++k) {
-                    int muk = MU[DM[k]];
-                    int nuk = NU[DM[k]];
-                    int ttk = TT[DM[k]];
+                    int muk = MU[k];
+                    int nuk = NU[k];
+                    int ttk = TT[k];
 
                     mij += lam[k] * (gnx[muj][mui] *
                                         mny[nuk][nuj][nui] *
@@ -339,9 +391,9 @@ static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q
 
             if (mat->gam.type == VAL_FUN)
                 for (int k = 0; k < 8; ++k) {
-                    int muk = MU[DM[k]];
-                    int nuk = NU[DM[k]];
-                    int ttk = TT[DM[k]];
+                    int muk = MU[k];
+                    int nuk = NU[k];
+                    int ttk = TT[k];
 
                     mij += gam[k] * (mnx[muk][muj][mui] * mny[nuk][nuj][nui] * mnz[ttk][ttj][tti]);
                 }
@@ -355,9 +407,9 @@ static int asm_hxd(struct sim *sim, struct smtx *m, struct vec *b, struct vec *q
 
         if (val->type == VAL_FUN)
             for (int k = 0; k < 8; ++k) {
-                int muk = MU[DM[k]];
-                int nuk = NU[DM[k]];
-                int ttk = TT[DM[k]];
+                int muk = MU[k];
+                int nuk = NU[k];
+                int ttk = TT[k];
 
                 bi += src[k] * (mx[muk][mui] * my[nuk][nui] * mz[ttk][tti]);
             }
@@ -385,8 +437,7 @@ static int qud_nrm(struct qud *q, struct vtx *v)
     return 2;
 }
 
-static int asm_qud_dir(
-    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd)
+static int asm_qud_dir(struct sim *sim, struct smtx *m, struct vec *b, struct qud *qud, struct cnd_bnd *cnd)
 {
     for (int i = 0; i < 4; ++i) {
         int gi = qud->vtx[i];
@@ -394,7 +445,7 @@ static int asm_qud_dir(
         m->dr[gi] = C;
 
         if (cnd->pps.dir.tgt.type == VAL_FUN)
-            b->dat[gi] = C * cnd->pps.dir.tgt.as.fun(sim, gi, q->dat[gi]);
+            b->dat[gi] = C * cnd->pps.dir.tgt.as.fun(sim, gi);
         else
             b->dat[gi] = C * cnd->pps.dir.tgt.as.num;
     }
@@ -402,7 +453,7 @@ static int asm_qud_dir(
     return 0;
 }
 
-static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd)
+static int asm_qud_neu(struct sim *sim, struct vec *b, struct qud *qud, struct cnd_bnd *cnd)
 {
     static double tta[4];
 
@@ -411,13 +462,13 @@ static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud
 
     if (cnd->pps.neu.tta.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            tta[i] = cnd->pps.neu.tta.as.fun(sim, qud->vtx[i], q->dat[qud->vtx[i]]);
+            tta[i] = cnd->pps.neu.tta.as.fun(sim, qud->vtx[i]);
 
-    int    nrm = qud_nrm(qud, sim->msh->vtx.dat);
+    int    nrm = qud_nrm(qud, sim->msh.vtx.dat);
     double hxi;
     double hzt;
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct vtx *vtx = sim->msh.vtx.dat;
 
     switch (nrm) {
         case 0:
@@ -446,15 +497,15 @@ static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud
     for (int i = 0; i < 4; ++i) {
         int gi = qud->vtx[i];
 
-        int mui = MU[DM[i]];
-        int nui = NU[DM[i]];
+        int mui = MU[i];
+        int nui = NU[i];
 
         double bi = 0;
 
         if (cnd->pps.neu.tta.type == VAL_FUN)
             for (int k = 0; k < 4; ++k) {
-                int muk = MU[DM[k]];
-                int nuk = NU[DM[k]];
+                int muk = MU[k];
+                int nuk = NU[k];
 
                 bi += tta[k] * mxi[muk][mui] * mzt[nuk][nui];
             }
@@ -467,8 +518,7 @@ static int asm_qud_neu(struct sim *sim, struct vec *b, struct vec *q, struct qud
     return 0;
 }
 
-static int asm_qud_rob(
-    struct sim *sim, struct smtx *m, struct vec *b, struct vec *q, struct qud *qud, struct cnd_bnd *cnd)
+static int asm_qud_rob(struct sim *sim, struct smtx *m, struct vec *b, struct qud *qud, struct cnd_bnd *cnd)
 {
     static double bet[4];
     static double ext[4];
@@ -481,17 +531,17 @@ static int asm_qud_rob(
 
     if (cnd->pps.rob.bet.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            bet[i] = cnd->pps.rob.bet.as.fun(sim, qud->vtx[i], q->dat[qud->vtx[i]]);
+            bet[i] = cnd->pps.rob.bet.as.fun(sim, qud->vtx[i]);
 
     if (cnd->pps.rob.ext.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            ext[i] = cnd->pps.rob.ext.as.fun(sim, qud->vtx[i], q->dat[qud->vtx[i]]);
+            ext[i] = cnd->pps.rob.ext.as.fun(sim, qud->vtx[i]);
 
-    int    nrm = qud_nrm(qud, sim->msh->vtx.dat);
+    int    nrm = qud_nrm(qud, sim->msh.vtx.dat);
     double hxi;
     double hzt;
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct vtx *vtx = sim->msh.vtx.dat;
 
     switch (nrm) {
         case 0:
@@ -526,13 +576,13 @@ static int asm_qud_rob(
         case VAL_NUM:
             for (int i = 0; i < 4; ++i) {
                 int gi = qud->vtx[i];
-                int mui = MU[DM[i]];
-                int nui = NU[DM[i]];
+                int mui = MU[i];
+                int nui = NU[i];
 
                 for (int j = 0; j < 4; ++j) {
                     int gj = qud->vtx[j];
-                    int muj = MU[DM[j]];
-                    int nuj = NU[DM[j]];
+                    int muj = MU[j];
+                    int nuj = NU[j];
 
                     double mij = cnd->pps.rob.bet.as.num * (mxi[muj][mui] * mzt[nuj][nui]);
 
@@ -549,14 +599,14 @@ static int asm_qud_rob(
                     break;
                 case VAL_FUN:
                     for (int i = 0; i < 4; ++i) {
-                        int mui = MU[DM[i]];
-                        int nui = NU[DM[i]];
+                        int mui = MU[i];
+                        int nui = NU[i];
 
                         double bi = 0;
 
                         for (int k = 0; k < 4; ++k) {
-                            int muk = MU[DM[k]];
-                            int nuk = NU[DM[k]];
+                            int muk = MU[k];
+                            int nuk = NU[k];
 
                             bi += ext[k] * mxi[muk][mui] * mzt[nuk][nui];
                         }
@@ -571,19 +621,19 @@ static int asm_qud_rob(
         case VAL_FUN:
             for (int i = 0; i < 4; ++i) {
                 int gi = qud->vtx[i];
-                int mui = MU[DM[i]];
-                int nui = NU[DM[i]];
+                int mui = MU[i];
+                int nui = NU[i];
 
                 for (int j = 0; j < 4; ++j) {
                     int gj = qud->vtx[j];
-                    int muj = MU[DM[j]];
-                    int nuj = NU[DM[j]];
+                    int muj = MU[j];
+                    int nuj = NU[j];
 
                     double mij = 0;
 
                     for (int k = 0; k < 4; ++k) {
-                        int muk = MU[DM[k]];
-                        int nuk = NU[DM[k]];
+                        int muk = MU[k];
+                        int nuk = NU[k];
 
                         mij += bet[k] * (mnxi[muk][muj][mui] * mnzt[nuk][nuj][nui]);
                     }
@@ -596,14 +646,14 @@ static int asm_qud_rob(
             switch (cnd->pps.rob.ext.type) {
                 case VAL_NUM:
                     for (int i = 0; i < 4; ++i) {
-                        int mui = MU[DM[i]];
-                        int nui = NU[DM[i]];
+                        int mui = MU[i];
+                        int nui = NU[i];
 
                         double bi = 0;
 
                         for (int k = 0; k < 4; ++k) {
-                            int muk = MU[DM[k]];
-                            int nuk = NU[DM[k]];
+                            int muk = MU[k];
+                            int nuk = NU[k];
 
                             bi += bet[k] * mxi[muk][mui] * mzt[nuk][nui];
                         }
@@ -614,18 +664,18 @@ static int asm_qud_rob(
                     break;
                 case VAL_FUN:
                     for (int i = 0; i < 4; ++i) {
-                        int mui = MU[DM[i]];
-                        int nui = NU[DM[i]];
+                        int mui = MU[i];
+                        int nui = NU[i];
 
                         double bi = 0;
 
                         for (int k = 0; k < 4; ++k) {
-                            int muk = MU[DM[k]];
-                            int nuk = NU[DM[k]];
+                            int muk = MU[k];
+                            int nuk = NU[k];
 
                             for (int j = 0; j < 4; ++j) {
-                                int muj = MU[DM[j]];
-                                int nuj = NU[DM[j]];
+                                int muj = MU[j];
+                                int nuj = NU[j];
 
                                 bi += bet[k] * ext[j] * mnxi[muk][muj][mui] * mnzt[nuk][nuj][nui];
                             }
@@ -641,6 +691,13 @@ static int asm_qud_rob(
     }
 
     return 0;
+}
+
+static int fem_ell_hmc_slv(struct sim *sim)
+{
+    (void)sim;
+
+    return -1;
 }
 
 static int asm_mov_mtx(struct smtx *m, int i, int j, double v)
@@ -668,6 +725,44 @@ static int asm_mov_mtx(struct smtx *m, int i, int j, double v)
     }
 
     m->dr[i] += v;
+
+    return 0;
+}
+
+static int exp_gns(struct sim *sim);
+
+static int export(struct sim *sim)
+{
+    assert(sim);
+
+    switch (sim->ops.ell.ops.exp.mod) {
+        case SIM_EXP_GNS:
+            return exp_gns(sim);
+        default:
+            errno = ENOTSUP;
+            return -1;
+    }
+
+    return 0;
+}
+
+static int exp_gns(struct sim *sim)
+{
+    assert(sim);
+
+    char fname[256];
+
+    int fi;
+    int si;
+    int ii;
+
+    sprintf(fname, "%s/%s.cgns", sim->ops.ell.ops.exp.dir, sim->ops.ell.ops.exp.pfx);
+    cg_open(fname, CG_MODE_MODIFY, &fi);
+
+    cg_sol_write(fi, 1, 1, "FlowSolution", Vertex, &si);
+    cg_field_write(fi, 1, 1, si, RealDouble, "Temperature", sim->res.dat, &ii);
+
+    cg_close(fi);
 
     return 0;
 }

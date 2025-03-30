@@ -73,10 +73,10 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
             if ((r = seg_cut_dev(&msh->seg, b)))
                 goto end;
 
-            if ((r = get_seg_bnd(msh, vtx)))
+            if ((r = get_seg_bnd(msh, bnd)))
                 goto end;
 
-            if ((r = get_qud_ems(msh, vtx)))
+            if ((r = get_qud_ems(msh, ems)))
                 goto end;
 
             break;
@@ -90,10 +90,10 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
             if ((r = qud_cut_dev(&msh->qud, b)))
                 goto end;
 
-            if ((r = get_qud_bnd(msh, vtx)))
+            if ((r = get_qud_bnd(msh, bnd)))
                 goto end;
 
-            if ((r = get_hxd_ems(msh, vtx)))
+            if ((r = get_hxd_ems(msh, ems)))
                 goto end;
 
             break;
@@ -173,12 +173,12 @@ static int get_hxd_ems(struct msh *msh, FILE *f)
         if (fscanf(f, "%d %d %d %d %d %d %d %d %d %d %d", &j, &hxd[i].pid, &j, 
               &hxd[i].vtx[0], 
               &hxd[i].vtx[1],
-              &hxd[i].vtx[2],
-              &hxd[i].vtx[3], 
+              &hxd[i].vtx[3],
+              &hxd[i].vtx[2], 
               &hxd[i].vtx[4], 
               &hxd[i].vtx[5], 
-              &hxd[i].vtx[6], 
-              &hxd[i].vtx[7]) != 11)
+              &hxd[i].vtx[7], 
+              &hxd[i].vtx[6]) != 11)
             return -1;
 
         hxd[i].pid -= 1;
