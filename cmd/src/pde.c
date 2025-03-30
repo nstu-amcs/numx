@@ -18,8 +18,20 @@ int pde(int argc, char **argv)
 
     struct sim sim;
 
-    if (sim_new(&sim, argv[2])) {
+    if (sim_new(&sim)) {
         perror("simulation");
+        return -1;
+    }
+
+    if (sim_imp_elm(&sim, argv[2])) {
+        perror("elmer");
+        return -1;
+    }
+
+    sim.msh->fmt = MSH_FMT_GNS;
+
+    if (msh_exp(sim.msh, sim.ops.ell.ops.exp.dir, sim.ops.ell.ops.exp.pfx)) {
+        perror("msh");
         return -1;
     }
 

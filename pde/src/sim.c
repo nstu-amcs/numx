@@ -20,20 +20,19 @@ int sim_new(struct sim *sim)
     sim->ops.ell.ops.usr = 0;
     sim->ops.ell.ops.exp.mod = SIM_EXP_GNS;
 
-    sim->ops.ell.ops.non.max = 100;
-    sim->ops.ell.ops.non.err = 1e10;
-    sim->ops.ell.ops.non.rlx = 1;
+    sim->fem.ell.ops.mod = FEM_STD;
+    sim->fem.ell.ops.bss = FEM_LIN;
 
-    sim->ops.ell.ops.iss.mod = ISS_BCG;
-    sim->ops.ell.ops.iss.ops.bcg.con.sm = 0;
-    sim->ops.ell.ops.iss.ops.bcg.ops.max = 500;
-    sim->ops.ell.ops.iss.ops.bcg.ops.err = 1e10;
-    sim->ops.ell.ops.iss.ops.bcg.ops.itr.run = 0;
+    sim->fem.ell.ops.iss.mod = ISS_BCG;
+    sim->fem.ell.ops.iss.ops.bcg.con.sm = 0;
+    sim->fem.ell.ops.iss.ops.bcg.ops.max = 500;
+    sim->fem.ell.ops.iss.ops.bcg.ops.err = 1e10;
+    sim->fem.ell.ops.iss.ops.bcg.ops.itr.run = 0;
 
     sim->ops.pbc.num = 1;
     sim->ops.pbc.hop = 0;
 
-    if (!(sim->msh = malloc(sizeof(struct msh))))
+    if (msh_new(&sim->msh))
         return -1;
 
     if (mat_cut_new(&sim->mat))
@@ -61,7 +60,7 @@ int sim_cls(struct sim *sim)
 {
     assert(sim);
 
-    msh_cls(sim->msh);
+    msh_cls(&sim->msh);
 
     mat_cut_cls(&sim->mat);
     val_cut_cls(&sim->src);
@@ -70,8 +69,6 @@ int sim_cls(struct sim *sim)
 
     cnd_ini_cut_cls(&sim->cnd_ini);
     cnd_bnd_cut_cls(&sim->cnd_bnd);
-
-    free(sim->msh);
 
     return 0;
 }

@@ -1,20 +1,19 @@
 #include <assert.h>
-#include <numx/pde/fem.h>
+#include <numx/pde/sim.h>
 
-int fem_slv(struct sim *sim, struct vec *q, struct fem_ops ops)
+int fem_slv(struct sim *sim)
 {
     assert(sim);
-    assert(q);
 
     switch (sim->mod) {
         case SIM_ELL:
-            return fem_ell_slv(sim, q, *((struct fem_ell_ops *)&ops));
+            return fem_ell_slv(sim);
             break;
         case SIM_PBC:
-            return fem_pbc_slv(sim, q, *((struct fem_pbc_ops *)&ops));
+            return fem_pbc_slv(sim);
             break;
         case SIM_HYP:
-            return fem_hyp_slv(sim, q, *((struct fem_hyp_ops *)&ops));
+            return fem_hyp_slv(sim);
             break;
     }
 

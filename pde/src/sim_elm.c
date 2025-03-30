@@ -5,13 +5,16 @@
 
 #include <numx/pde/sim.h>
 
-static int get_hdr(FILE *f, struct sim *sim);
 static int get_sim(FILE *f, struct sim *sim);
 static int get_obj(FILE *f, struct sim *sim);
 static int get_mat(FILE *f, struct sim *sim);
 static int get_src(FILE *f, struct sim *sim);
 static int get_ini(FILE *f, struct sim *sim);
 static int get_bnd(FILE *f, struct sim *sim);
+
+static int get_ent(const char *src, char *key, char *val);
+static int get_str(const char **src, char *dst);
+static int get_val(void *usr, const char *src, struct val *val);
 
 int sim_imp_elm(struct sim *sim, const char *sif)
 {
@@ -26,13 +29,61 @@ int sim_imp_elm(struct sim *sim, const char *sif)
         goto end;
     }
 
-    char buf[128];
+    char buf[256];
+    char cmd[256];
+    char dir[192];
+    char pfx[64];
+    char tmp[64];
+
+    struct sim_ops *ops = &sim->ops.ell.ops;
 
     while (fgets(buf, sizeof(buf), f)) {
         switch (*buf) {
             case 'H':
-                if ((r = get_hdr(f, sim)))
-                    goto end;
+                while (fgets(buf, sizeof(buf), f)) {
+                    const char *cur = buf;
+
+                    while (*cur == ' ')
+                        ++cur;
+
+                    switch (*cur) {
+                        case 'E':
+                            return 0;
+                        case 'M':
+                            get_str(&cur, dir);
+                            get_str(&cur, tmp);
+
+                            strcat(dir, "/");
+                            strcat(dir, tmp);
+                            strcpy(pfx, "mesh");
+
+                            break;
+                        case 'I':
+                            get_str(&cur, tmp);
+
+                            if (!tmp[0])
+                                break;
+
+                            sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s", tmp);
+                            system(cmd);
+
+                            ops->usr = dlopen("/tmp/numx_usr.so", RTLD_NOW);
+
+                            if (!ops->usr)
+                                return -1;
+
+                            break;
+                        case 'R':
+                            get_str(&cur, ops->exp.dir);
+
+                            if (!ops->exp.dir[0]) {
+                                ops->exp.dir[0] = '.';
+                                ops->exp.dir[1] = '\0';
+                            }
+
+                            break;
+                    }
+                }
 
                 break;
             case 'S':
@@ -76,77 +127,12 @@ int sim_imp_elm(struct sim *sim, const char *sif)
         }
     }
 
-    sim->msh->fmt = MSH_FMT_GRD;
-
-    const char *dir = sim->ops.ell.ops.msh.dir;
-    const char *pfx = sim->ops.ell.ops.msh.pfx;
-
-    if ((r = msh_imp(sim->msh, dir, pfx)))
+    if ((r = msh_imp_elm(&sim->msh, dir, pfx)))
         goto end;
 
 end:
     fclose(f);
     return r;
-}
-
-static int get_ent(const char *src, char *key, char *val);
-static int get_str(const char **src, char *dst);
-static int get_val(void *usr, const char *src, struct val *val);
-
-static int get_hdr(FILE *f, struct sim *sim)
-{
-    char buf[128];
-    char cmd[256];
-    char tmp[64];
-
-    struct sim_ops *ops = &sim->ops.ell.ops;
-
-    while (fgets(buf, sizeof(buf), f)) {
-        const char *cur = buf;
-
-        while (*cur == ' ')
-            ++cur;
-
-        switch (*cur) {
-            case 'E':
-                return 0;
-            case 'M':
-                get_str(&cur, ops->msh.dir);
-                get_str(&cur, tmp);
-
-                strcat(ops->msh.dir, "/");
-                strcat(ops->msh.dir, tmp);
-                strcpy(ops->msh.pfx, "mesh");
-
-                break;
-            case 'I':
-                get_str(&cur, tmp);
-
-                if (!tmp[0])
-                    break;
-
-                sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s", tmp);
-                system(cmd);
-
-                ops->usr = dlopen("/tmp/numx_usr.so", RTLD_NOW);
-
-                if (!ops->usr)
-                    return -1;
-
-                break;
-            case 'R':
-                get_str(&cur, ops->exp.dir);
-
-                if (!ops->exp.dir[0]) {
-                    ops->exp.dir[0] = '.';
-                    ops->exp.dir[1] = '\0';
-                }
-
-                break;
-        }
-    }
-
-    return 0;
 }
 
 static int get_sim(FILE *f, struct sim *sim)
@@ -156,6 +142,7 @@ static int get_sim(FILE *f, struct sim *sim)
     char val[64];
 
     struct sim_ops *ops = &sim->ops.ell.ops;
+    struct fem_ops *fem = &sim->fem.ell.ops;
 
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
@@ -166,20 +153,18 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (!strcmp("Coordinate System", key)) {
             if (!strcmp("Cartesian 2D", val))
-                sim->msh->sys = MSH_SYS_C2D;
+                sim->msh.sys = MSH_SYS_C2D;
             else if (!strcmp("Cartesian", val))
-                sim->msh->sys = MSH_SYS_C3D;
+                sim->msh.sys = MSH_SYS_C3D;
 
             continue;
         }
 
         if (!strcmp("Post File", key)) {
-            strcpy(strtok(val, "."), ops->exp.pfx);
-            strcpy(strtok(0, "."), key);
+            strcpy(ops->exp.pfx, strtok(val, "."));
+            strcpy(key, strtok(0, "."));
 
-            if (!strcmp("vtu", key))
-                ops->exp.mod = SIM_EXP_VTU;
-            else if (!strcmp("cgns", key))
+            if (!strcmp("cgns", key))
                 ops->exp.mod = SIM_EXP_GNS;
 
             continue;
@@ -197,35 +182,35 @@ static int get_sim(FILE *f, struct sim *sim)
         }
 
         if (!strcmp("Nonlinear System Convergence Tolerance", key)) {
-            ops->non.err = strtod(val, 0);
+            fem->non.err = strtod(val, 0);
             continue;
         }
 
         if (!strcmp("Nonlinear System Max Iterations", key)) {
-            ops->non.max = atoi(val);
+            fem->non.max = atoi(val);
             continue;
         }
 
         if (!strcmp("Nonlinear System Relaxation Factor", key)) {
-            ops->non.rlx = strtod(val, 0);
+            fem->non.rlx = strtod(val, 0);
             continue;
         }
 
         if (!strcmp("Linear System Iterative Method", key)) {
             if (!strcmp("BiCGStab", val)) {
-                ops->iss.mod = ISS_BCG;
+                fem->iss.mod = ISS_BCG;
             }
 
             continue;
         }
 
         if (!strcmp("Linear System Max Iterations", key)) {
-            ops->iss.ops.bcg.ops.max = atoi(val);
+            fem->iss.ops.bcg.ops.max = atoi(val);
             continue;
         }
 
         if (!strcmp("Linear System Convergence Tolerance", key)) {
-            ops->iss.ops.bcg.ops.err = strtod(val, 0);
+            fem->iss.ops.bcg.ops.err = strtod(val, 0);
             continue;
         }
     }

@@ -34,39 +34,14 @@ struct sim_ops
 
     struct
     {
-        char dir[128];
-        char pfx[64];
-    } msh;
-
-    struct
-    {
         enum
         {
             SIM_EXP_GNS,
-            SIM_EXP_VTU,
         } mod;
 
-        char dir[128];
+        char dir[192];
         char pfx[64];
     } exp;
-
-    struct
-    {
-        int    max;
-        double err;
-        double rlx;
-    } non;
-
-    struct
-    {
-        enum iss_mod mod;
-        union
-        {
-            struct iss_jac_ops jac;
-            struct iss_rlx_ops rlx;
-            struct iss_bcg_ops bcg;
-        } ops;
-    } iss;
 };
 
 struct sim_ell_ops
@@ -90,6 +65,54 @@ struct sim_hyp_ops
     int hop;
 };
 
+struct fem_ops
+{
+    enum
+    {
+        FEM_STD,
+        FEM_NON,
+        FEM_HMC,
+    } mod;
+
+    enum
+    {
+        FEM_LIN,
+    } bss;
+
+    struct
+    {
+        int    max;
+        double err;
+        double rlx;
+    } non;
+
+    struct
+    {
+        enum iss_mod mod;
+        union
+        {
+            struct iss_jac_ops jac;
+            struct iss_rlx_ops rlx;
+            struct iss_bcg_ops bcg;
+        } ops;
+    } iss;
+};
+
+struct fem_ell_ops
+{
+    struct fem_ops ops;
+};
+
+struct fem_pbc_ops
+{
+    struct fem_ops ops;
+};
+
+struct fem_hyp_ops
+{
+    struct fem_ops ops;
+};
+
 struct sim
 {
     enum
@@ -106,7 +129,15 @@ struct sim
         struct sim_hyp_ops hyp;
     } ops;
 
-    struct msh *msh;
+    union
+    {
+        struct fem_ell_ops ell;
+        struct fem_pbc_ops pbc;
+        struct fem_hyp_ops hyp;
+    } fem;
+
+    struct msh msh;
+    struct vec res;
 
     struct mat_cut mat;
     struct val_cut src;
@@ -121,5 +152,12 @@ int sim_new(struct sim *sim);
 int sim_cls(struct sim *sim);
 
 int sim_imp_elm(struct sim *sim, const char *sif);
+int sim_imp_gns(struct sim *sim, const char *gns);
+
+int fem_ell_slv(struct sim *sim);
+int fem_pbc_slv(struct sim *sim);
+int fem_hyp_slv(struct sim *sim);
+
+int fem_slv(struct sim *sim);
 
 #endif // NUMX_PDE_SIM_H

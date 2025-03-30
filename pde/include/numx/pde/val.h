@@ -5,7 +5,7 @@
 
 struct sim;
 
-typedef double (*fun)(struct sim *s, int vtx, double tgt);
+typedef double (*fun)(struct sim *s, int vtx);
 
 typedef struct val
 {

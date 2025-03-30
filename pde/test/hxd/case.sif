@@ -2,7 +2,7 @@ Header
   CHECK KEYWORDS Warn
   Mesh DB "/home/paraskun/x86/numx/pde/test" "hxd"
   Include Path "/home/paraskun/x86/numx/pde/test/hxd/code.c"
-  Results Directory "/home/paraskun/x86/numx/pde/test/hxd/out"
+  Results Directory "/home/paraskun/x86/numx/pde/test/hxd"
 End
 
 Simulation
@@ -13,7 +13,7 @@ Simulation
   Steady State Max Iterations = 1
   Output Intervals(1) = 1
   Solver Input File = case.sif
-  Post File = case.vtu
+  Post File = case.cgns
 End
 
 Constants
@@ -28,6 +28,7 @@ End
 Body 1
   Target Bodies(1) = 1
   Name = "Body 1"
+  Equation = 1
   Material = 1
   Body Force = 1
 End
@@ -98,15 +99,15 @@ Boundary Condition 4
 End
 
 Boundary Condition 5
-  Target Boundaries(1) = 1 
-  Name = "BoundaryCondition 5"
-  Robin Coefficient (beta) = 10
-  External Field = rob2
-End
-
-Boundary Condition 6
   Target Boundaries(1) = 5 
   Name = "BoundaryCondition 6"
   Robin Coefficient (beta) = 10
   External Field = rob3
+End
+
+Boundary Condition 6
+  Target Boundaries(1) = 1 
+  Name = "BoundaryCondition 5"
+  Robin Coefficient (beta) = 10
+  External Field = rob2
 End
