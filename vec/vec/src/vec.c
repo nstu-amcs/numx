@@ -15,10 +15,8 @@ int vec_new_ini(struct vec* v, int n, ...) {
   v->n = n;
   v->dat = malloc(sizeof(double) * n);
 
-  if (!v->dat) {
-    errno = ENOMEM;
+  if (!v->dat)
     return -1;
-  }
 
   memset(v->dat, 0, sizeof(double) * n);
 

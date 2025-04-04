@@ -2,6 +2,7 @@
 #define NUMX_PDE_SIM_H
 
 #include <numx/pde/cnd.h>
+#include <numx/pde/fem.h>
 #include <numx/vec/iss.h>
 
 typedef struct mat
@@ -39,78 +40,18 @@ struct sim_ops
             SIM_EXP_GNS,
         } mod;
 
-        char dir[192];
+        char dir[128];
         char pfx[64];
+
+        struct icap ini;
+        struct icap put;
     } exp;
-};
-
-struct sim_ell_ops
-{
-    struct sim_ops ops;
-};
-
-struct sim_pbc_ops
-{
-    struct sim_ops ops;
-
-    int num;
-    int hop;
-};
-
-struct sim_hyp_ops
-{
-    struct sim_ops ops;
-
-    int num;
-    int hop;
-};
-
-struct fem_ops
-{
-    enum
-    {
-        FEM_STD,
-        FEM_NON,
-        FEM_HMC,
-    } mod;
-
-    enum
-    {
-        FEM_LIN,
-    } bss;
 
     struct
     {
-        int    max;
-        double err;
-        double rlx;
-    } non;
-
-    struct
-    {
-        enum iss_mod mod;
-        union
-        {
-            struct iss_jac_ops jac;
-            struct iss_rlx_ops rlx;
-            struct iss_bcg_ops bcg;
-        } ops;
-    } iss;
-};
-
-struct fem_ell_ops
-{
-    struct fem_ops ops;
-};
-
-struct fem_pbc_ops
-{
-    struct fem_ops ops;
-};
-
-struct fem_hyp_ops
-{
-    struct fem_ops ops;
+        int num;
+        int hop;
+    } tdd;
 };
 
 struct sim
@@ -122,22 +63,10 @@ struct sim
         SIM_HYP,
     } mod;
 
-    union
-    {
-        struct sim_ell_ops ell;
-        struct sim_pbc_ops pbc;
-        struct sim_hyp_ops hyp;
-    } ops;
+    struct sim_ops ops;
 
-    union
-    {
-        struct fem_ell_ops ell;
-        struct fem_pbc_ops pbc;
-        struct fem_hyp_ops hyp;
-    } fem;
-
-    struct msh msh;
-    struct vec res;
+    struct msh *msh;
+    struct fem *fem;
 
     struct mat_cut mat;
     struct val_cut src;
@@ -151,13 +80,15 @@ struct sim
 int sim_new(struct sim *sim);
 int sim_cls(struct sim *sim);
 
-int sim_imp_elm(struct sim *sim, const char *sif);
 int sim_imp_gns(struct sim *sim, const char *gns);
+int sim_imp_elm(struct sim *sim, const char *sif);
 
-int fem_ell_slv(struct sim *sim);
-int fem_pbc_slv(struct sim *sim);
-int fem_hyp_slv(struct sim *sim);
+int sim_exp_ini_vtu(void *ctx, int n, ...);
+int sim_exp_ini_gns(void *ctx, int n, ...);
 
-int fem_slv(struct sim *sim);
+int sim_exp_put_vtu(void *ctx, int n, ...);
+int sim_exp_put_gns(void *ctx, int n, ...);
+
+int sim_run(struct sim *sim);
 
 #endif // NUMX_PDE_SIM_H

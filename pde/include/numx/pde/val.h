@@ -2,10 +2,11 @@
 #define NUMX_PDE_VAL_H
 
 #include <numx/com/cut.h>
+#include <numx/vec/vec.h>
 
 struct sim;
 
-typedef double (*fun)(struct sim *s, int vtx);
+typedef double (*fun)(struct sim *s, struct vec *wgt, int vtx);
 
 typedef struct val
 {
