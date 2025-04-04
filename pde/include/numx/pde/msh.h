@@ -35,12 +35,6 @@ cut_def(hxd_cut, hxd);
 
 typedef struct msh
 {
-    enum
-    {
-        MSH_SYS_C2D,
-        MSH_SYS_C3D,
-    } sys;
-
     struct vtx_cut vtx;
     struct seg_cut seg;
     struct qud_cut qud;
@@ -50,7 +44,9 @@ typedef struct msh
 int msh_new(struct msh *msh);
 int msh_cls(struct msh *msh);
 
-int msh_imp_elm(struct msh *msh, const char *dir, const char *pfx);
+int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx);
 int msh_exp_gns(struct msh *msh, const char *dir, const char *pfx);
+
+int msh_qud_nrm(struct msh *msh, int q);
 
 #endif // NUMX_PDE_MSH_H

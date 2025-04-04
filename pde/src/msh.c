@@ -12,18 +12,23 @@ int msh_new(struct msh *msh)
     assert(msh);
 
     if (vtx_cut_new(&msh->vtx))
-        return -1;
+        goto new_err;
 
     if (seg_cut_new(&msh->seg))
-        return -1;
+        goto new_err;
 
     if (qud_cut_new(&msh->qud))
-        return -1;
+        goto new_err;
 
     if (hxd_cut_new(&msh->hxd))
-        return -1;
+        goto new_err;
 
     return 0;
+
+new_err:
+    msh_cls(msh);
+
+    return -1;
 }
 
 int msh_cls(struct msh *msh)
@@ -36,4 +41,22 @@ int msh_cls(struct msh *msh)
     hxd_cut_cls(&msh->hxd);
 
     return 0;
+}
+
+int msh_qud_nrm(struct msh *msh, int q)
+{
+    struct qud *qud = &msh->qud.dat[q];
+    struct vtx *vtx = msh->vtx.dat;
+
+    struct vtx *a = &vtx[qud->vtx[0]];
+    struct vtx *b = &vtx[qud->vtx[1]];
+    struct vtx *c = &vtx[qud->vtx[2]];
+
+    if (a->x == c->x && b->x == c->x)
+        return 0;
+
+    if (a->y == c->y && b->y == c->y)
+        return 1;
+
+    return 2;
 }

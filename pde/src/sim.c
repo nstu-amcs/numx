@@ -3,6 +3,8 @@
 #include <numx/pde/sim.h>
 #include <numx/pde/val.h>
 
+#include "fem.h"
+
 cut_gen(val_cut, val, PUB);
 cut_gen(mat_cut, mat, PUB);
 cut_gen(obj_cut, obj, PUB);
@@ -16,51 +18,58 @@ int sim_new(struct sim *sim)
     assert(sim);
 
     sim->mod = SIM_ELL;
+    sim->ops.usr = 0;
+    sim->ops.exp.mod = SIM_EXP_GNS;
+    sim->ops.tdd.num = 0;
+    sim->ops.tdd.hop = 0;
 
-    sim->ops.ell.ops.usr = 0;
-    sim->ops.ell.ops.exp.mod = SIM_EXP_GNS;
+    if (!(sim->msh = malloc(sizeof(struct msh))))
+        goto err;
 
-    sim->fem.ell.ops.mod = FEM_STD;
-    sim->fem.ell.ops.bss = FEM_LIN;
+    if (!(sim->fem = malloc(sizeof(struct fem))))
+        goto err;
 
-    sim->fem.ell.ops.iss.mod = ISS_BCG;
-    sim->fem.ell.ops.iss.ops.bcg.con.sm = 0;
-    sim->fem.ell.ops.iss.ops.bcg.ops.max = 500;
-    sim->fem.ell.ops.iss.ops.bcg.ops.err = 1e10;
-    sim->fem.ell.ops.iss.ops.bcg.ops.itr.run = 0;
+    if (msh_new(sim->msh))
+        goto err;
 
-    sim->ops.pbc.num = 1;
-    sim->ops.pbc.hop = 0;
-
-    if (msh_new(&sim->msh))
-        return -1;
+    if (fem_new(sim->fem))
+        goto err;
 
     if (mat_cut_new(&sim->mat))
-        return -1;
+        goto err;
 
     if (val_cut_new(&sim->src))
-        return -1;
+        goto err;
 
     if (obj_cut_new(&sim->obj))
-        return -1;
+        goto err;
 
     if (bnd_cut_new(&sim->bnd))
-        return -1;
+        goto err;
 
     if (cnd_ini_cut_new(&sim->cnd_ini))
-        return -1;
+        goto err;
 
     if (cnd_bnd_cut_new(&sim->cnd_bnd))
-        return -1;
+        goto err;
 
     return 0;
+
+err:
+    sim_cls(sim);
+
+    return -1;
 }
 
 int sim_cls(struct sim *sim)
 {
     assert(sim);
 
-    msh_cls(&sim->msh);
+    msh_cls(sim->msh);
+    fem_cls(sim->fem);
+
+    free(sim->msh);
+    free(sim->fem);
 
     mat_cut_cls(&sim->mat);
     val_cut_cls(&sim->src);
@@ -71,4 +80,13 @@ int sim_cls(struct sim *sim)
     cnd_bnd_cut_cls(&sim->cnd_bnd);
 
     return 0;
+}
+
+int sim_run(struct sim *sim)
+{
+    assert(sim);
+
+    sim->ops.exp.ini.run(sim->ops.exp.ini.ctx, 0);
+
+    return fem_slv(sim);
 }

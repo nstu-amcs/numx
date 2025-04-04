@@ -19,33 +19,21 @@ int pde(int argc, char **argv)
     struct sim sim;
 
     if (sim_new(&sim)) {
-        perror("simulation");
+        perror("initialization");
         return -1;
     }
 
     if (sim_imp_elm(&sim, argv[2])) {
-        perror("elmer");
+        perror("import");
         return -1;
     }
 
-    sim.msh->fmt = MSH_FMT_GNS;
-
-    if (msh_exp(sim.msh, sim.ops.ell.ops.exp.dir, sim.ops.ell.ops.exp.pfx)) {
-        perror("msh");
+    if (sim_run(&sim)) {
+        perror("execution");
         return -1;
     }
 
-    struct vec res;
-
-    if (vec_new(&res, sim.msh->vtx.len)) {
-        perror("memory");
-        return -1;
-    }
-
-    if (fem_slv(&sim, &res, (struct fem_ops){})) {
-        perror("solver");
-        return -1;
-    }
+    sim_cls(&sim);
 
     return 0;
 }

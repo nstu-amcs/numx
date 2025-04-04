@@ -5,10 +5,7 @@
 
 static int get_vtx(struct msh *msh, FILE *f);
 
-static int get_qud_ems(struct msh *msh, FILE *f);
 static int get_hxd_ems(struct msh *msh, FILE *f);
-
-static int get_seg_bnd(struct msh *msh, FILE *f);
 static int get_qud_bnd(struct msh *msh, FILE *f);
 
 int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
@@ -61,45 +58,22 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
         r = -1;
         goto end;
     }
+    if ((r = vtx_cut_dev(&msh->vtx, n)))
+        goto end;
 
-    switch (msh->sys) {
-        case MSH_SYS_C2D:
-            if ((r = vtx_cut_dev(&msh->vtx, n)))
-                goto end;
+    if ((r = hxd_cut_dev(&msh->hxd, e)))
+        goto end;
 
-            if ((r = qud_cut_dev(&msh->qud, e)))
-                goto end;
-
-            if ((r = seg_cut_dev(&msh->seg, b)))
-                goto end;
-
-            if ((r = get_seg_bnd(msh, bnd)))
-                goto end;
-
-            if ((r = get_qud_ems(msh, ems)))
-                goto end;
-
-            break;
-        case MSH_SYS_C3D:
-            if ((r = vtx_cut_dev(&msh->vtx, n)))
-                goto end;
-
-            if ((r = hxd_cut_dev(&msh->hxd, e)))
-                goto end;
-
-            if ((r = qud_cut_dev(&msh->qud, b)))
-                goto end;
-
-            if ((r = get_qud_bnd(msh, bnd)))
-                goto end;
-
-            if ((r = get_hxd_ems(msh, ems)))
-                goto end;
-
-            break;
-    }
+    if ((r = qud_cut_dev(&msh->qud, b)))
+        goto end;
 
     if ((r = get_vtx(msh, vtx)))
+        goto end;
+
+    if ((r = get_qud_bnd(msh, bnd)))
+        goto end;
+
+    if ((r = get_hxd_ems(msh, ems)))
         goto end;
 
     vtx_cut_shr(&msh->vtx);
@@ -143,28 +117,6 @@ static int get_vtx(struct msh *msh, FILE *f)
     return 0;
 }
 
-static int get_qud_ems(struct msh *msh, FILE *f)
-{
-    struct qud *qud = msh->qud.dat;
-
-    for (int i = 0, j; i < msh->qud.len; ++i) {
-        if (fscanf(f, "%d %d %d %d %d %d %d", &j, &qud[i].pid, &j, 
-              &qud[i].vtx[0], 
-              &qud[i].vtx[1], 
-              &qud[i].vtx[2],
-              &qud[i].vtx[3]) != 7)
-            return -1;
-
-        qud[i].pid -= 1;
-        qud[i].vtx[0] -= 1;
-        qud[i].vtx[1] -= 1;
-        qud[i].vtx[2] -= 1;
-        qud[i].vtx[3] -= 1;
-    }
-
-    return 0;
-}
-
 static int get_hxd_ems(struct msh *msh, FILE *f)
 {
     struct hxd *hxd = msh->hxd.dat;
@@ -190,24 +142,6 @@ static int get_hxd_ems(struct msh *msh, FILE *f)
         hxd[i].vtx[5] -= 1;
         hxd[i].vtx[6] -= 1;
         hxd[i].vtx[7] -= 1;
-    }
-
-    return 0;
-}
-
-static int get_seg_bnd(struct msh *msh, FILE *f)
-{
-    struct seg *seg = msh->seg.dat;
-
-    for (int i = 0, j; i < msh->seg.len; ++i) {
-        if (fscanf(f, "%d %d %d %d %d %d %d", &j, &seg[i].pid, &j, &j, &j, 
-              &seg[i].vtx[0], 
-              &seg[i].vtx[1]) != 7)
-            return -1;
-
-        seg[i].pid -= 1;
-        seg[i].vtx[0] -= 1;
-        seg[i].vtx[1] -= 1;
     }
 
     return 0;

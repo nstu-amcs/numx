@@ -5,6 +5,7 @@
 
 #include <numx/pde/sim.h>
 
+static int get_hdr(FILE *f, struct sim *sim);
 static int get_sim(FILE *f, struct sim *sim);
 static int get_obj(FILE *f, struct sim *sim);
 static int get_mat(FILE *f, struct sim *sim);
@@ -30,60 +31,12 @@ int sim_imp_elm(struct sim *sim, const char *sif)
     }
 
     char buf[256];
-    char cmd[256];
-    char dir[192];
-    char pfx[64];
-    char tmp[64];
-
-    struct sim_ops *ops = &sim->ops.ell.ops;
 
     while (fgets(buf, sizeof(buf), f)) {
         switch (*buf) {
             case 'H':
-                while (fgets(buf, sizeof(buf), f)) {
-                    const char *cur = buf;
-
-                    while (*cur == ' ')
-                        ++cur;
-
-                    switch (*cur) {
-                        case 'E':
-                            return 0;
-                        case 'M':
-                            get_str(&cur, dir);
-                            get_str(&cur, tmp);
-
-                            strcat(dir, "/");
-                            strcat(dir, tmp);
-                            strcpy(pfx, "mesh");
-
-                            break;
-                        case 'I':
-                            get_str(&cur, tmp);
-
-                            if (!tmp[0])
-                                break;
-
-                            sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s", tmp);
-                            system(cmd);
-
-                            ops->usr = dlopen("/tmp/numx_usr.so", RTLD_NOW);
-
-                            if (!ops->usr)
-                                return -1;
-
-                            break;
-                        case 'R':
-                            get_str(&cur, ops->exp.dir);
-
-                            if (!ops->exp.dir[0]) {
-                                ops->exp.dir[0] = '.';
-                                ops->exp.dir[1] = '\0';
-                            }
-
-                            break;
-                    }
-                }
+                if ((r = get_hdr(f, sim)))
+                    goto end;
 
                 break;
             case 'S':
@@ -127,12 +80,69 @@ int sim_imp_elm(struct sim *sim, const char *sif)
         }
     }
 
-    if ((r = msh_imp_elm(&sim->msh, dir, pfx)))
-        goto end;
-
 end:
     fclose(f);
     return r;
+}
+
+static int get_hdr(FILE *f, struct sim *sim)
+{
+    char buf[256];
+    char cmd[256];
+    char dir[192];
+    char pfx[64];
+    char tmp[64];
+
+    while (fgets(buf, sizeof(buf), f)) {
+        if (buf[0] == 'E')
+            break;
+
+        const char *cur = buf;
+
+        while (*cur == ' ')
+            ++cur;
+
+        switch (*cur) {
+            case 'M':
+                get_str(&cur, dir);
+                get_str(&cur, tmp);
+
+                strcat(dir, "/");
+                strcat(dir, tmp);
+                strcpy(pfx, "mesh");
+
+                break;
+            case 'I':
+                get_str(&cur, tmp);
+
+                if (!tmp[0])
+                    break;
+
+                sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s", tmp);
+                system(cmd);
+
+                sim->ops.usr = dlopen("/tmp/numx_usr.so", RTLD_NOW);
+
+                if (!sim->ops.usr)
+                    return -1;
+
+                break;
+            case 'R':
+                get_str(&cur, sim->ops.exp.dir);
+
+                if (!sim->ops.exp.dir[0]) {
+                    sim->ops.exp.dir[0] = '.';
+                    sim->ops.exp.dir[1] = '\0';
+                }
+
+                break;
+        }
+    }
+
+    if (msh_imp_grd(sim->msh, dir, pfx))
+        return -1;
+
+    return 0;
 }
 
 static int get_sim(FILE *f, struct sim *sim)
@@ -141,8 +151,8 @@ static int get_sim(FILE *f, struct sim *sim)
     char key[64];
     char val[64];
 
-    struct sim_ops *ops = &sim->ops.ell.ops;
-    struct fem_ops *fem = &sim->fem.ell.ops;
+    struct sim_ops *ops = &sim->ops;
+    struct fem_ops *fem = &sim->fem->ops;
 
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
@@ -151,23 +161,22 @@ static int get_sim(FILE *f, struct sim *sim)
         if (get_ent(buf, key, val))
             return -1;
 
-        if (!strcmp("Coordinate System", key)) {
-            if (!strcmp("Cartesian 2D", val))
-                sim->msh.sys = MSH_SYS_C2D;
-            else if (!strcmp("Cartesian", val))
-                sim->msh.sys = MSH_SYS_C3D;
-
-            continue;
-        }
-
         if (!strcmp("Post File", key)) {
             strcpy(ops->exp.pfx, strtok(val, "."));
             strcpy(key, strtok(0, "."));
 
-            if (!strcmp("cgns", key))
+            if (!strcmp("cgns", key)) {
                 ops->exp.mod = SIM_EXP_GNS;
+                ops->exp.ini.ctx = sim;
+                ops->exp.ini.run = sim_exp_ini_gns;
+                ops->exp.put.ctx = sim;
+                ops->exp.put.run = sim_exp_put_gns;
 
-            continue;
+                continue;
+            }
+
+            errno = ENOTSUP;
+            return -1;
         }
 
         if (!strcmp("Equation", key)) {
@@ -266,14 +275,14 @@ static int get_mat(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Lambda Coefficient", key)) {
-            if (get_val(sim->ops.ell.ops.usr, val, &mat->lam))
+            if (get_val(sim->ops.usr, val, &mat->lam))
                 return -1;
 
             continue;
         }
 
         if (!strcmp("Gamma Coefficient", key)) {
-            if (get_val(sim->ops.ell.ops.usr, val, &mat->gam))
+            if (get_val(sim->ops.usr, val, &mat->gam))
                 return -1;
 
             continue;
@@ -302,7 +311,7 @@ static int get_src(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Field Source", key))
-            if (get_val(sim->ops.ell.ops.usr, val, src))
+            if (get_val(sim->ops.usr, val, src))
                 return -1;
     }
 
@@ -328,7 +337,7 @@ static int get_ini(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Field", key))
-            if (get_val(sim->ops.ell.ops.usr, val, &ini->tgt))
+            if (get_val(sim->ops.usr, val, &ini->tgt))
                 return -1;
     }
 
@@ -366,25 +375,25 @@ static int get_bnd(FILE *f, struct sim *sim)
         } else if (!strcmp("Field", key)) {
             bnd->type = CND_BND_DIR;
 
-            if (get_val(sim->ops.ell.ops.usr, val, &bnd->pps.dir.tgt))
+            if (get_val(sim->ops.usr, val, &bnd->pps.dir.tgt))
                 return -1;
 
             continue;
         } else if (!strcmp("Field Flux (theta)", key)) {
             bnd->type = CND_BND_NEU;
 
-            if (get_val(sim->ops.ell.ops.usr, val, &bnd->pps.neu.tta))
+            if (get_val(sim->ops.usr, val, &bnd->pps.neu.tta))
                 return -1;
 
         } else if (!strcmp("Robin Coefficient (beta)", key)) {
             bnd->type = CND_BND_ROB;
 
-            if (get_val(sim->ops.ell.ops.usr, val, &bnd->pps.rob.bet))
+            if (get_val(sim->ops.usr, val, &bnd->pps.rob.bet))
                 return -1;
         } else if (!strcmp("External Field", key)) {
             bnd->type = CND_BND_ROB;
 
-            if (get_val(sim->ops.ell.ops.usr, val, &bnd->pps.rob.ext))
+            if (get_val(sim->ops.usr, val, &bnd->pps.rob.ext))
                 return -1;
         }
     }
