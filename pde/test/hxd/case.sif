@@ -47,8 +47,8 @@ Solver 1
   Nonlinear System Relaxation Factor = 1
   Linear System Solver = Iterative
   Linear System Iterative Method = BiCGStab
-  Linear System Max Iterations = 500
-  Linear System Convergence Tolerance = 1.0e-10
+  Linear System Max Iterations = 1000
+  Linear System Convergence Tolerance = 1.0e-15
   BiCGstabl polynomial degree = 2
   Linear System Preconditioning = none
   Linear System ILUT Tolerance = 1.0e-3
