@@ -41,25 +41,28 @@ int msh_exp_gns(struct msh *msh, const char *dir, const char *pfx)
     cg_coord_write(fi, bi, zi, RealDouble, "CoordinateY", y, &ci);
     cg_coord_write(fi, bi, zi, RealDouble, "CoordinateZ", z, &ci);
 
-    char name[32];
-    int  node[8];
+    int *node = malloc(sizeof(int *) * msh->hxd.len * 8);
 
     for (int i = 0; i < msh->hxd.len; ++i) {
-        sprintf(name, "Elem %d", i);
+        int b = i * 8;
 
-        node[0] = msh->hxd.dat[i].vtx[1];
-        node[1] = msh->hxd.dat[i].vtx[3];
-        node[2] = msh->hxd.dat[i].vtx[2];
-        node[3] = msh->hxd.dat[i].vtx[0];
-        node[4] = msh->hxd.dat[i].vtx[5];
-        node[5] = msh->hxd.dat[i].vtx[7];
-        node[6] = msh->hxd.dat[i].vtx[6];
-        node[7] = msh->hxd.dat[i].vtx[4];
-
-        cg_section_write(fi, bi, zi, name, HEXA_8, 1, 1, 0, node, &si);
+        node[b + 0] = msh->hxd.dat[i].vtx[1] + 1;
+        node[b + 1] = msh->hxd.dat[i].vtx[3] + 1;
+        node[b + 2] = msh->hxd.dat[i].vtx[2] + 1;
+        node[b + 3] = msh->hxd.dat[i].vtx[0] + 1;
+        node[b + 4] = msh->hxd.dat[i].vtx[5] + 1;
+        node[b + 5] = msh->hxd.dat[i].vtx[7] + 1;
+        node[b + 6] = msh->hxd.dat[i].vtx[6] + 1;
+        node[b + 7] = msh->hxd.dat[i].vtx[4] + 1;
     }
 
+    cg_section_write(fi, bi, zi, "Elem", HEXA_8, 1, msh->hxd.len, 0, node, &si);
     cg_close(fi);
+
+    free(node);
+    free(x);
+    free(y);
+    free(z);
 
     return 0;
 }

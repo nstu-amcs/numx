@@ -650,11 +650,11 @@
          </widget>
          <widget type="LineEdit">
             <objectName>linearSystemMaxIterationsEdit</objectName>
-            <text>500</text>
+            <text>1000</text>
          </widget>
          <widget type="LineEdit">
             <objectName>linearSystemConvergenceToleranceEdit</objectName>
-            <text>1.0e-10</text>
+            <text>1.0e-15</text>
          </widget>
          <widget type="LineEdit">
             <objectName>linearSystemILUTToleranceEdit</objectName>

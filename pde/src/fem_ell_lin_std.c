@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include <numx/com/log.h>
 
 #include "fem.h"
@@ -30,6 +28,8 @@ static const int MU[8] = {0, 1, 0, 1, 0, 1, 0, 1};
 static const int NU[8] = {0, 0, 1, 1, 0, 0, 1, 1};
 static const int TT[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
+const int DM[8] = {0, 1, 3, 2, 4, 5, 7, 6};
+
 static int asm_hxd(struct sim *sim, struct vec *wgt, int h);
 
 static int asm_qud_dir(struct sim *sim, struct vec *wgt, int q);
@@ -37,6 +37,11 @@ static int asm_qud_neu(struct sim *sim, struct vec *wgt, int q);
 static int asm_qud_rob(struct sim *sim, struct vec *wgt, int q);
 
 static int asm_mov_mtx(struct smtx *m, int i, int j, double v);
+
+static double fabs(double x)
+{
+    return x < 0 ? -x : x;
+}
 
 int fem_ell_lin_std_slv(struct sim *sim, struct vec *wgt)
 {
@@ -144,25 +149,29 @@ static int asm_hxd(struct sim *sim, struct vec *wgt, int h)
 
     struct vtx *vtx = sim->msh->vtx.dat;
 
+    double lam_n = mat->lam.as.num;
+    double gam_n = mat->gam.as.num;
+    double src_n = val->as.num;
+
     if (mat->lam.type == VAL_FUN) {
-        fun lf = mat->lam.as.fun;
+        fun lam_f = mat->lam.as.fun;
 
         for (int k = 0; k < 8; ++k)
-            lam[k] = lf(sim, wgt, hxd->vtx[k]);
+            lam[k] = lam_f(sim, wgt, hxd->vtx[k]);
     }
 
     if (mat->gam.type == VAL_FUN) {
-        fun gf = mat->gam.as.fun;
+        fun gam_f = mat->gam.as.fun;
 
         for (int k = 0; k < 8; ++k)
-            gam[k] = gf(sim, wgt, hxd->vtx[k]);
+            gam[k] = gam_f(sim, wgt, hxd->vtx[k]);
     }
 
     if (val->type == VAL_FUN) {
-        fun sf = val->as.fun;
+        fun src_f = val->as.fun;
 
         for (int k = 0; k < 8; ++k)
-            src[k] = sf(sim, wgt, hxd->vtx[k]);
+            src[k] = src_f(sim, wgt, hxd->vtx[k]);
     }
 
     int v0 = hxd->vtx[0];
@@ -226,15 +235,15 @@ static int asm_hxd(struct sim *sim, struct vec *wgt, int h)
                                         gnz[ttj][tti]);
                 }
             else
-                mij += mat->lam.as.num * (gx[muj][mui] *
-                                             my[nuj][nui] *
-                                             mz[ttj][tti] +
-                                             mx[muj][mui] *
-                                             gy[nuj][nui] *
-                                             mz[ttj][tti] +
-                                             mx[muj][mui] *
-                                             my[nuj][nui] *
-                                             gz[ttj][tti]);
+                mij += lam_n * (gx[muj][mui] *
+                                   my[nuj][nui] *
+                                   mz[ttj][tti] +
+                                   mx[muj][mui] *
+                                   gy[nuj][nui] *
+                                   mz[ttj][tti] +
+                                   mx[muj][mui] *
+                                   my[nuj][nui] *
+                                   gz[ttj][tti]);
 
             if (mat->gam.type == VAL_FUN)
                 for (int k = 0; k < 8; ++k) {
@@ -245,7 +254,7 @@ static int asm_hxd(struct sim *sim, struct vec *wgt, int h)
                     mij += gam[k] * (mnx[muk][muj][mui] * mny[nuk][nuj][nui] * mnz[ttk][ttj][tti]);
                 }
             else
-                mij += mat->gam.as.num * (mx[muj][mui] * my[nuj][nui] * mz[ttj][tti]);
+                mij += gam_n * (mx[muj][mui] * my[nuj][nui] * mz[ttj][tti]);
 
             asm_mov_mtx(&sim->fem->mtx, gi, gj, mij);
         }
@@ -261,7 +270,7 @@ static int asm_hxd(struct sim *sim, struct vec *wgt, int h)
                 bi += src[k] * (mx[muk][mui] * my[nuk][nui] * mz[ttk][tti]);
             }
         else
-            bi = val->as.num * hx * hy * hz / 8;
+            bi = src_n * hx * hy * hz / 8;
 
         sim->fem->vec.dat[gi] += bi;
     }
@@ -277,8 +286,8 @@ static int asm_qud_dir(struct sim *sim, struct vec *wgt, int q)
     struct smtx *mtx = &sim->fem->mtx;
     struct vec  *vec = &sim->fem->vec;
 
-    fun    ftgt = cnd->pps.dir.tgt.as.fun;
-    double ntgt = cnd->pps.dir.tgt.as.num;
+    fun    tgt_f = cnd->pps.dir.tgt.as.fun;
+    double tgt_n = cnd->pps.dir.tgt.as.num;
 
     for (int i = 0; i < 4; ++i) {
         int gi = qud->vtx[i];
@@ -286,9 +295,9 @@ static int asm_qud_dir(struct sim *sim, struct vec *wgt, int q)
         mtx->dr[gi] = C;
 
         if (cnd->pps.dir.tgt.type == VAL_FUN)
-            vec->dat[gi] = C * ftgt(sim, wgt, gi);
+            vec->dat[gi] = C * tgt_f(sim, wgt, gi);
         else
-            vec->dat[gi] = C * ntgt;
+            vec->dat[gi] = C * tgt_n;
     }
 
     return 0;
@@ -303,12 +312,12 @@ static int asm_qud_neu(struct sim *sim, struct vec *wgt, int q)
     struct qud     *qud = &sim->msh->qud.dat[q];
     struct cnd_bnd *cnd = &sim->cnd_bnd.dat[sim->bnd.dat[qud->pid].cnd];
 
-    fun    ftta = cnd->pps.neu.tta.as.fun;
-    double ntta = cnd->pps.neu.tta.as.num;
+    fun    tta_f = cnd->pps.neu.tta.as.fun;
+    double tta_n = cnd->pps.neu.tta.as.num;
 
     if (cnd->pps.neu.tta.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            tta[i] = ftta(sim, wgt, qud->vtx[i]);
+            tta[i] = tta_f(sim, wgt, qud->vtx[i]);
 
     int    nrm = msh_qud_nrm(sim->msh, q);
     double hxi = 0;
@@ -343,20 +352,20 @@ static int asm_qud_neu(struct sim *sim, struct vec *wgt, int q)
     for (int i = 0; i < 4; ++i) {
         int gi = qud->vtx[i];
 
-        int mui = MU[i];
-        int nui = NU[i];
+        int mui = MU[DM[i]];
+        int nui = NU[DM[i]];
 
         double bi = 0;
 
         if (cnd->pps.neu.tta.type == VAL_FUN)
             for (int k = 0; k < 4; ++k) {
-                int muk = MU[k];
-                int nuk = NU[k];
+                int muk = MU[DM[k]];
+                int nuk = NU[DM[k]];
 
                 bi += tta[k] * mxi[muk][mui] * mzt[nuk][nui];
             }
         else
-            bi = ntta * hxi * hzt / 4;
+            bi = tta_n * hxi * hzt / 4;
 
         sim->fem->vec.dat[gi] += bi;
     }
@@ -378,19 +387,19 @@ static int asm_qud_rob(struct sim *sim, struct vec *wgt, int q)
     struct qud     *qud = &sim->msh->qud.dat[q];
     struct cnd_bnd *cnd = &sim->cnd_bnd.dat[sim->bnd.dat[qud->pid].cnd];
 
-    fun    fbet = cnd->pps.rob.bet.as.fun;
-    double nbet = cnd->pps.rob.bet.as.num;
+    fun    bet_f = cnd->pps.rob.bet.as.fun;
+    double bet_n = cnd->pps.rob.bet.as.num;
 
-    fun    fext = cnd->pps.rob.ext.as.fun;
-    double next = cnd->pps.rob.ext.as.num;
+    fun    ext_f = cnd->pps.rob.ext.as.fun;
+    double ext_n = cnd->pps.rob.ext.as.num;
 
     if (cnd->pps.rob.bet.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            bet[i] = fbet(sim, wgt, qud->vtx[i]);
+            bet[i] = bet_f(sim, wgt, qud->vtx[i]);
 
     if (cnd->pps.rob.ext.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            ext[i] = fext(sim, wgt, qud->vtx[i]);
+            ext[i] = ext_f(sim, wgt, qud->vtx[i]);
 
     int    nrm = msh_qud_nrm(sim->msh, q);
     double hxi = 0;
@@ -437,15 +446,15 @@ static int asm_qud_rob(struct sim *sim, struct vec *wgt, int q)
         case VAL_NUM:
             for (int i = 0; i < 4; ++i) {
                 int gi = qud->vtx[i];
-                int mui = MU[i];
-                int nui = NU[i];
+                int mui = MU[DM[i]];
+                int nui = NU[DM[i]];
 
                 for (int j = 0; j < 4; ++j) {
                     int gj = qud->vtx[j];
-                    int muj = MU[j];
-                    int nuj = NU[j];
+                    int muj = MU[DM[j]];
+                    int nuj = NU[DM[j]];
 
-                    double mij = nbet * (mxi[muj][mui] * mzt[nuj][nui]);
+                    double mij = bet_n * (mxi[muj][mui] * mzt[nuj][nui]);
 
                     if (asm_mov_mtx(mtx, gi, gj, mij))
                         return -1;
@@ -455,24 +464,24 @@ static int asm_qud_rob(struct sim *sim, struct vec *wgt, int q)
             switch (cnd->pps.rob.ext.type) {
                 case VAL_NUM:
                     for (int i = 0; i < 4; ++i)
-                        vec->dat[qud->vtx[i]] += nbet * next * hxi * hzt / 4;
+                        vec->dat[qud->vtx[i]] += bet_n * ext_n * hxi * hzt / 4;
 
                     break;
                 case VAL_FUN:
                     for (int i = 0; i < 4; ++i) {
-                        int mui = MU[i];
-                        int nui = NU[i];
+                        int mui = MU[DM[i]];
+                        int nui = NU[DM[i]];
 
                         double bi = 0;
 
                         for (int k = 0; k < 4; ++k) {
-                            int muk = MU[k];
-                            int nuk = NU[k];
+                            int muk = MU[DM[k]];
+                            int nuk = NU[DM[k]];
 
                             bi += ext[k] * mxi[muk][mui] * mzt[nuk][nui];
                         }
 
-                        vec->dat[qud->vtx[i]] += nbet * bi;
+                        vec->dat[qud->vtx[i]] += bet_n * bi;
                     }
 
                     break;
@@ -482,19 +491,19 @@ static int asm_qud_rob(struct sim *sim, struct vec *wgt, int q)
         case VAL_FUN:
             for (int i = 0; i < 4; ++i) {
                 int gi = qud->vtx[i];
-                int mui = MU[i];
-                int nui = NU[i];
+                int mui = MU[DM[i]];
+                int nui = NU[DM[i]];
 
                 for (int j = 0; j < 4; ++j) {
                     int gj = qud->vtx[j];
-                    int muj = MU[j];
-                    int nuj = NU[j];
+                    int muj = MU[DM[j]];
+                    int nuj = NU[DM[j]];
 
                     double mij = 0;
 
                     for (int k = 0; k < 4; ++k) {
-                        int muk = MU[k];
-                        int nuk = NU[k];
+                        int muk = MU[DM[k]];
+                        int nuk = NU[DM[k]];
 
                         mij += bet[k] * (mnxi[muk][muj][mui] * mnzt[nuk][nuj][nui]);
                     }
@@ -507,36 +516,36 @@ static int asm_qud_rob(struct sim *sim, struct vec *wgt, int q)
             switch (cnd->pps.rob.ext.type) {
                 case VAL_NUM:
                     for (int i = 0; i < 4; ++i) {
-                        int mui = MU[i];
-                        int nui = NU[i];
+                        int mui = MU[DM[i]];
+                        int nui = NU[DM[i]];
 
                         double bi = 0;
 
                         for (int k = 0; k < 4; ++k) {
-                            int muk = MU[k];
-                            int nuk = NU[k];
+                            int muk = MU[DM[k]];
+                            int nuk = NU[DM[k]];
 
                             bi += bet[k] * mxi[muk][mui] * mzt[nuk][nui];
                         }
 
-                        vec->dat[qud->vtx[i]] += next * bi;
+                        vec->dat[qud->vtx[i]] += ext_n * bi;
                     }
 
                     break;
                 case VAL_FUN:
                     for (int i = 0; i < 4; ++i) {
-                        int mui = MU[i];
-                        int nui = NU[i];
+                        int mui = MU[DM[i]];
+                        int nui = NU[DM[i]];
 
                         double bi = 0;
 
                         for (int k = 0; k < 4; ++k) {
-                            int muk = MU[k];
-                            int nuk = NU[k];
+                            int muk = MU[DM[k]];
+                            int nuk = NU[DM[k]];
 
                             for (int j = 0; j < 4; ++j) {
-                                int muj = MU[j];
-                                int nuj = NU[j];
+                                int muj = MU[DM[j]];
+                                int nuj = NU[DM[j]];
 
                                 bi += bet[k] * ext[j] * mnxi[muk][muj][mui] * mnzt[nuk][nuj][nui];
                             }
