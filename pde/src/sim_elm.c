@@ -197,6 +197,12 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (!strcmp("Nonlinear System Max Iterations", key)) {
             fem->non.max = atoi(val);
+
+            if (fem->non.max > 1)
+              fem->mod = FEM_NON;
+            else
+              fem->mod = FEM_STD;
+
             continue;
         }
 
