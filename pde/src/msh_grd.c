@@ -123,14 +123,14 @@ static int get_hxd_ems(struct msh *msh, FILE *f)
 
     for (int i = 0, j; i < msh->hxd.len; ++i) {
         if (fscanf(f, "%d %d %d %d %d %d %d %d %d %d %d", &j, &hxd[i].pid, &j, 
-              &hxd[i].vtx[0], 
-              &hxd[i].vtx[1],
-              &hxd[i].vtx[3],
-              &hxd[i].vtx[2], 
               &hxd[i].vtx[4], 
+              &hxd[i].vtx[0],
+              &hxd[i].vtx[2],
+              &hxd[i].vtx[6], 
               &hxd[i].vtx[5], 
-              &hxd[i].vtx[7], 
-              &hxd[i].vtx[6]) != 11)
+              &hxd[i].vtx[1], 
+              &hxd[i].vtx[3], 
+              &hxd[i].vtx[7]) != 11)
             return -1;
 
         hxd[i].pid -= 1;
