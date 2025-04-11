@@ -147,6 +147,8 @@ static int get_hxd_ems(struct msh *msh, FILE *f)
     return 0;
 }
 
+static int qud_srt(struct msh* msh, struct qud* qud);
+
 static int get_qud_bnd(struct msh *msh, FILE *f)
 {
     struct qud *qud = msh->qud.dat;
@@ -164,6 +166,85 @@ static int get_qud_bnd(struct msh *msh, FILE *f)
         qud[i].vtx[1] -= 1;
         qud[i].vtx[2] -= 1;
         qud[i].vtx[3] -= 1;
+
+        qud_srt(msh, &qud[i]);
+    }
+
+    return 0;
+}
+
+static inline int cmp(struct msh* msh, struct qud* qud, int a, int b)
+{
+    double av = msh->vtx.dat[qud->vtx[a]].z;
+    double bv = msh->vtx.dat[qud->vtx[b]].z;
+
+    if (av < bv)
+      return 0;
+
+    if (bv < av)
+      return 1;
+
+    av = msh->vtx.dat[qud->vtx[a]].y;
+    bv = msh->vtx.dat[qud->vtx[b]].y;
+
+    if (av < bv)
+      return 0;
+
+    if (bv < av)
+      return 1;
+
+    av = msh->vtx.dat[qud->vtx[a]].x;
+    bv = msh->vtx.dat[qud->vtx[b]].x;
+
+    if (av < bv)
+      return 0;
+
+    return 1;
+}
+
+static int qud_srt(struct msh* msh, struct qud* qud)
+{
+    int a[4];
+    int t;
+
+    if (cmp(msh, qud, 0, 1)) {
+      a[0] = 1;
+      a[1] = 0;
+    } else { // 0 1 
+      a[0] = 0;
+      a[1] = 1;
+    }
+
+    if (cmp(msh, qud, 2, 3)) {
+      a[2] = 3;
+      a[3] = 2;
+    } else {
+      a[2] = 2;
+      a[3] = 3;
+    }
+
+    if (cmp(msh, qud, a[0], a[2])) {
+      t = a[0];
+      a[0] = a[2];
+      a[2] = t;
+
+      if (cmp(msh, qud, a[2], a[3])) {
+        t = a[1];
+        a[1] = a[3];
+        a[3] = t;
+      }
+    } else {
+      if (cmp(msh, qud, a[1], a[2])) {
+        t = a[1];
+        a[1] = a[2];
+        a[2] = t;
+
+        if (cmp(msh, qud, a[2], a[3])) {
+          t = a[2];
+          a[2] = a[3];
+          a[3] = t;
+        }
+      }
     }
 
     return 0;

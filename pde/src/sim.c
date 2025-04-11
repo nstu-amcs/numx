@@ -1,9 +1,8 @@
 #include <assert.h>
+#include <dlfcn.h>
 
+#include <numx/pde/cnd.h>
 #include <numx/pde/sim.h>
-#include <numx/pde/val.h>
-
-#include "fem.h"
 
 cut_gen(val_cut, val, PUB);
 cut_gen(mat_cut, mat, PUB);
@@ -26,13 +25,7 @@ int sim_new(struct sim *sim)
     if (!(sim->msh = malloc(sizeof(struct msh))))
         goto err;
 
-    if (!(sim->fem = malloc(sizeof(struct fem))))
-        goto err;
-
     if (msh_new(sim->msh))
-        goto err;
-
-    if (fem_new(sim->fem))
         goto err;
 
     if (mat_cut_new(&sim->mat))
@@ -66,10 +59,8 @@ int sim_cls(struct sim *sim)
     assert(sim);
 
     msh_cls(sim->msh);
-    fem_cls(sim->fem);
 
     free(sim->msh);
-    free(sim->fem);
 
     mat_cut_cls(&sim->mat);
     val_cut_cls(&sim->src);
@@ -79,6 +70,8 @@ int sim_cls(struct sim *sim)
     cnd_ini_cut_cls(&sim->cnd_ini);
     cnd_bnd_cut_cls(&sim->cnd_bnd);
 
+    dlclose(sim->ops.usr);
+
     return 0;
 }
 
@@ -86,7 +79,7 @@ int sim_run(struct sim *sim)
 {
     assert(sim);
 
-    sim->ops.exp.ini.run(sim->ops.exp.ini.ctx, 0);
+    sim->ops.exp.ini.run(sim->ops.exp.ini.ctx, sim);
 
-    return fem_slv(sim);
+    return sim->slv->exe.run(sim->slv->exe.ctx, sim);
 }

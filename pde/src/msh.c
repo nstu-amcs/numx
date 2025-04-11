@@ -43,20 +43,26 @@ int msh_cls(struct msh *msh)
     return 0;
 }
 
-int msh_qud_nrm(struct msh *msh, int q)
+int msh_qud_nrm(struct msh *msh, struct qud *qud, struct vec *nrm)
 {
-    struct qud *qud = &msh->qud.dat[q];
     struct vtx *vtx = msh->vtx.dat;
 
     struct vtx *a = &vtx[qud->vtx[0]];
     struct vtx *b = &vtx[qud->vtx[1]];
     struct vtx *c = &vtx[qud->vtx[2]];
 
-    if (a->x == c->x && b->x == c->x)
+    memset(nrm->dat, 0, sizeof(double) * 3);
+
+    if (a->x == c->x && b->x == c->x) {
+        nrm->dat[0] = 1;
         return 0;
+    }
 
-    if (a->y == c->y && b->y == c->y)
-        return 1;
+    if (a->y == c->y && b->y == c->y) {
+        nrm->dat[1] = 1;
+        return 0;
+    }
 
-    return 2;
+    nrm->dat[2] = 1;
+    return 0;
 }

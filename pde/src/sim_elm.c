@@ -25,6 +25,18 @@ int sim_imp_elm(struct sim *sim, const char *sif)
     int   r = 0;
     FILE *f = 0;
 
+    struct fem *fem = 0;
+
+    if (!(fem = malloc(sizeof(struct fem)))) {
+        r = -1;
+        goto end;
+    }
+
+    if ((r = fem_new(fem)))
+        goto end;
+
+    sim->slv = &fem->slv;
+
     if (!(f = fopen(sif, "r"))) {
         r = -1;
         goto end;
@@ -81,7 +93,13 @@ int sim_imp_elm(struct sim *sim, const char *sif)
     }
 
 end:
+    if (r) {
+        fem_cls((struct fem *)sim->slv);
+        free(sim->slv);
+    }
+
     fclose(f);
+
     return r;
 }
 
@@ -152,7 +170,7 @@ static int get_sim(FILE *f, struct sim *sim)
     char val[64];
 
     struct sim_ops *ops = &sim->ops;
-    struct fem_ops *fem = &sim->fem->ops;
+    struct fem_ops *fem = &((struct fem *)sim->slv)->ops;
 
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
@@ -199,9 +217,9 @@ static int get_sim(FILE *f, struct sim *sim)
             fem->non.max = atoi(val);
 
             if (fem->non.max > 1)
-              fem->mod = FEM_NON;
+                fem->mod = FEM_NON;
             else
-              fem->mod = FEM_STD;
+                fem->mod = FEM_STD;
 
             continue;
         }
@@ -469,7 +487,7 @@ static int get_val(void *usr, const char *src, struct val *val)
         val->as.num = strtod(src, 0);
     } else {
         val->type = VAL_FUN;
-        val->as.fun = (fun)dlsym(usr, src);
+        val->as.fun = (double (*)(struct sim *, int))dlsym(usr, src);
 
         if (!val->as.fun)
             return -1;

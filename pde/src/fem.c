@@ -4,11 +4,13 @@
 #include <numx/com/log.h>
 #include <numx/pde/fem.h>
 
-#include "fem.h"
+#include "fem_lin.h"
 
 int fem_new(struct fem *fem)
 {
     assert(fem);
+
+    fem->slv.exe.run = fem_exe;
 
     fem->ops.mod = FEM_STD;
     fem->ops.bss = FEM_BSS_LIN;
@@ -36,22 +38,23 @@ int fem_cls(struct fem *fem)
 
 static int fem_ini(struct sim *sim);
 
-int fem_slv(struct sim *sim)
+int fem_exe(void *ctx, struct sim *sim)
 {
-    assert(sim);
+    assert(ctx);
 
     if (fem_ini(sim))
         return -1;
 
+    sim->slv->apx.ctx = 0;
+    sim->slv->apx.run = fem_lin_apx;
+
     switch (sim->mod) {
         case SIM_ELL:
-            return fem_ell_slv(sim);
+            return fem_lin_ell_slv(sim);
         case SIM_PBC:
-            errno = ENOTSUP;
-            return -1;
+            return fem_lin_pbc_slv(sim);
         case SIM_HYP:
-            errno = ENOTSUP;
-            return -1;
+            return fem_lin_hyp_slv(sim);
     }
 
     return 0;
@@ -59,6 +62,8 @@ int fem_slv(struct sim *sim)
 
 static int fem_ini(struct sim *sim)
 {
+    struct fem *fem = (struct fem *)sim->slv;
+
     int n = sim->msh->vtx.len;
     int z = 0;
     int r = 0;
@@ -67,12 +72,12 @@ static int fem_ini(struct sim *sim)
 
     if (!map) {
         r = -1;
-        goto ini_end;
+        goto end;
     }
 
     for (int i = 0; i < n; ++i) {
         if ((r = log_new(&map[i])))
-            goto ini_end;
+            goto end;
 
         map[i].dup = false;
         map[i].srt = true;
@@ -88,24 +93,41 @@ static int fem_ini(struct sim *sim)
                     z += 1;
     }
 
-    if ((r = mtx_new(&sim->fem->mtx, ((struct smtx_pps){n, z}))))
-        goto ini_end;
+    if ((r = mtx_new(&fem->prv.ell, ((struct smtx_pps){n, z}))))
+        goto end;
 
     for (int i = 0, e = 0; i < n; ++i) {
-        sim->fem->mtx.ia[i] = e;
+        fem->prv.ell.ia[i] = e;
 
         log_rst(&map[i]);
 
         for (int j = 0; !log_adv(&map[i], &j); e++)
-            sim->fem->mtx.ja[e] = j;
+            fem->prv.ell.ja[e] = j;
     }
 
-    sim->fem->mtx.ia[n] = z;
+    fem->prv.ell.ia[n] = z;
 
-    if ((r = vec_new(&sim->fem->vec, n)))
-        goto ini_end;
+    if ((r = vec_new(&fem->prv.vec, n)))
+        goto end;
 
-ini_end:
+    switch (sim->mod) {
+        case SIM_HYP:
+            if ((r = mtx_new(&fem->prv.hyp, fem->prv.ell.pps)))
+                goto end;
+
+            memcpy(fem->prv.hyp.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
+            memcpy(fem->prv.hyp.ja, fem->prv.ell.ja, sizeof(int) * z);
+        case SIM_PBC:
+            if ((r = mtx_new(&fem->prv.pbc, fem->prv.ell.pps)))
+                goto end;
+
+            memcpy(fem->prv.pbc.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
+            memcpy(fem->prv.pbc.ja, fem->prv.ell.ja, sizeof(int) * z);
+        case SIM_ELL:
+            break;
+    }
+
+end:
     for (int i = 0; i < n; ++i)
         log_cls(&map[i]);
 

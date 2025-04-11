@@ -12,24 +12,28 @@ typedef enum iss_mod
     ISS_BCG,
 } iss_mod;
 
-typedef struct iss_itr
-{
-    double err;
-    int    num;
-} iss_itr;
-
 typedef struct iss_ops
 {
     /**
-     * Iteration callback closure.
+     * Iteration callback (user defined).
      *
-     * @param i current iteration
-     * @param r current residual
+     * @param ops - that options
      */
-    struct vcap itr;
+    struct
+    {
+        void *ctx;
+        void (*run)(void *ctx, struct iss_ops *ops);
+    } itr;
 
     double err; // target residual
     int    max; // maximum number of iterations
+
+    /** Runtime data made available by solver. */
+    struct
+    {
+        int    itr;
+        double err;
+    } rt;
 } iss_ops;
 
 typedef struct iss_jac_ops
@@ -50,18 +54,16 @@ typedef struct iss_bcg_ops
 {
     struct iss_ops ops;
 
+    /** Preconditioner (maybe null). */
     union con
     {
         struct smtx *sm;
-    } con; // preconditioner (maybe null)
+    } con;
 } iss_bcg_ops;
 
-void iss_itr_cap(void *ctx, int n, ...);
-
-int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_ops o);
-int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops o);
-
-int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops o);
+int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *ops);
+int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops *ops);
+int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *ops);
 
 /** Jacobi solver for systems of linear equations, Mx = f */
 #define iss_jac_slv(M, x, f, o) _Generic((M), struct dmtx *: diss_jac_slv)(M, x, f, o)

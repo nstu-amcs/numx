@@ -1,5 +1,4 @@
 add_library(iss
-  src/iss.c
   src/diss.c
   src/siss.c
 )
