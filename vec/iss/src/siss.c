@@ -3,7 +3,7 @@
 
 #include <numx/vec/iss.h>
 
-static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops o)
+static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     int n = m->pps.n;
     int c = 0;
@@ -42,7 +42,6 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
     double alf = 0;
     double bet = 0;
     double omg = 0;
-
     double tmp = 0;
     double nrm = 0;
 
@@ -52,7 +51,7 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
     vec_cpy(&r, &z);
     vec_cpy(&r, &p);
 
-    for (int k = 1; k <= o.ops.max; ++k) {
+    for (int k = 1; k <= o->ops.max; ++k) {
         mtx_vmlt(m, &p, &h);
 
         vec_dot(&r, &z, &tmp);
@@ -73,10 +72,10 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         vec_cmb(&s, &r, &r, -omg);
         vec_nrm(&r, &nrm);
 
-        if (o.ops.itr.run)
-            o.ops.itr.run(o.ops.itr.ctx, 2, k, nrm);
+        if (o->ops.itr.run)
+            o->ops.itr.run(o->ops.itr.ctx, &o->ops);
 
-        if (nrm < o.ops.err)
+        if (nrm < o->ops.err)
             break;
 
         vec_dot(&r, &z, &bet);
@@ -162,7 +161,7 @@ static int siss_con_uslv(struct smtx *m, struct vec *x, struct vec *f)
     return 0;
 }
 
-static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops o)
+static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     int n = m->pps.n;
     int c = 0;
@@ -224,9 +223,9 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
     vec_cpy(&r, &z);
     vec_cpy(&r, &p);
 
-    for (int k = 1; k <= o.ops.max; ++k) {
-        siss_con_lslv(o.con.sm, &pt, &p);
-        siss_con_uslv(o.con.sm, &pt, &pt);
+    for (int k = 1; k <= o->ops.max; ++k) {
+        siss_con_lslv(o->con.sm, &pt, &p);
+        siss_con_uslv(o->con.sm, &pt, &pt);
 
         mtx_vmlt(m, &pt, &h);
 
@@ -237,8 +236,8 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
 
         vec_cmb(&r, &h, &s, -alf);
 
-        siss_con_lslv(o.con.sm, &st, &s);
-        siss_con_uslv(o.con.sm, &st, &st);
+        siss_con_lslv(o->con.sm, &st, &s);
+        siss_con_uslv(o->con.sm, &st, &st);
 
         mtx_vmlt(m, &s, &r);
         vec_dot(&r, &s, &omg);
@@ -251,10 +250,10 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         vec_cmb(&s, &r, &r, -omg);
         vec_nrm(&r, &nrm);
 
-        if (o.ops.itr.run)
-            o.ops.itr.run(o.ops.itr.ctx, 2, k, nrm);
+        if (o->ops.itr.run)
+            o->ops.itr.run(o->ops.itr.ctx, &o->ops);
 
-        if (nrm < o.ops.err)
+        if (nrm < o->ops.err)
             break;
 
         vec_dot(&r, &z, &bet);
@@ -278,12 +277,12 @@ end:
     return c;
 }
 
-int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops o)
+int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     if (!m || !x || !f) {
         errno = EINVAL;
         return -1;
     }
 
-    return o.con.sm ? siss_bcg_con_slv(m, x, f, o) : siss_bcg_unc_slv(m, x, f, o);
+    return o->con.sm ? siss_bcg_con_slv(m, x, f, o) : siss_bcg_unc_slv(m, x, f, o);
 }

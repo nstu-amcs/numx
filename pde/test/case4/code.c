@@ -30,7 +30,7 @@ double neu1(struct sim *sim, struct vec *wgt, int vtx)
     (void)wgt;
     (void)vtx;
 
-    return -1;
+    return -10 * wgt->dat[vtx];
 }
 
 double neu2(struct sim *sim, struct vec *wgt, int vtx)
@@ -39,7 +39,7 @@ double neu2(struct sim *sim, struct vec *wgt, int vtx)
     (void)wgt;
     (void)vtx;
 
-    return 1;
+    return 10 * wgt->dat[vtx];
 }
 
 double neu3(struct sim *sim, struct vec *wgt, int vtx)
@@ -48,7 +48,7 @@ double neu3(struct sim *sim, struct vec *wgt, int vtx)
     (void)wgt;
     (void)vtx;
 
-    return 1;
+    return 10 * wgt->dat[vtx];
 }
 
 double rob1(struct sim *sim, struct vec *wgt, int vtx)
@@ -62,7 +62,7 @@ double rob1(struct sim *sim, struct vec *wgt, int vtx)
     double y = v->y;
     double z = v->z;
 
-    return 0.1 + 20 + y + z;
+    return 20 + y + z + wgt->dat[vtx];
 }
 
 double rob2(struct sim *sim, struct vec *wgt, int vtx)
@@ -76,7 +76,7 @@ double rob2(struct sim *sim, struct vec *wgt, int vtx)
     double x = v->x;
     double z = v->z;
 
-    return -0.1 + x + z;
+    return x + z - wgt->dat[vtx];
 }
 
 double rob3(struct sim *sim, struct vec *wgt, int vtx)
@@ -90,5 +90,5 @@ double rob3(struct sim *sim, struct vec *wgt, int vtx)
     double x = v->x;
     double y = v->y;
 
-    return -0.1 + x + y;
+    return x + y - wgt->dat[vtx];
 }

@@ -195,6 +195,18 @@
    <solverparameters>
       <item index="1" name="Elliptic Equation">
          <widget type="RadioButton">
+            <objectName>linearSystemSolverIterative</objectName>
+            <isChecked>1</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>linearSystemSolverDirect</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
+            <objectName>linearSystemSolverMultigrid</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="RadioButton">
             <objectName>execAlways</objectName>
             <isChecked>1</isChecked>
          </widget>
@@ -224,18 +236,6 @@
          </widget>
          <widget type="RadioButton">
             <objectName>execNever</objectName>
-            <isChecked>0</isChecked>
-         </widget>
-         <widget type="RadioButton">
-            <objectName>linearSystemSolverIterative</objectName>
-            <isChecked>1</isChecked>
-         </widget>
-         <widget type="RadioButton">
-            <objectName>linearSystemSolverDirect</objectName>
-            <isChecked>0</isChecked>
-         </widget>
-         <widget type="RadioButton">
-            <objectName>linearSystemSolverMultigrid</objectName>
             <isChecked>0</isChecked>
          </widget>
          <widget type="CheckBox">
@@ -271,6 +271,10 @@
             <isChecked>0</isChecked>
          </widget>
          <widget type="CheckBox">
+            <objectName>linearSystemAbortWhenNotConvergedCheck</objectName>
+            <isChecked>0</isChecked>
+         </widget>
+         <widget type="CheckBox">
             <objectName>stabilizeCheck</objectName>
             <isChecked>1</isChecked>
          </widget>
@@ -285,10 +289,6 @@
          <widget type="CheckBox">
             <objectName>optimizeBandwidthCheck</objectName>
             <isChecked>1</isChecked>
-         </widget>
-         <widget type="CheckBox">
-            <objectName>linearSystemAbortWhenNotConvergedCheck</objectName>
-            <isChecked>0</isChecked>
          </widget>
          <widget type="LineEdit">
             <objectName>mgLevelsEdit</objectName>
@@ -367,6 +367,26 @@
             <text>1.0e-5</text>
          </widget>
          <widget type="LineEdit">
+            <objectName>nonlinSystemConvergenceToleranceEdit</objectName>
+            <text>1.0e-7</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemMaxIterationEdit</objectName>
+            <text>100</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemRelaxationFactorEdit</objectName>
+            <text>1</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemNewtonAfterIterEdit</objectName>
+            <text>3</text>
+         </widget>
+         <widget type="LineEdit">
+            <objectName>nonlinSystemNewtonAfterTolEdit</objectName>
+            <text>1.0e-3</text>
+         </widget>
+         <widget type="LineEdit">
             <objectName>linearSystemMaxIterationsEdit</objectName>
             <text>500</text>
          </widget>
@@ -389,26 +409,6 @@
          <widget type="LineEdit">
             <objectName>linearSystemBiCGstablPolDeg</objectName>
             <text>2</text>
-         </widget>
-         <widget type="LineEdit">
-            <objectName>nonlinSystemConvergenceToleranceEdit</objectName>
-            <text>1.0e-7</text>
-         </widget>
-         <widget type="LineEdit">
-            <objectName>nonlinSystemMaxIterationEdit</objectName>
-            <text>20</text>
-         </widget>
-         <widget type="LineEdit">
-            <objectName>nonlinSystemRelaxationFactorEdit</objectName>
-            <text>1</text>
-         </widget>
-         <widget type="LineEdit">
-            <objectName>nonlinSystemNewtonAfterIterEdit</objectName>
-            <text>3</text>
-         </widget>
-         <widget type="LineEdit">
-            <objectName>nonlinSystemNewtonAfterTolEdit</objectName>
-            <text>1.0e-3</text>
          </widget>
          <widget type="ComboBox">
             <objectName>boomerCycle</objectName>
@@ -435,6 +435,10 @@
             <currentIndex>0</currentIndex>
          </widget>
          <widget type="ComboBox">
+            <objectName>nonlinSystemConvergenceMeasureCombo</objectName>
+            <currentIndex>0</currentIndex>
+         </widget>
+         <widget type="ComboBox">
             <objectName>linearSystemMultigridMethod</objectName>
             <currentIndex>0</currentIndex>
          </widget>
@@ -449,10 +453,6 @@
          <widget type="ComboBox">
             <objectName>linearSystemPreconditioning</objectName>
             <currentIndex>3</currentIndex>
-         </widget>
-         <widget type="ComboBox">
-            <objectName>nonlinSystemConvergenceMeasureCombo</objectName>
-            <currentIndex>0</currentIndex>
          </widget>
       </item>
    </solverparameters>
@@ -5083,7 +5083,7 @@
          </widget>
          <widget type="ComboBox">
             <objectName>boundaryConditionCombo</objectName>
-            <currentIndex>4</currentIndex>
+            <currentIndex>5</currentIndex>
          </widget>
       </item>
       <item index="2">
@@ -5093,7 +5093,7 @@
          </widget>
          <widget type="ComboBox">
             <objectName>boundaryConditionCombo</objectName>
-            <currentIndex>5</currentIndex>
+            <currentIndex>4</currentIndex>
          </widget>
       </item>
       <item index="3">

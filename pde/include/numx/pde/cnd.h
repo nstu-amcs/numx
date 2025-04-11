@@ -3,42 +3,63 @@
 
 #include <numx/com/cut.h>
 #include <numx/pde/msh.h>
-#include <numx/pde/val.h>
+#include <numx/vec/vec.h>
 
+struct sim;
+
+typedef struct val
+{
+    enum
+    {
+        VAL_NUM, // constant
+        VAL_FUN, // function
+    } type;
+
+    union
+    {
+        double num;
+        double (*fun)(struct sim *s, int vtx);
+    } as;
+} val;
+
+/** Boundary condition. */
 typedef struct cnd_bnd
 {
+    /** Boundary condition type. */
     enum cnd_bnd_type
     {
-        CND_BND_DIR,
-        CND_BND_NEU,
-        CND_BND_ROB,
+        CND_BND_DIR, // Dirichlet
+        CND_BND_NEU, // Neumann
+        CND_BND_ROB, // Robin
     } type;
 
     union
     {
         struct
         {
-            val tgt;
+            val tgt; // field
         } dir;
 
         struct
         {
-            val tta;
+            val tta; // field flux
         } neu;
 
         struct
         {
-            val bet;
-            val ext;
+            val bet; // robin coefficient
+            val ext; // external field
         } rob;
     } pps;
 } cnd_bnd;
 
+/** Initial condition. */
 typedef struct cnd_ini
 {
-    val tgt;
+    val tgt; // field
 } cnd_ini;
 
+cut_def(val_cut, val);
 cut_def(cnd_bnd_cut, cnd_bnd);
 cut_def(cnd_ini_cut, cnd_ini);
 
