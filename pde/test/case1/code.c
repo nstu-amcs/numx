@@ -11,17 +11,7 @@ double source(struct sim *sim, int vtx)
     double y = v->y;
     double z = v->z;
 
-    int t = sim->rt.tv;
-
-    return 0.4 * (x * y * z * t * t + 2 * t) + 2 * x * y * z * t + 2;
-}
-
-double initial(struct sim *sim, int vtx)
-{
-    (void)sim;
-    (void)vtx;
-
-    return 0;
+    return 0.4 * (5 + 0.2 * x + y + 30 * z + 0.5 * x * y + x * z + 10 * y * z + x * y * z);
 }
 
 double neu1(struct sim *sim, int vtx)
@@ -34,9 +24,7 @@ double neu1(struct sim *sim, int vtx)
     double y = v->y;
     double z = v->z;
 
-    int t = sim->rt.tv;
-
-    return -5 * y * z * t * t;
+    return -1 - 2.5 * y - 5 * z - 5 * y * z;
 }
 
 double neu2(struct sim *sim, int vtx)
@@ -49,9 +37,7 @@ double neu2(struct sim *sim, int vtx)
     double x = v->x;
     double z = v->z;
 
-    int t = sim->rt.tv;
-
-    return 5 * x * z * t * t;
+    return 5 + 2.5 * x + 50 * z + 5 * x * z;
 }
 
 double neu3(struct sim *sim, int vtx)
@@ -64,9 +50,7 @@ double neu3(struct sim *sim, int vtx)
     double x = v->x;
     double y = v->y;
 
-    int t = sim->rt.tv;
-
-    return 5 * x * y * t * t;
+    return 150 + 5 * x + 50 * y + 5 * x * y;
 }
 
 double rob1(struct sim *sim, int vtx)
@@ -79,9 +63,7 @@ double rob1(struct sim *sim, int vtx)
     double y = v->y;
     double z = v->z;
 
-    int t = sim->rt.tv;
-
-    return 20 * y * z * t * t + 2 * t + (y * z * t * t) / 2;
+    return 9.1 + 11.25 * y + 50.5 * z + 30.5 * y * z;
 }
 
 double rob2(struct sim *sim, int vtx)
@@ -94,9 +76,7 @@ double rob2(struct sim *sim, int vtx)
     double x = v->x;
     double z = v->z;
 
-    int t = sim->rt.tv;
-
-    return 2 * t - (x * z * t * t) / 2;
+    return 4.5 - 0.05 * x + 25 * z + 0.5 * x * z;
 }
 
 double rob3(struct sim *sim, int vtx)
@@ -109,7 +89,5 @@ double rob3(struct sim *sim, int vtx)
     double x = v->x;
     double y = v->y;
 
-    int t = sim->rt.tv;
-
-    return 2 * t - (x * y * t * t) / 2;
+    return -10 - 0.3 * x - 4 * y;
 }

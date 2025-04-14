@@ -1,9 +1,8 @@
 #include <numx/pde/sim.h>
 
-double source1(struct sim *sim, struct vec *wgt, int vtx)
+double source1(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -15,19 +14,17 @@ double source1(struct sim *sim, struct vec *wgt, int vtx)
     return 8 * x * (y * z + z + y + 1);
 }
 
-double source2(struct sim *sim, struct vec *wgt, int vtx)
+double source2(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     return 0;
 }
 
-double source3(struct sim *sim, struct vec *wgt, int vtx)
+double source3(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -39,10 +36,9 @@ double source3(struct sim *sim, struct vec *wgt, int vtx)
     return 3 * x * z * (y + 1);
 }
 
-double neu1(struct sim *sim, struct vec *wgt, int vtx)
+double neu1(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -53,10 +49,9 @@ double neu1(struct sim *sim, struct vec *wgt, int vtx)
     return -2 * x * (z + 1);
 }
 
-double neu2(struct sim *sim, struct vec *wgt, int vtx)
+double neu2(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -67,10 +62,9 @@ double neu2(struct sim *sim, struct vec *wgt, int vtx)
     return -2 * x * z;
 }
 
-double neu3(struct sim *sim, struct vec *wgt, int vtx)
+double neu3(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -81,10 +75,9 @@ double neu3(struct sim *sim, struct vec *wgt, int vtx)
     return -2 * (1 + x + z + x * z);
 }
 
-double neu4(struct sim *sim, struct vec *wgt, int vtx)
+double neu4(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -95,10 +88,9 @@ double neu4(struct sim *sim, struct vec *wgt, int vtx)
     return 2 * (1 + y + z + y * z);
 }
 
-double neu5(struct sim *sim, struct vec *wgt, int vtx)
+double neu5(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -109,10 +101,9 @@ double neu5(struct sim *sim, struct vec *wgt, int vtx)
     return 2 * (1 + x + y + x * y);
 }
 
-double neu6(struct sim *sim, struct vec *wgt, int vtx)
+double neu6(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -123,10 +114,9 @@ double neu6(struct sim *sim, struct vec *wgt, int vtx)
     return 2 * z * (1 + y);
 }
 
-double neu7(struct sim *sim, struct vec *wgt, int vtx)
+double neu7(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -137,10 +127,9 @@ double neu7(struct sim *sim, struct vec *wgt, int vtx)
     return 2 * x * (1 + y);
 }
 
-double neu8(struct sim *sim, struct vec *wgt, int vtx)
+double neu8(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -151,10 +140,9 @@ double neu8(struct sim *sim, struct vec *wgt, int vtx)
     return -2 * x * (1 + y);
 }
 
-double neu9(struct sim *sim, struct vec *wgt, int vtx)
+double neu9(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -165,10 +153,9 @@ double neu9(struct sim *sim, struct vec *wgt, int vtx)
     return -2 * (1 + x + y + x * y);
 }
 
-double rob1(struct sim *sim, struct vec *wgt, int vtx)
+double rob1(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -179,10 +166,9 @@ double rob1(struct sim *sim, struct vec *wgt, int vtx)
     return 8 * x * (z + 1);
 }
 
-double rob2(struct sim *sim, struct vec *wgt, int vtx)
+double rob2(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];
@@ -193,10 +179,9 @@ double rob2(struct sim *sim, struct vec *wgt, int vtx)
     return 11.5 * x * z;
 }
 
-double rob3(struct sim *sim, struct vec *wgt, int vtx)
+double rob3(struct sim *sim, int vtx)
 {
     (void)sim;
-    (void)wgt;
     (void)vtx;
 
     struct vtx *v = &sim->msh->vtx.dat[vtx];

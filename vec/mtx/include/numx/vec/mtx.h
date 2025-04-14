@@ -45,6 +45,8 @@ typedef struct smtx
 int smtx_new(struct smtx *m, struct smtx_pps pps);
 int smtx_cls(struct smtx *m);
 
+int smtx_add(struct smtx *m, int i, int j, double v);
+
 int smtx_ilu(struct smtx *m, struct smtx *r);
 int smtx_dgl(struct smtx *m, struct smtx *r);
 

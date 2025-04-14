@@ -173,10 +173,10 @@ static int get_qud_bnd(struct msh *msh, FILE *f)
     return 0;
 }
 
-static inline int cmp(struct msh* msh, struct qud* qud, int a, int b)
+static inline int cmp(struct msh* msh, int a, int b)
 {
-    double av = msh->vtx.dat[qud->vtx[a]].z;
-    double bv = msh->vtx.dat[qud->vtx[b]].z;
+    double av = msh->vtx.dat[a].z;
+    double bv = msh->vtx.dat[b].z;
 
     if (av < bv)
       return 0;
@@ -184,8 +184,8 @@ static inline int cmp(struct msh* msh, struct qud* qud, int a, int b)
     if (bv < av)
       return 1;
 
-    av = msh->vtx.dat[qud->vtx[a]].y;
-    bv = msh->vtx.dat[qud->vtx[b]].y;
+    av = msh->vtx.dat[a].y;
+    bv = msh->vtx.dat[b].y;
 
     if (av < bv)
       return 0;
@@ -193,8 +193,8 @@ static inline int cmp(struct msh* msh, struct qud* qud, int a, int b)
     if (bv < av)
       return 1;
 
-    av = msh->vtx.dat[qud->vtx[a]].x;
-    bv = msh->vtx.dat[qud->vtx[b]].x;
+    av = msh->vtx.dat[a].x;
+    bv = msh->vtx.dat[b].x;
 
     if (av < bv)
       return 0;
@@ -204,45 +204,41 @@ static inline int cmp(struct msh* msh, struct qud* qud, int a, int b)
 
 static int qud_srt(struct msh* msh, struct qud* qud)
 {
-    int a[4];
     int t;
+    int *v = qud->vtx;
 
-    if (cmp(msh, qud, 0, 1)) {
-      a[0] = 1;
-      a[1] = 0;
-    } else { // 0 1 
-      a[0] = 0;
-      a[1] = 1;
+    if (cmp(msh, v[0], v[1])) {
+      t = v[0];
+      v[0] = v[1];
+      v[1] = t;
     }
 
-    if (cmp(msh, qud, 2, 3)) {
-      a[2] = 3;
-      a[3] = 2;
-    } else {
-      a[2] = 2;
-      a[3] = 3;
+    if (cmp(msh, v[2], v[3])) {
+      t = v[2];
+      v[2] = v[3];
+      v[3] = t;
     }
 
-    if (cmp(msh, qud, a[0], a[2])) {
-      t = a[0];
-      a[0] = a[2];
-      a[2] = t;
+    if (cmp(msh, v[0], v[2])) {
+      t = v[0];
+      v[0] = v[2];
+      v[2] = t;
 
-      if (cmp(msh, qud, a[2], a[3])) {
-        t = a[1];
-        a[1] = a[3];
-        a[3] = t;
+      if (cmp(msh, v[2], v[3])) {
+        t = v[1];
+        v[1] = v[3];
+        v[3] = t;
       }
     } else {
-      if (cmp(msh, qud, a[1], a[2])) {
-        t = a[1];
-        a[1] = a[2];
-        a[2] = t;
+      if (cmp(msh, v[1], v[2])) {
+        t = v[1];
+        v[1] = v[2];
+        v[2] = t;
 
-        if (cmp(msh, qud, a[2], a[3])) {
-          t = a[2];
-          a[2] = a[3];
-          a[3] = t;
+        if (cmp(msh, v[2], v[3])) {
+          t = v[2];
+          v[2] = v[3];
+          v[3] = t;
         }
       }
     }

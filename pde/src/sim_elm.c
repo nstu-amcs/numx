@@ -197,6 +197,34 @@ static int get_sim(FILE *f, struct sim *sim)
             return -1;
         }
 
+        if (!strncmp("Timestep intervals", key, 18)) {
+            sim->ops.tdd.num = atoi(val);
+            continue;
+        }
+
+        if (!strncmp("Timestep Sizes", key, 14)) {
+            sim->ops.tdd.hop = atoi(val);
+            continue;
+        }
+
+        if (!strcmp("BDF Order", key)) {
+            int ord = atoi(val);
+
+            switch (ord) {
+                case 3:
+                    fem->tdd = FEM_TDD_I3S;
+                    break;
+                case 4:
+                    fem->tdd = FEM_TDD_I4S;
+                    break;
+                default:
+                    fem->tdd = FEM_TDD_I2S;
+                    break;
+            }
+
+            continue;
+        }
+
         if (!strcmp("Equation", key)) {
             if (!strcmp("Elliptic Equation", val))
                 sim->mod = SIM_ELL;
@@ -208,6 +236,24 @@ static int get_sim(FILE *f, struct sim *sim)
             continue;
         }
 
+        if (!strcmp("Solution Mode", key)) {
+            if (!strcmp("Standard", val))
+                fem->mod = FEM_STD;
+            else if (!strcmp("Nonlinear", val))
+                fem->mod = FEM_NON;
+            else if (!strcmp("Harmonic", val))
+                fem->mod = FEM_HMC;
+
+            continue;
+        }
+
+        if (!strcmp("Basis", key)) {
+            if (!strcmp("Linear", val))
+                fem->bss = FEM_BSS_LIN;
+
+            continue;
+        }
+
         if (!strcmp("Nonlinear System Convergence Tolerance", key)) {
             fem->non.err = strtod(val, 0);
             continue;
@@ -215,12 +261,6 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (!strcmp("Nonlinear System Max Iterations", key)) {
             fem->non.max = atoi(val);
-
-            if (fem->non.max > 1)
-                fem->mod = FEM_NON;
-            else
-                fem->mod = FEM_STD;
-
             continue;
         }
 
@@ -307,6 +347,20 @@ static int get_mat(FILE *f, struct sim *sim)
 
         if (!strcmp("Gamma Coefficient", key)) {
             if (get_val(sim->ops.usr, val, &mat->gam))
+                return -1;
+
+            continue;
+        }
+
+        if (!strcmp("Sigma Coefficient", key)) {
+            if (get_val(sim->ops.usr, val, &mat->sig))
+                return -1;
+
+            continue;
+        }
+
+        if (!strcmp("Chi Coefficient", key)) {
+            if (get_val(sim->ops.usr, val, &mat->chi))
                 return -1;
 
             continue;

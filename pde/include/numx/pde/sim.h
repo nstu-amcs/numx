@@ -120,7 +120,9 @@ typedef struct sim
      */
     struct
     {
-        int         tm;  // current time layer
+        int ti; // current time iteration
+        int tv; // current time value
+
         struct vec *wgt; // current solution
     } rt;
 } sim;

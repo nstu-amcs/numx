@@ -63,6 +63,37 @@ int smtx_cls(struct smtx *m)
     return 0;
 }
 
+int smtx_add(struct smtx *m, int i, int j, double v)
+{
+    assert(m);
+
+    if (i < j) {
+        int p = m->ia[j];
+
+        while (m->ja[p] < i)
+            ++p;
+
+        m->ur[p] += v;
+
+        return 0;
+    }
+
+    if (j < i) {
+        int p = m->ia[i];
+
+        while (m->ja[p] < j)
+            ++p;
+
+        m->lr[p] += v;
+
+        return 0;
+    }
+
+    m->dr[i] += v;
+
+    return 0;
+}
+
 int smtx_ilu(struct smtx *m, struct smtx *r)
 {
     if (!m || !r || m->pps.n != r->pps.n || m->pps.z != r->pps.z) {
