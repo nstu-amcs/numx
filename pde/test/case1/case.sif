@@ -1,21 +1,17 @@
 Header
   CHECK KEYWORDS Warn
-  Mesh DB "/home/paraskun/x86/numx/pde/test" "case4"
-  Include Path "/home/paraskun/x86/numx/pde/test/case4/code.c"
-  Results Directory "/home/paraskun/x86/numx/pde/test/case4"
+  Mesh DB "/home/paraskun/x86/numx/pde/test" "case1"
+  Include Path "/home/paraskun/x86/numx/pde/test/case1/code.c"
+  Results Directory "/home/paraskun/x86/numx/pde/test/case1"
 End
 
 Simulation
   Max Output Level = 5
   Coordinate System = Cartesian
   Coordinate Mapping(3) = 1 2 3
-  Simulation Type = Transient
+  Simulation Type = Steady state
   Steady State Max Iterations = 1
   Output Intervals(1) = 1
-  Timestep intervals(1) = 336
-  Timestep Sizes(1) = 3600
-  Timestepping Method = BDF
-  BDF Order = 2
   Solver Input File = case.sif
   Post File = case.cgns
 End
@@ -35,11 +31,10 @@ Body 1
   Equation = 1
   Material = 1
   Body Force = 1
-  Initial condition = 1
 End
 
 Solver 1
-  Equation = Parabolic Equation
+  Equation = Elliptic Equation
   Basis = Linear
   Solution Mode = Standard
   Exec Solver = Always
@@ -70,30 +65,50 @@ End
 
 Material 1
   Name = "Material"
-  Sigma Coefficient = 2432664
-  Gamma Coefficient = 0
-  Lambda Coefficient = 203.5
+  Gamma Coefficient = 0.4
+  Lambda Coefficient = 5
 End
 
 Body Force 1
   Name = "BodyForce"
-  Field Source = 0
-End
-
-Initial Condition 1
-  Name = "InitialCondition 2"
-  Field = 773
+  Field Source = source
 End
 
 Boundary Condition 1
-  Target Boundaries(5) = 1 2 4 5 6 
-  Name = "BoundaryCondition 7"
-  Field Flux (theta) = 0
+  Target Boundaries(1) = 1 
+  Name = "BoundaryCondition 1"
+  Field Flux (theta) = neu1
 End
 
 Boundary Condition 2
+  Target Boundaries(1) = 4 
+  Name = "BoundaryCondition 2"
+  Field Flux (theta) = neu2
+End
+
+Boundary Condition 3
+  Target Boundaries(1) = 6 
+  Name = "BoundaryCondition 3"
+  Field Flux (theta) = neu3
+End
+
+Boundary Condition 4
+  Target Boundaries(1) = 2 
+  Name = "BoundaryCondition 4"
+  External Field = rob1
+  Robin Coefficient (beta) = 10
+End
+
+Boundary Condition 5
   Target Boundaries(1) = 3 
-  Name = "BoundaryCondition 8"
-  Robin Coefficient (beta) = 100
-  External Field = 293
+  Name = "BoundaryCondition 5"
+  Robin Coefficient (beta) = 10
+  External Field = rob2
+End
+
+Boundary Condition 6
+  Target Boundaries(1) = 5 
+  Name = "BoundaryCondition 6"
+  Robin Coefficient (beta) = 10
+  External Field = rob3
 End

@@ -14,18 +14,15 @@ int fem_new(struct fem *fem)
 
     fem->ops.mod = FEM_STD;
     fem->ops.bss = FEM_BSS_LIN;
-
     fem->ops.iss.mod = ISS_BCG;
     fem->ops.iss.ops.bcg.con.sm = 0;
     fem->ops.iss.ops.bcg.ops.err = 1e-10;
     fem->ops.iss.ops.bcg.ops.itr.run = 0;
     fem->ops.iss.ops.bcg.ops.max = 500;
-
     fem->ops.non.err = 1e-10;
     fem->ops.non.max = 50;
     fem->ops.non.rlx = 1;
-
-    fem->ops.tdd = FEM_TDD_I4S;
+    fem->ops.tdd = FEM_TDD_I2S;
 
     return 0;
 }
@@ -33,6 +30,12 @@ int fem_new(struct fem *fem)
 int fem_cls(struct fem *fem)
 {
     assert(fem);
+
+    mtx_cls(&fem->prv.ell);
+    mtx_cls(&fem->prv.pbc);
+    mtx_cls(&fem->prv.hyp);
+    vec_cls(&fem->prv.vec);
+
     return 0;
 }
 
@@ -40,7 +43,7 @@ static int fem_ini(struct sim *sim);
 
 int fem_exe(void *ctx, struct sim *sim)
 {
-    assert(ctx);
+    (void)ctx;
 
     if (fem_ini(sim))
         return -1;
@@ -117,12 +120,22 @@ static int fem_ini(struct sim *sim)
 
             memcpy(fem->prv.hyp.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
             memcpy(fem->prv.hyp.ja, fem->prv.ell.ja, sizeof(int) * z);
+
+            if ((r = mtx_new(&fem->prv.pbc, fem->prv.ell.pps)))
+                goto end;
+
+            memcpy(fem->prv.pbc.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
+            memcpy(fem->prv.pbc.ja, fem->prv.ell.ja, sizeof(int) * z);
+
+            break;
         case SIM_PBC:
             if ((r = mtx_new(&fem->prv.pbc, fem->prv.ell.pps)))
                 goto end;
 
             memcpy(fem->prv.pbc.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
             memcpy(fem->prv.pbc.ja, fem->prv.ell.ja, sizeof(int) * z);
+
+            break;
         case SIM_ELL:
             break;
     }

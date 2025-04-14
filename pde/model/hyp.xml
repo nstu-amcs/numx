@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE edf>
+<edf version="1.0" >
+  <PDE Name="Hyperbolic Equation" >
+    <Name>Hyperbolic Equation</Name>
+
+    <Solver>
+      <Parameter Widget="Combo">
+        <Name> Solution Mode </Name>
+        <Type> String </Type>
+
+        <Item Type="Active"> <Name> Standard </Name> </Item>
+        <Item> <Name> Nonlinear </Name> </Item>
+        <Item> <Name> Harmonic </Name> </Item>
+      </Parameter>
+      <Parameter Widget="Combo">
+        <Name> Basis </Name>
+        <Type> String </Type>
+
+        <Item Type="Active"> <Name> Linear </Name> </Item>
+      </Parameter>
+    </Solver>
+
+    <BodyForce>
+      <Parameter Widget="Label" > <Name> Source term </Name> </Parameter>
+      <Parameter Widget="Edit">
+        <Name> Field Source </Name>
+        <Whatis> Give value to field source (right-hand term of the equation). </Whatis>
+      </Parameter>
+    </BodyForce>
+
+    <Material>
+      <Parameter Widget="Label" > <Name> Properties </Name> </Parameter>
+      <Parameter Widget="Edit" >
+        <Name> Lambda Coefficient </Name>
+        <Whatis> Give value to the lambda coefficient. </Whatis>
+      </Parameter>
+      <Parameter Widget="Edit" >
+        <Name> Gamma Coefficient </Name>
+        <Whatis> Give value to the gamma coefficient. </Whatis>
+        </Parameter>
+      <Parameter Widget="Edit" >
+        <Name> Sigma Coefficient </Name>
+        <Whatis> Give value to the sigma coefficient. </Whatis>
+        </Parameter>
+      <Parameter Widget="Edit" >
+        <Name> Chi Coefficient </Name>
+        <Whatis> Give value to the chi coefficient. </Whatis>
+      </Parameter>
+     </Material>
+
+    <BoundaryCondition>
+      <Parameter Widget="Label" > <Name> Dirichlet Conditions </Name> </Parameter>
+      <Parameter  Widget="Edit">
+        <Name> Field </Name>
+        <Whatis> Give the field value for this boundary. </Whatis>
+      </Parameter>
+
+      <Parameter Widget="Label" > <Name> Neumann and Robin conditions </Name> </Parameter>
+      <Parameter  Widget="Edit">
+        <Name> Field Flux (theta) </Name>
+        <Whatis> Neumann condition for the field. </Whatis>
+      </Parameter>
+      <Parameter  Widget="Edit">
+        <Name> Robin Coefficient (beta) </Name>
+        <Whatis> Multiplier of the Robin Boundary Condition. </Whatis>
+      </Parameter>
+      <Parameter  Widget="Edit">
+        <Name> External Field </Name>
+        <Whatis> External field value for Robin boundary condition. </Whatis>
+      </Parameter>
+
+    </BoundaryCondition>
+  </PDE>
+</edf>

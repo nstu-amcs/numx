@@ -64,31 +64,3 @@ double fem_lin_apx(void *ctx, struct sim *sim, struct vec *wgt, int hxd, struct 
     return r;
 }
 
-int asm_mov_mtx(struct smtx *m, int i, int j, double v)
-{
-    if (i < j) {
-        int p = m->ia[j];
-
-        while (m->ja[p] < i)
-            ++p;
-
-        m->ur[p] += v;
-
-        return 0;
-    }
-
-    if (j < i) {
-        int p = m->ia[i];
-
-        while (m->ja[p] < j)
-            ++p;
-
-        m->lr[p] += v;
-
-        return 0;
-    }
-
-    m->dr[i] += v;
-
-    return 0;
-}
