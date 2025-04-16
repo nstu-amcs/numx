@@ -39,13 +39,17 @@ int sim_exp_ini_gns(void *ctx, struct sim *sim)
     sprintf(fname, "%s/%s.cgns", sim->ops.exp.dir, sim->ops.exp.pfx);
 
     cg_open(fname, CG_MODE_MODIFY, &fi);
+
     cg_biter_write(fi, 1, "TimeIterValues", num + 1);
     cg_goto(fi, 1, "BaseIterativeData_t", 1, "end");
     cg_array_write("TimeValues", RealDouble, 1, &nu, tm);
+
     cg_ziter_write(fi, 1, 1, "ZoneIterativeData");
     cg_goto(fi, 1, "Zone_t", 1, "ZoneIterativeData_t", 1, "end");
     cg_array_write("FlowSolutionPointers", Character, 2, info, sn);
+
     cg_simulation_type_write(fi, 1, TimeAccurate);
+
     cg_close(fi);
 
     free(tm);

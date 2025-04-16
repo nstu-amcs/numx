@@ -18,6 +18,7 @@ int fem_lin_ell_slv(struct sim *sim)
     if ((r = vec_new(&wgt, fem->prv.vec.n)))
         goto end;
 
+    sim->rt.ti = 0;
     sim->rt.tv = 0;
     sim->rt.wgt = &wgt;
 
