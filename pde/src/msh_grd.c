@@ -58,7 +58,7 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
         r = -1;
         goto end;
     }
-    if ((r = vtx_cut_dev(&msh->vtx, n)))
+    if ((r = vec_cut_dev(&msh->vtx, n)))
         goto end;
 
     if ((r = hxd_cut_dev(&msh->hxd, e)))
@@ -76,7 +76,7 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
     if ((r = get_hxd_ems(msh, ems)))
         goto end;
 
-    vtx_cut_shr(&msh->vtx);
+    vec_cut_shr(&msh->vtx);
     seg_cut_shr(&msh->seg);
     qud_cut_shr(&msh->qud);
     hxd_cut_shr(&msh->hxd);
@@ -105,14 +105,19 @@ int msh_exp_grd(struct msh *msh, const char *dir, const char *pfx)
 
 static int get_vtx(struct msh *msh, FILE *f)
 {
-    struct vtx *vtx = msh->vtx.dat;
 
-    for (int i = 0, j; i < msh->vtx.len; ++i)
-        if (fscanf(f, "%d %d %lf %lf %lf", &j, &j, 
-              &vtx[i].x, 
-              &vtx[i].y, 
-              &vtx[i].z) != 5)
+    for (int i = 0, j; i < msh->vtx.len; ++i) {
+        struct vec *vtx = &msh->vtx.dat[i];
+
+        if (vec_new(vtx, 3))
             return -1;
+
+        if (fscanf(f, "%d %d %lf %lf %lf", &j, &j, 
+              &vtx[i].dat[0], 
+              &vtx[i].dat[1], 
+              &vtx[i].dat[2]) != 5)
+            return -1;
+    }
 
     return 0;
 }
@@ -154,7 +159,7 @@ static int get_qud_bnd(struct msh *msh, FILE *f)
     struct qud *qud = msh->qud.dat;
 
     for (int i = 0, j; i < msh->qud.len; ++i) {
-        if (fscanf(f, "%d %d %d %d %d %d %d %d %d", &j, &qud[i].pid, &j, &j, &j, 
+        if (fscanf(f, "%d %d %d %d %d %d %d %d %d", &j, &qud[i].pid, &qud[i].hxd, &j, &j, 
               &qud[i].vtx[0], 
               &qud[i].vtx[1],
               &qud[i].vtx[2], 
@@ -162,6 +167,7 @@ static int get_qud_bnd(struct msh *msh, FILE *f)
             return -1;
 
         qud[i].pid -= 1;
+        qud[i].hxd -= 1;
         qud[i].vtx[0] -= 1;
         qud[i].vtx[1] -= 1;
         qud[i].vtx[2] -= 1;
@@ -175,8 +181,8 @@ static int get_qud_bnd(struct msh *msh, FILE *f)
 
 static inline int cmp(struct msh* msh, int a, int b)
 {
-    double av = msh->vtx.dat[a].z;
-    double bv = msh->vtx.dat[b].z;
+    double av = msh->vtx.dat[a].dat[2];
+    double bv = msh->vtx.dat[b].dat[2];
 
     if (av < bv)
       return 0;
@@ -184,8 +190,8 @@ static inline int cmp(struct msh* msh, int a, int b)
     if (bv < av)
       return 1;
 
-    av = msh->vtx.dat[a].y;
-    bv = msh->vtx.dat[b].y;
+    av = msh->vtx.dat[a].dat[1];
+    bv = msh->vtx.dat[b].dat[1];
 
     if (av < bv)
       return 0;
@@ -193,8 +199,8 @@ static inline int cmp(struct msh* msh, int a, int b)
     if (bv < av)
       return 1;
 
-    av = msh->vtx.dat[a].x;
-    bv = msh->vtx.dat[b].x;
+    av = msh->vtx.dat[a].dat[0];
+    bv = msh->vtx.dat[b].dat[0];
 
     if (av < bv)
       return 0;

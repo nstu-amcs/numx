@@ -78,8 +78,5 @@ int sim_cls(struct sim *sim)
 int sim_run(struct sim *sim)
 {
     assert(sim);
-
-    sim->ops.exp.ini.run(sim->ops.exp.ini.ctx, sim);
-
-    return sim->slv->exe.run(sim->slv->exe.ctx, sim);
+    return sim->slv->exe(sim);
 }

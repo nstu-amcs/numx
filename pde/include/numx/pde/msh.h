@@ -9,6 +9,7 @@ typedef struct seg
 {
     int vtx[2];
     int pid;
+    int qud;
 } seg;
 
 /** Quadrangle. */
@@ -16,6 +17,7 @@ typedef struct qud
 {
     int vtx[4];
     int pid;
+    int hxd;
 } qud;
 
 /** Hexahedron. */

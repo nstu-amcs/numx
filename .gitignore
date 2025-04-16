@@ -3,5 +3,7 @@ build/
 
 **/*.cgns
 
-**/msh/
-**/elm/
+**/msh/*
+**/elm/*
+
+!**/elm/case.sif

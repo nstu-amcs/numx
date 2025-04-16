@@ -6,6 +6,16 @@
 
 struct sim;
 
+struct apx_fun_ctx
+{
+    struct sim *sim; // simulation
+    struct vec *wgt; // solution (null for runtime)
+
+    int vtx; // hinted vertex
+    int qud; // hinted quadrangle
+    int hxd; // hinted hexahedron
+};
+
 /** Simulation solver. */
 typedef struct slv
 {
@@ -14,25 +24,15 @@ typedef struct slv
      *
      *  @param sim - simulation
      */
-    struct
-    {
-        void *ctx;
-        int (*run)(void *ctx, struct sim *sim);
-    } exe;
+    int (*exe)(struct sim *sim);
 
     /**
      *  Approximate solution at given point (implementation defined).
      *
-     *  @param sim - simulation
-     *  @param wgt - solution
-     *  @param hxd - target element
+     *  @param ctx - context
      *  @param vtx - target point
      */
-    struct
-    {
-        void *ctx;
-        double (*run)(void *ctx, struct sim *s, struct vec *wgt, int hxd, struct vec *vtx);
-    } apx;
+    double (*apx)(struct apx_fun_ctx *ctx, struct vec *vtx);
 
     /**
      *  Solution callback (user defined).

@@ -17,7 +17,6 @@ struct fem
         enum
         {
             FEM_STD, // standard
-            FEM_NON, // nonlinear
             FEM_HMC, // harmonic
         } mod;
 
@@ -38,31 +37,40 @@ struct fem
         /** Options for nonlinear system solver. */
         struct
         {
-            /**
-             *  Nonlinear iteration callback (user defined).
-             *
-             *  Called for each nonlinear iteration.
-             *  Doesn't called at all for standard and
-             *  harmonic solution modes.
-             *
-             *  @param sim - simulation
-             */
+            enum
+            {
+                NON_FPI, // fixed-point iteration
+                NON_NEW, // Newton's linearization
+            } mod;
+
             struct
             {
-                void *ctx;
-                void (*run)(void *ctx, struct sim *sim);
-            } itr;
+                /**
+                 *  Nonlinear iteration callback (user defined).
+                 *
+                 *  Called for each nonlinear iteration.
+                 *  Doesn't called at all for standard and
+                 *  harmonic solution modes.
+                 *
+                 *  @param sim - simulation
+                 */
+                struct
+                {
+                    void *ctx;
+                    void (*run)(void *ctx, struct sim *sim);
+                } itr;
 
-            int    max;
-            double err;
-            double rlx;
+                int    max; // maximum number of iterations
+                double err; // convergence tolerance
+                double rlx; // relaxation factor
+            } ops;
 
             /** Runtime data made available by solver. */
             struct
             {
-                int    itr;
-                double err;
-            } rt;
+                int    itr; // current iteration
+                double err; // current error
+            } run;
         } non;
 
         /** Options for linear system solver. */
@@ -78,20 +86,9 @@ struct fem
             } ops;
         } iss;
     } ops;
-
-    /** Private data for internal usage. */
-    struct
-    {
-        struct smtx ell;
-        struct smtx pbc;
-        struct smtx hyp;
-        struct vec  vec;
-    } prv;
 };
 
 int fem_new(struct fem *fem);
-int fem_cls(struct fem *fem);
-
-int fem_exe(void *ctx, struct sim *sim);
+int fem_exe(struct sim *sim);
 
 #endif // NUMX_PDE_FEM_H

@@ -2,7 +2,6 @@
 
 #include <numx/pde/msh.h>
 
-cut_gen(vtx_cut, vtx, PUB);
 cut_gen(seg_cut, seg, PUB);
 cut_gen(qud_cut, qud, PUB);
 cut_gen(hxd_cut, hxd, PUB);
@@ -11,7 +10,7 @@ int msh_new(struct msh *msh)
 {
     assert(msh);
 
-    if (vtx_cut_new(&msh->vtx))
+    if (vec_cut_new(&msh->vtx))
         goto new_err;
 
     if (seg_cut_new(&msh->seg))
@@ -35,7 +34,10 @@ int msh_cls(struct msh *msh)
 {
     assert(msh);
 
-    vtx_cut_cls(&msh->vtx);
+    for (int i = 0; i < msh->vtx.len; ++i)
+        vec_cls(&msh->vtx.dat[i]);
+
+    vec_cut_cls(&msh->vtx);
     seg_cut_cls(&msh->seg);
     qud_cut_cls(&msh->qud);
     hxd_cut_cls(&msh->hxd);
@@ -45,20 +47,20 @@ int msh_cls(struct msh *msh)
 
 int msh_qud_nrm(struct msh *msh, struct qud *qud, struct vec *nrm)
 {
-    struct vtx *vtx = msh->vtx.dat;
+    struct vec *vtx = msh->vtx.dat;
 
-    struct vtx *a = &vtx[qud->vtx[0]];
-    struct vtx *b = &vtx[qud->vtx[1]];
-    struct vtx *c = &vtx[qud->vtx[2]];
+    struct vec *a = &vtx[qud->vtx[0]];
+    struct vec *b = &vtx[qud->vtx[1]];
+    struct vec *c = &vtx[qud->vtx[2]];
 
     memset(nrm->dat, 0, sizeof(double) * 3);
 
-    if (a->x == c->x && b->x == c->x) {
+    if (a->dat[0] == c->dat[0] && b->dat[0] == c->dat[0]) {
         nrm->dat[0] = 1;
         return 0;
     }
 
-    if (a->y == c->y && b->y == c->y) {
+    if (a->dat[1] == c->dat[1] && b->dat[1] == c->dat[1]) {
         nrm->dat[1] = 1;
         return 0;
     }

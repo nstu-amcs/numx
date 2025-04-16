@@ -64,7 +64,7 @@ typedef struct sim
         {
             enum
             {
-                SIM_EXP_GNS, // cgns
+                SIM_EXP_GNS, // CGNS
             } mod;
 
             char dir[128]; // export directory
@@ -75,29 +75,23 @@ typedef struct sim
              *
              *  @param sim - simulation
              */
-            struct
-            {
-                void *ctx;
-                int (*run)(void *ctx, struct sim *sim);
-            } ini;
+            int (*ini)(struct sim *sim);
 
             /**
-             *  Export solution (simulation defined).
+             *  Export runtime solution (simulation defined).
              *
              *  @param sim - simulation
              */
-            struct
-            {
-                void *ctx;
-                int (*run)(void *ctx, struct sim *sim);
-            } put;
+            int (*put)(struct sim *sim);
         } exp;
 
         /** Time discretization options. */
         struct
         {
             int num; // number of time intervals
-            int hop; // time interval length
+
+            double beg; // initial time
+            double hop; // time interval length
         } tdd;
     } ops;
 
@@ -120,11 +114,11 @@ typedef struct sim
      */
     struct
     {
+        struct vec *wgt; // current solution
+
         int ti; // current time iteration
         int tv; // current time value
-
-        struct vec *wgt; // current solution
-    } rt;
+    } run;
 } sim;
 
 int sim_new(struct sim *sim);

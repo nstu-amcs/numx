@@ -10,46 +10,37 @@ int fem_new(struct fem *fem)
 {
     assert(fem);
 
-    fem->slv.exe.run = fem_exe;
+    fem->slv.exe = fem_exe;
 
     fem->ops.mod = FEM_STD;
     fem->ops.bss = FEM_BSS_LIN;
+
     fem->ops.iss.mod = ISS_BCG;
     fem->ops.iss.ops.bcg.con.sm = 0;
     fem->ops.iss.ops.bcg.ops.err = 1e-10;
     fem->ops.iss.ops.bcg.ops.itr.run = 0;
     fem->ops.iss.ops.bcg.ops.max = 500;
-    fem->ops.non.err = 1e-10;
-    fem->ops.non.max = 50;
-    fem->ops.non.rlx = 1;
+
+    fem->ops.non.mod = NON_FPI;
+    fem->ops.non.ops.itr.ctx = 0;
+    fem->ops.non.ops.itr.run = 0;
+    fem->ops.non.ops.max = 50;
+    fem->ops.non.ops.err = 1e-10;
+    fem->ops.non.ops.rlx = 1;
+
     fem->ops.tdd = FEM_TDD_I2S;
-
-    return 0;
-}
-
-int fem_cls(struct fem *fem)
-{
-    assert(fem);
-
-    mtx_cls(&fem->prv.ell);
-    mtx_cls(&fem->prv.pbc);
-    mtx_cls(&fem->prv.hyp);
-    vec_cls(&fem->prv.vec);
 
     return 0;
 }
 
 static int fem_ini(struct sim *sim);
 
-int fem_exe(void *ctx, struct sim *sim)
+int fem_exe(struct sim *sim)
 {
-    (void)ctx;
-
     if (fem_ini(sim))
         return -1;
 
-    sim->slv->apx.ctx = 0;
-    sim->slv->apx.run = fem_lin_apx;
+    sim->slv->apx = fem_lin_apx;
 
     switch (sim->mod) {
         case SIM_ELL:

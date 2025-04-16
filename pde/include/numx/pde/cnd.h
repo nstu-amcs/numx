@@ -5,12 +5,15 @@
 #include <numx/pde/msh.h>
 #include <numx/vec/vec.h>
 
-struct sim;
+typedef struct sim sim;
 
-struct val_fun_ctx
+struct sim_fun_ctx
 {
     struct sim *sim;
-    int         vtx;
+
+    int vtx;
+    int qud;
+    int hxd;
 };
 
 typedef struct val
@@ -24,12 +27,16 @@ typedef struct val
     union
     {
         double num;
-        double (*fun)(void *ctx, struct vec *vtx); // function of space, time and field
+        double (*fun)(struct sim_fun_ctx *ctx, struct vec *vtx); // function of space, time and field
     } as;
 
     struct
     {
-        double (*dif)(void *ctx, struct vec *vtx); // partial derivative with respect to field
+        bool sd; // space dependence
+        bool td; // time dependence
+        bool fd; // field dependence
+
+        double (*dif)(struct sim_fun_ctx *ctx, struct vec *vtx); // partial derivative with respect to field
     } ops;
 } val;
 

@@ -26,9 +26,9 @@ int msh_exp_gns(struct msh *msh, const char *dir, const char *pfx)
     double *z = malloc(sizeof(double) * msh->vtx.len);
 
     for (int i = 0; i < msh->vtx.len; ++i) {
-        x[i] = msh->vtx.dat[i].x;
-        y[i] = msh->vtx.dat[i].y;
-        z[i] = msh->vtx.dat[i].z;
+        x[i] = msh->vtx.dat[i].dat[0];
+        y[i] = msh->vtx.dat[i].dat[1];
+        z[i] = msh->vtx.dat[i].dat[2];
     }
 
     sprintf(fname, "%s/%s.cgns", dir, pfx);
