@@ -33,3 +33,7 @@ install(DIRECTORY include/numx DESTINATION /usr/share/include)
 install(FILES model/ell.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 install(FILES model/pbc.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 install(FILES model/hyp.xml DESTINATION /usr/local/share/ElmerGUI/edf)
+
+add_executable(pde-non-case1 test/non/case1/test.c)
+target_link_libraries(pde-non-case1 pde)
+add_test(NAME numx/pde/non/case1 COMMAND pde-non-case1 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/pde/test/non/case1)
