@@ -7,6 +7,12 @@
 
 struct sim;
 
+struct val_fun_ctx
+{
+    struct sim *sim;
+    int         vtx;
+};
+
 typedef struct val
 {
     enum
@@ -18,8 +24,13 @@ typedef struct val
     union
     {
         double num;
-        double (*fun)(struct sim *s, int vtx);
+        double (*fun)(void *ctx, struct vec *vtx); // function of space, time and field
     } as;
+
+    struct
+    {
+        double (*dif)(void *ctx, struct vec *vtx); // partial derivative with respect to field
+    } ops;
 } val;
 
 /** Boundary condition. */

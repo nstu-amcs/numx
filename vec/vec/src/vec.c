@@ -1,126 +1,123 @@
 #include <assert.h>
-#include <errno.h>
 #include <math.h>
 #include <numx/vec/vec.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
-int vec_new_ini(struct vec* v, int n, ...) {
-  if (!v || n == 0) {
-    errno = EINVAL;
-    return -1;
-  }
+int vec_new_ini(struct vec *v, int n, ...)
+{
+    assert(v);
+    assert(n > 0);
 
-  v->n = n;
-  v->dat = malloc(sizeof(double) * n);
+    v->n = n;
+    v->dat = malloc(sizeof(double) * n);
 
-  if (!v->dat)
-    return -1;
+    if (!v->dat)
+        return -1;
 
-  memset(v->dat, 0, sizeof(double) * n);
+    memset(v->dat, 0, sizeof(double) * n);
 
-  va_list arg;
-  va_start(arg, n);
+    va_list arg;
+    va_start(arg, n);
 
-  for (int i = 0; i < n; ++i) {
-    double a = va_arg(arg, double);
+    for (int i = 0; i < n; ++i) {
+        double a = va_arg(arg, double);
 
-    if (a == DBL_MAX)
-      break;
+        if (a == DBL_MAX)
+            break;
 
-    v->dat[i] = a;
-  }
+        v->dat[i] = a;
+    }
 
-  va_end(arg);
+    va_end(arg);
 
-  return 0;
+    return 0;
 }
 
-int vec_cls(struct vec* v) {
-  if (!v) {
-    errno = EINVAL;
-    return -1;
-  }
+int vec_cls(struct vec *v)
+{
+    assert(v);
 
-  free(v->dat);
+    free(v->dat);
 
-  return 0;
+    return 0;
 }
 
-int vec_cmb(struct vec* a, struct vec* b, struct vec* r, double k) {
-  assert(a);
-  assert(b);
-  assert(r);
+int vec_cmb(struct vec *a, struct vec *b, struct vec *r, double k)
+{
+    assert(a);
+    assert(b);
+    assert(r);
 
-  assert(a->n == b->n);
-  assert(b->n == r->n);
+    assert(a->n == b->n);
+    assert(b->n == r->n);
 
-  int n = a->n;
+    int n = a->n;
 
-  double* ad = a->dat;
-  double* bd = b->dat;
-  double* rd = r->dat;
+    double *ad = a->dat;
+    double *bd = b->dat;
+    double *rd = r->dat;
 
 #pragma omp parallel for
-  for (int i = 0; i < n; ++i)
-    rd[i] = ad[i] + k * bd[i];
+    for (int i = 0; i < n; ++i)
+        rd[i] = ad[i] + k * bd[i];
 
-  return 0;
+    return 0;
 }
 
-int vec_dot(struct vec* a, struct vec* b, double* r) {
-  if (!a || !b || !r) {
-    errno = EINVAL;
-    return -1;
-  }
+int vec_dot(struct vec *a, struct vec *b, double *r)
+{
+    assert(a);
+    assert(b);
+    assert(r);
 
-  int dim = a->n;
+    int dim = a->n;
 
-  double* ad = a->dat;
-  double* bd = b->dat;
+    double *ad = a->dat;
+    double *bd = b->dat;
 
-  double s = 0;
+    double s = 0;
 
 #pragma omp parallel for reduction(+ : s)
-  for (int i = 0; i < dim; ++i)
-    s += ad[i] * bd[i];
+    for (int i = 0; i < dim; ++i)
+        s += ad[i] * bd[i];
 
-  *r = s;
+    *r = s;
 
-  return 0;
+    return 0;
 }
 
-int vec_nrm(struct vec* v, double* r) {
-  if (!v || !r) {
-    errno = EINVAL;
-    return -1;
-  }
+int vec_nrm(struct vec *v, double *r)
+{
+    assert(v);
+    assert(r);
 
-  vec_dot(v, v, r);
-  *r = sqrt(*r);
+    vec_dot(v, v, r);
+    *r = sqrt(*r);
 
-  return 0;
+    return 0;
 }
 
-int vec_cpy(struct vec* s, struct vec* d) {
-  if (!s || !d || s->n != d->n) {
-    errno = EINVAL;
-    return -1;
-  }
+int vec_cpy(struct vec *s, struct vec *d)
+{
+    assert(s);
+    assert(d);
 
-  memcpy(d->dat, s->dat, sizeof(double) * s->n);
+    memcpy(d->dat, s->dat, sizeof(double) * s->n);
 
-  return 0;
+    return 0;
 }
 
-int vec_rst(struct vec* v) {
-  if (!v) {
-    errno = EINVAL;
-    return -1;
-  }
+int vec_rst(struct vec *v)
+{
+    assert(v);
 
-  memset(v->dat, 0, sizeof(double) * v->n);
+    memset(v->dat, 0, sizeof(double) * v->n);
 
-  return 0;
+    return 0;
 }
+
+cut_gen(vec_cut, vec, PUB);
+log_gen(vec_log, vec_rec, vec, PUB);
+que_gen(vec_que, vec_cut, vec, PUB);

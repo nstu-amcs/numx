@@ -31,7 +31,7 @@ typedef struct slv
     struct
     {
         void *ctx;
-        double (*run)(void *ctx, struct sim *s, struct vec *wgt, int hxd, struct vtx *vtx);
+        double (*run)(void *ctx, struct sim *s, struct vec *wgt, int hxd, struct vec *vtx);
     } apx;
 
     /**

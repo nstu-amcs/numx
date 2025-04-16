@@ -3,12 +3,15 @@
 
 #include <float.h>
 
+#include <numx/com/dev/cut.h>
+#include <numx/com/dev/log.h>
+#include <numx/com/dev/que.h>
+
 typedef unsigned int uint;
 
 typedef struct vec
 {
-    int n;
-
+    int     n;
     double *dat;
 } vec;
 
@@ -24,5 +27,9 @@ int vec_cpy(struct vec *s, struct vec *d);
 int vec_rst(struct vec *v);
 
 #define vec_new(v, ...) vec_new_ini(v, __VA_ARGS__, DBL_MAX)
+
+cut_def(vec_cut, vec);
+log_def(vec_log, vec_rec, vec);
+que_def(vec_que, vec_cut, vec);
 
 #endif // NUMX_VEC_VEC_H

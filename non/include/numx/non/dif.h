@@ -3,6 +3,6 @@
 
 #include <numx/vec/vec.h>
 
-int pdif(double (*f)(struct vec*), int i, double hop, struct vec* p, double* r);
+double pdif(void *ctx, double (*fun)(void *, struct vec *), int var, double hop, struct vec *vtx);
 
-#endif  // NUMX_NON_DIF_H
+#endif // NUMX_NON_DIF_H
