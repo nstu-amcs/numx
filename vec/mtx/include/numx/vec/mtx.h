@@ -46,6 +46,7 @@ int smtx_new(struct smtx *m, struct smtx_pps pps);
 int smtx_cls(struct smtx *m);
 
 int smtx_add(struct smtx *m, int i, int j, double v);
+int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k);
 
 int smtx_ilu(struct smtx *m, struct smtx *r);
 int smtx_dgl(struct smtx *m, struct smtx *r);
@@ -96,6 +97,8 @@ int jmtx_cls(struct jmtx *m);
 
 #define mtx_cls(X)                                                                                                     \
     _Generic((X), struct imtx *: imtx_cls, struct smtx *: smtx_cls, struct dmtx *: dmtx_cls, struct jmtx *: jmtx_cls)(X)
+
+#define mtx_cmb(X, b, r, k) _Generic((X), struct smtx *: smtx_cmb)(X, b, r, k)
 
 #define mtx_ilu(X, r) _Generic((X), struct smtx *: smtx_ilu)(X, r)
 

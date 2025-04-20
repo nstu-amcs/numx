@@ -16,29 +16,7 @@ extern const int MU[8];
 extern const int NU[8];
 extern const int TT[8];
 
-double fem_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx);
-
-int fem_lin_ell_slv(struct sim *sim);
-int fem_lin_pbc_slv(struct sim *sim);
-int fem_lin_hyp_slv(struct sim *sim);
-
-int fem_lin_ell_asm(struct sim *sim);
-int fem_lin_new_asm(struct sim *sim);
-
-int fem_lin_mtx_ell_asm(struct sim *sim, struct smtx *mtx);
-
-int fem_lin_mtx_lam_asm(struct sim *sim, struct smtx *mtx);
-int fem_lin_mtx_gam_asm(struct sim *sim, struct smtx *mtx);
-int fem_lin_mtx_rob_asm(struct sim *sim, struct smtx *mtx);
-int fem_lin_mtx_sig_asm(struct sim *sim, struct smtx *mtx);
-int fem_lin_mtx_chi_asm(struct sim *sim, struct smtx *mtx);
-int fem_lin_mtx_dir_asm(struct sim *sim, struct smtx *mtx);
-
-int fem_lin_vec_ell_asm(struct sim *sim, struct vec *vec);
-
-int fem_lin_vec_src_asm(struct sim *sim, struct vec *vec);
-int fem_lin_vec_neu_asm(struct sim *sim, struct vec *vec);
-int fem_lin_vec_rob_asm(struct sim *sim, struct vec *vec);
-int fem_lin_vec_dir_asm(struct sim *sim, struct vec *vec);
+int fem_lin_slv(struct sim *sim);
+int fem_lin_asm(struct sim *sim);
 
 #endif // NUMX_PDE_FEM_PRV_H

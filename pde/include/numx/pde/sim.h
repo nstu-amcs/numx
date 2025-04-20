@@ -105,20 +105,6 @@ typedef struct sim
 
     struct cnd_ini_cut cnd_ini; // initial conditions
     struct cnd_bnd_cut cnd_bnd; // boundary conditions
-
-    /**
-     *  Runtime data made available by solver.
-     *
-     *  Updated on each time layer and not
-     *  available after solver exits.
-     */
-    struct
-    {
-        struct vec *wgt; // current solution
-
-        int ti; // current time iteration
-        int tv; // current time value
-    } run;
 } sim;
 
 int sim_new(struct sim *sim);
@@ -131,10 +117,10 @@ int sim_imp_gns(struct sim *sim, const char *gns);
 int sim_imp_elm(struct sim *sim, const char *sif);
 
 /** Export commons in CGNS format. */
-int sim_exp_ini_gns(void *ctx, struct sim *sim);
+int sim_exp_gns_ini(struct sim *sim);
 
 /** Export solution in CGNS format. */
-int sim_exp_put_gns(void *ctx, struct sim *sim);
+int sim_exp_gns_put(struct sim *sim);
 
 /** Start simulation. */
 int sim_run(struct sim *sim);

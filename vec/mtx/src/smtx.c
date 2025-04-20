@@ -94,6 +94,26 @@ int smtx_add(struct smtx *m, int i, int j, double v)
     return 0;
 }
 
+int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k)
+{
+    assert(a);
+    assert(b);
+    assert(r);
+
+    int n = a->pps.n;
+    int z = a->pps.z;
+
+    for (int i = 0; i < n; ++i)
+        r->dr[i] = a->dr[i] + b->dr[i] * k;
+
+    for (int i = 0; i < z; ++i) {
+        r->lr[i] = a->lr[i] + b->lr[i] * k;
+        r->ur[i] = a->ur[i] + b->ur[i] * k;
+    }
+
+    return 0;
+}
+
 int smtx_ilu(struct smtx *m, struct smtx *r)
 {
     if (!m || !r || m->pps.n != r->pps.n || m->pps.z != r->pps.z) {

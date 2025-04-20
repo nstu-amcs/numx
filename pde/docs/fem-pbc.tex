@@ -1,0 +1,34 @@
+\documentclass{article}
+
+\usepackage{tabularx, booktabs}
+\usepackage{float}
+
+\begin{document}
+
+Hi!
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{XXXX}
+\toprule
+
+Layer & Time & Iterations & Error \\
+\midrule
+
+\directlua{
+  f = io.open("pde/test/pbc/case1/res/dat/i2s.dat")
+
+  io.input(f)
+
+  for line in io.lines() do
+    tex.print(line.."\\\\")
+  end
+
+  io.close(f)
+}
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}

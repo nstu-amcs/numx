@@ -47,6 +47,21 @@ typedef struct slv
         void *ctx;
         void (*run)(void *ctx, struct sim *sim);
     } itr;
+
+    /**
+     *  Runtime data made available by solver.
+     *
+     *  Updated on each time layer and not
+     *  available after solver exits.
+     */
+    struct
+    {
+        struct vec *wgt[4]; // current solution
+
+        int tb; // number of buffered layers (1 - 4)
+        int ti; // current time iteration
+        int tv; // current time value
+    } run;
 } slv;
 
 #endif // NUMX_PDE_SLV_H

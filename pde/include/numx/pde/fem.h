@@ -29,9 +29,9 @@ struct fem
         /** Time discretization strategy. */
         enum
         {
-            FEM_TDD_I2S, // implicit 2-layered
-            FEM_TDD_I3S, // implicit 3-layered
-            FEM_TDD_I4S, // implicit 4-layered
+            FEM_TDD_I2S = 2, // implicit 2-layered
+            FEM_TDD_I3S = 3, // implicit 3-layered
+            FEM_TDD_I4S = 4, // implicit 4-layered
         } tdd;
 
         /** Options for nonlinear system solver. */
@@ -45,6 +45,8 @@ struct fem
 
             struct
             {
+                bool fd; // field dependence
+
                 /**
                  *  Nonlinear iteration callback (user defined).
                  *
@@ -86,6 +88,18 @@ struct fem
             } ops;
         } iss;
     } ops;
+
+    /** Private data for internal usage. */
+    struct
+    {
+        struct smtx mtx;
+        struct vec  vec;
+
+        struct smtx sig;
+        struct smtx chi;
+
+        struct vec tmp;
+    } prv;
 };
 
 int fem_new(struct fem *fem);

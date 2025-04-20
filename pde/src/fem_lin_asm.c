@@ -7,33 +7,76 @@
 
 #include "fem_lin.h"
 
-static int fem_lin_mtx_lam_hxd_asm(struct sim *sim, struct smtx *mtx, int h);
-static int fem_lin_mtx_gam_hxd_asm(struct sim *sim, struct smtx *mtx, int h);
-static int fem_lin_mtx_sig_hxd_asm(struct sim *sim, struct smtx *mtx, int h);
-static int fem_lin_mtx_chi_hxd_asm(struct sim *sim, struct smtx *mtx, int h);
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 
-static int fem_lin_mtx_rob_qud_asm(struct sim *sim, struct smtx *mtx, int q);
-static int fem_lin_mtx_dir_qud_asm(struct sim *sim, struct smtx *mtx, int q);
+const double C = 10e10;
 
-static int fem_lin_vec_src_hxd_asm(struct sim *sim, struct vec *vec, int h);
-static int fem_lin_vec_dir_qud_asm(struct sim *sim, struct vec *vec, int q);
-static int fem_lin_vec_neu_qud_asm(struct sim *sim, struct vec *vec, int q);
-static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q);
+const double G[2][2] = {
+    {1.0,  -1.0},
+    {-1.0, 1.0 }
+};
 
-int fem_lin_ell_asm(struct sim *sim)
+const double M[2][2] = {
+    {2.0 / 6.0, 1.0 / 6.0},
+    {1.0 / 6.0, 2.0 / 6.0}
+};
+
+const double GN[2][2] = {
+    {1.0 / 2.0,  -1.0 / 2.0},
+    {-1.0 / 2.0, 1.0 / 2.0 }
+};
+
+const double MN[2][2][2] = {
+    {{1.0 / 4.0, 1.0 / 12.0},  {1.0 / 12.0, 1.0 / 12.0}},
+    {{1.0 / 12.0, 1.0 / 12.0}, {1.0 / 12.0, 1.0 / 4.0} }
+};
+
+const int MU[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+const int NU[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+const int TT[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+
+static int ell_asm(struct sim *sim);
+static int pbc_asm(struct sim *sim);
+static int hyp_asm(struct sim *sim);
+
+int fem_lin_asm(struct sim *sim)
 {
     assert(sim);
 
-    struct fem *fem = (struct fem *)sim->slv;
+    switch (sim->mod) {
+        case SIM_ELL:
+            return ell_asm(sim);
+        case SIM_PBC:
+            return pbc_asm(sim);
+        case SIM_HYP:
+            return hyp_asm(sim);
+    }
 
+    return 0;
+}
+
+static int mtx_lam_asm(struct sim *sim, int h);
+static int mtx_gam_asm(struct sim *sim, int h);
+static int mtx_sig_asm(struct sim *sim, int h);
+static int mtx_chi_asm(struct sim *sim, int h);
+static int mtx_rob_asm(struct sim *sim, int q);
+static int mtx_dir_asm(struct sim *sim, int q);
+
+static int vec_src_asm(struct sim *sim, int h);
+static int vec_dir_asm(struct sim *sim, int q);
+static int vec_neu_asm(struct sim *sim, int q);
+static int vec_rob_asm(struct sim *sim, int q);
+
+static int ell_asm(struct sim *sim)
+{
     for (int hi = 0; hi < sim->msh->hxd.len; ++hi) {
-        if (fem_lin_mtx_lam_hxd_asm(sim, &fem->prv.ell, hi))
+        if (mtx_lam_asm(sim, hi))
             return -1;
 
-        if (fem_lin_mtx_gam_hxd_asm(sim, &fem->prv.ell, hi))
+        if (mtx_gam_asm(sim, hi))
             return -1;
 
-        if (fem_lin_vec_src_hxd_asm(sim, &fem->prv.vec, hi))
+        if (vec_src_asm(sim, hi))
             return -1;
     }
 
@@ -50,15 +93,15 @@ int fem_lin_ell_asm(struct sim *sim)
 
                 break;
             case CND_BND_NEU:
-                if (fem_lin_vec_neu_qud_asm(sim, &fem->prv.vec, qi))
+                if (vec_neu_asm(sim, qi))
                     return -1;
 
                 break;
             case CND_BND_ROB:
-                if (fem_lin_mtx_rob_qud_asm(sim, &fem->prv.ell, qi))
+                if (mtx_rob_asm(sim, qi))
                     return -1;
 
-                if (fem_lin_vec_rob_qud_asm(sim, &fem->prv.vec, qi))
+                if (vec_rob_asm(sim, qi))
                     return -1;
 
                 break;
@@ -67,10 +110,10 @@ int fem_lin_ell_asm(struct sim *sim)
     log_rst(&dir);
 
     for (int qi = 0; !log_adv(&dir, &qi);) {
-        if (fem_lin_mtx_dir_qud_asm(sim, &fem->prv.ell, qi))
+        if (mtx_dir_asm(sim, qi))
             return -1;
 
-        if (fem_lin_vec_dir_qud_asm(sim, &fem->prv.vec, qi))
+        if (vec_dir_asm(sim, qi))
             return -1;
     }
 
@@ -81,128 +124,123 @@ int fem_lin_ell_asm(struct sim *sim)
     return 0;
 }
 
-int fem_lin_mtx_lam_asm(struct sim *sim, struct smtx *mtx)
+static int pbc_asm_i2s(struct sim *sim);
+static int pbc_asm_i3s(struct sim *sim);
+static int pbc_asm_i4s(struct sim *sim);
+
+static int pbc_asm(struct sim *sim)
 {
-    assert(sim);
-    assert(mtx);
+    struct fem *fem = (struct fem *)sim->slv;
 
-    for (int hi = 0; hi < sim->msh->hxd.len; ++hi)
-        if (fem_lin_mtx_lam_hxd_asm(sim, mtx, hi))
-            return -1;
-
-    return 0;
-}
-
-int fem_lin_mtx_gam_asm(struct sim *sim, struct smtx *mtx)
-{
-    assert(sim);
-    assert(mtx);
-
-    for (int hi = 0; hi < sim->msh->hxd.len; ++hi)
-        if (fem_lin_mtx_gam_hxd_asm(sim, mtx, hi))
-            return -1;
-
-    return 0;
-}
-
-int fem_lin_mtx_sig_asm(struct sim *sim, struct smtx *mtx)
-{
-    assert(sim);
-    assert(mtx);
-
-    for (int hi = 0; hi < sim->msh->hxd.len; ++hi)
-        if (fem_lin_mtx_sig_hxd_asm(sim, mtx, hi))
-            return -1;
-
-    return 0;
-}
-
-int fem_lin_mtx_chi_asm(struct sim *sim, struct smtx *mtx)
-{
-    assert(sim);
-    assert(mtx);
-
-    for (int hi = 0; hi < sim->msh->hxd.len; ++hi)
-        if (fem_lin_mtx_chi_hxd_asm(sim, mtx, hi))
-            return -1;
-
-    return 0;
-}
-
-int fem_lin_mtx_rob_asm(struct sim *sim, struct smtx *mtx)
-{
-    assert(sim);
-    assert(mtx);
-
-    for (int qi = 0; qi < sim->msh->qud.len; ++qi)
-        if (sim->cnd_bnd.dat[sim->bnd.dat[sim->msh->qud.dat[qi].pid].cnd].type == CND_BND_ROB)
-            if (fem_lin_mtx_rob_qud_asm(sim, mtx, qi))
+    if (sim->slv->run.ti == 1) {
+        for (int hi = 0; hi < sim->msh->hxd.len; ++hi) {
+            if (mtx_lam_asm(sim, hi))
                 return -1;
 
-    return 0;
-}
-
-int fem_lin_mtx_dir_asm(struct sim *sim, struct smtx *mtx)
-{
-    assert(sim);
-    assert(mtx);
-
-    for (int qi = 0; qi < sim->msh->qud.len; ++qi)
-        if (sim->cnd_bnd.dat[sim->bnd.dat[sim->msh->qud.dat[qi].pid].cnd].type == CND_BND_DIR)
-            if (fem_lin_mtx_dir_qud_asm(sim, mtx, qi))
+            if (mtx_gam_asm(sim, hi))
                 return -1;
 
+            if (mtx_sig_asm(sim, hi))
+                return -1;
+        }
+    }
+
+    static int (*f[3])(struct sim *) = {
+        pbc_asm_i2s,
+        pbc_asm_i3s,
+        pbc_asm_i4s,
+    };
+
+    int itr = sim->slv->run.ti;
+
+    if (f[min(itr, (int)fem->ops.tdd - 1) - 1](sim))
+        return -1;
+
     return 0;
 }
 
-int fem_lin_vec_src_asm(struct sim *sim, struct vec *vec)
+static int pbc_asm_i2s(struct sim *sim)
 {
-    assert(sim);
-    assert(vec);
+    struct fem *fem = (struct fem *)sim->slv;
+
+    int itr = sim->slv->run.ti;
+    int hop = sim->ops.tdd.hop;
+
+    if (itr == 1 && mtx_cmb(&fem->prv.mtx, &fem->prv.sig, &fem->prv.mtx, 1.0 / hop))
+        return -1;
 
     for (int hi = 0; hi < sim->msh->hxd.len; ++hi)
-        if (fem_lin_vec_src_hxd_asm(sim, vec, hi))
+        if (vec_src_asm(sim, hi))
             return -1;
 
+    struct ilog dir;
+
+    if (log_new(&dir))
+        return -1;
+
+    for (int qi = 0; qi < sim->msh->qud.len; ++qi)
+        switch (sim->cnd_bnd.dat[sim->bnd.dat[sim->msh->qud.dat[qi].pid].cnd].type) {
+            case CND_BND_DIR:
+                if (log_add(&dir, qi))
+                    return -1;
+
+                break;
+            case CND_BND_NEU:
+                if (vec_neu_asm(sim, qi))
+                    return -1;
+
+                break;
+            case CND_BND_ROB:
+                if (itr == 1 && mtx_rob_asm(sim, qi))
+                    return -1;
+
+                if (vec_rob_asm(sim, qi))
+                    return -1;
+
+                break;
+        }
+
+    log_rst(&dir);
+
+    for (int qi = 0; !log_adv(&dir, &qi);) {
+        if (itr == 1 && mtx_dir_asm(sim, qi))
+            return -1;
+
+        if (vec_dir_asm(sim, qi))
+            return -1;
+    }
+
+    log_cls(&dir);
+
+    if (errno != ENOENT)
+        return -1;
+
+    errno = 0;
+
+    if (mtx_vmlt(&fem->prv.sig, fem->slv.run.wgt[1], &fem->prv.tmp))
+        return -1;
+
+    if (vec_cmb(&fem->prv.vec, &fem->prv.tmp, &fem->prv.vec, 1.0 / hop))
+        return -1;
+
     return 0;
 }
 
-int fem_lin_vec_neu_asm(struct sim *sim, struct vec *vec)
+static int pbc_asm_i3s(struct sim *sim)
 {
-    assert(sim);
-    assert(vec);
-
-    for (int qi = 0; qi < sim->msh->qud.len; ++qi)
-        if (sim->cnd_bnd.dat[sim->bnd.dat[sim->msh->qud.dat[qi].pid].cnd].type == CND_BND_NEU)
-            if (fem_lin_vec_neu_qud_asm(sim, vec, qi))
-                return -1;
-
+    (void)sim;
     return 0;
 }
 
-int fem_lin_vec_rob_asm(struct sim *sim, struct vec *vec)
+static int pbc_asm_i4s(struct sim *sim)
 {
-    assert(sim);
-    assert(vec);
-
-    for (int qi = 0; qi < sim->msh->qud.len; ++qi)
-        if (sim->cnd_bnd.dat[sim->bnd.dat[sim->msh->qud.dat[qi].pid].cnd].type == CND_BND_ROB)
-            if (fem_lin_vec_rob_qud_asm(sim, vec, qi))
-                return -1;
-
+    (void)sim;
     return 0;
 }
 
-int fem_lin_vec_dir_asm(struct sim *sim, struct vec *vec)
+static int hyp_asm(struct sim *sim)
 {
-    assert(sim);
-    assert(vec);
-
-    for (int qi = 0; qi < sim->msh->qud.len; ++qi)
-        if (sim->cnd_bnd.dat[sim->bnd.dat[sim->msh->qud.dat[qi].pid].cnd].type == CND_BND_DIR)
-            if (fem_lin_vec_dir_qud_asm(sim, vec, qi))
-                return -1;
-
+    (void)sim;
     return 0;
 }
 
@@ -218,23 +256,23 @@ static int asm_qud_dim(struct sim *sim, struct qud *qud, double *hxi, double *hz
     if (msh_qud_nrm(sim->msh, qud, &nrm))
         return -1;
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct vec *vtx = sim->msh->vtx.dat;
 
     if (nrm.dat[0] != 0) {
-        *hxi = fabs(vtx[qud->vtx[0]].y - vtx[qud->vtx[3]].y);
-        *hzt = fabs(vtx[qud->vtx[0]].z - vtx[qud->vtx[3]].z);
+        *hxi = fabs(vtx[qud->vtx[0]].dat[1] - vtx[qud->vtx[3]].dat[1]);
+        *hzt = fabs(vtx[qud->vtx[0]].dat[2] - vtx[qud->vtx[3]].dat[2]);
     } else if (nrm.dat[1] != 0) {
-        *hxi = fabs(vtx[qud->vtx[0]].x - vtx[qud->vtx[3]].x);
-        *hzt = fabs(vtx[qud->vtx[0]].z - vtx[qud->vtx[3]].z);
+        *hxi = fabs(vtx[qud->vtx[0]].dat[0] - vtx[qud->vtx[3]].dat[0]);
+        *hzt = fabs(vtx[qud->vtx[0]].dat[2] - vtx[qud->vtx[3]].dat[2]);
     } else {
-        *hxi = fabs(vtx[qud->vtx[0]].x - vtx[qud->vtx[3]].x);
-        *hzt = fabs(vtx[qud->vtx[0]].y - vtx[qud->vtx[3]].y);
+        *hxi = fabs(vtx[qud->vtx[0]].dat[0] - vtx[qud->vtx[3]].dat[0]);
+        *hzt = fabs(vtx[qud->vtx[0]].dat[1] - vtx[qud->vtx[3]].dat[1]);
     }
 
     return 0;
 }
 
-static int fem_lin_mtx_lam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
+static int mtx_lam_asm(struct sim *sim, int h)
 {
     static double gx[2][2];
     static double gy[2][2];
@@ -254,7 +292,8 @@ static int fem_lin_mtx_lam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     static double lam[8];
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct fem *fem = (struct fem *)sim->slv;
+    struct vec *vtx = sim->msh->vtx.dat;
     struct hxd *hxd = &sim->msh->hxd.dat[h];
     struct obj *obj = &sim->obj.dat[hxd->pid];
     struct mat *mat = &sim->mat.dat[obj->mat];
@@ -263,14 +302,20 @@ static int fem_lin_mtx_lam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     if (mat->lam.type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            lam[k] = mat->lam.as.fun(sim, hxd->vtx[k]);
+            lam[k] = mat->lam.as.fun(&((struct sim_fun_ctx){
+                                         .sim = sim,
+                                         .vtx = hxd->vtx[k],
+                                         .qud = -1,
+                                         .hxd = h,
+                                     }),
+                &sim->msh->vtx.dat[hxd->vtx[k]]);
 
     int v0 = hxd->vtx[0];
     int v7 = hxd->vtx[7];
 
-    double hx = vtx[v7].x - vtx[v0].x;
-    double hy = vtx[v7].y - vtx[v0].y;
-    double hz = vtx[v7].z - vtx[v0].z;
+    double hx = vtx[v7].dat[0] - vtx[v0].dat[0];
+    double hy = vtx[v7].dat[1] - vtx[v0].dat[1];
+    double hz = vtx[v7].dat[2] - vtx[v0].dat[2];
 
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j) {
@@ -337,7 +382,7 @@ static int fem_lin_mtx_lam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
                                    gz[ttj][tti]);
             }
 
-            if (smtx_add(mtx, gi, gj, mij))
+            if (smtx_add(&fem->prv.mtx, gi, gj, mij))
                 return -1;
         }
     }
@@ -345,7 +390,7 @@ static int fem_lin_mtx_lam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
     return 0;
 }
 
-static int fem_lin_mtx_gam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
+static int mtx_gam_asm(struct sim *sim, int h)
 {
     static double mx[2][2];
     static double my[2][2];
@@ -357,7 +402,8 @@ static int fem_lin_mtx_gam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     static double gam[8];
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct fem *fem = (struct fem *)sim->slv;
+    struct vec *vtx = sim->msh->vtx.dat;
     struct hxd *hxd = &sim->msh->hxd.dat[h];
     struct obj *obj = &sim->obj.dat[hxd->pid];
     struct mat *mat = &sim->mat.dat[obj->mat];
@@ -366,14 +412,20 @@ static int fem_lin_mtx_gam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     if (mat->gam.type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            gam[k] = mat->gam.as.fun(sim, hxd->vtx[k]);
+            gam[k] = mat->gam.as.fun(&((struct sim_fun_ctx){
+                                         .sim = sim,
+                                         .vtx = hxd->vtx[k],
+                                         .qud = -1,
+                                         .hxd = h,
+                                     }),
+                &sim->msh->vtx.dat[hxd->vtx[k]]);
 
     int v0 = hxd->vtx[0];
     int v7 = hxd->vtx[7];
 
-    double hx = vtx[v7].x - vtx[v0].x;
-    double hy = vtx[v7].y - vtx[v0].y;
-    double hz = vtx[v7].z - vtx[v0].z;
+    double hx = vtx[v7].dat[0] - vtx[v0].dat[0];
+    double hy = vtx[v7].dat[1] - vtx[v0].dat[1];
+    double hz = vtx[v7].dat[2] - vtx[v0].dat[2];
 
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j) {
@@ -416,7 +468,7 @@ static int fem_lin_mtx_gam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
                 mij += gam_n * (mx[muj][mui] * my[nuj][nui] * mz[ttj][tti]);
             }
 
-            if (smtx_add(mtx, gi, gj, mij))
+            if (smtx_add(&fem->prv.mtx, gi, gj, mij))
                 return -1;
         }
     }
@@ -424,7 +476,7 @@ static int fem_lin_mtx_gam_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
     return 0;
 }
 
-static int fem_lin_mtx_sig_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
+static int mtx_sig_asm(struct sim *sim, int h)
 {
     static double mx[2][2];
     static double my[2][2];
@@ -436,7 +488,8 @@ static int fem_lin_mtx_sig_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     static double sig[8];
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct fem *fem = (struct fem *)sim->slv;
+    struct vec *vtx = sim->msh->vtx.dat;
     struct hxd *hxd = &sim->msh->hxd.dat[h];
     struct obj *obj = &sim->obj.dat[hxd->pid];
     struct mat *mat = &sim->mat.dat[obj->mat];
@@ -445,14 +498,20 @@ static int fem_lin_mtx_sig_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     if (mat->sig.type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            sig[k] = mat->sig.as.fun(sim, hxd->vtx[k]);
+            sig[k] = mat->sig.as.fun(&((struct sim_fun_ctx){
+                                         .sim = sim,
+                                         .vtx = hxd->vtx[k],
+                                         .qud = -1,
+                                         .hxd = h,
+                                     }),
+                &sim->msh->vtx.dat[hxd->vtx[k]]);
 
     int v0 = hxd->vtx[0];
     int v7 = hxd->vtx[7];
 
-    double hx = vtx[v7].x - vtx[v0].x;
-    double hy = vtx[v7].y - vtx[v0].y;
-    double hz = vtx[v7].z - vtx[v0].z;
+    double hx = vtx[v7].dat[0] - vtx[v0].dat[0];
+    double hy = vtx[v7].dat[1] - vtx[v0].dat[1];
+    double hz = vtx[v7].dat[2] - vtx[v0].dat[2];
 
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j) {
@@ -495,7 +554,7 @@ static int fem_lin_mtx_sig_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
                 mij += sig_n * (mx[muj][mui] * my[nuj][nui] * mz[ttj][tti]);
             }
 
-            if (smtx_add(mtx, gi, gj, mij))
+            if (smtx_add(&fem->prv.sig, gi, gj, mij))
                 return -1;
         }
     }
@@ -503,7 +562,8 @@ static int fem_lin_mtx_sig_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
     return 0;
 }
 
-static int fem_lin_mtx_chi_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
+[[maybe_unused]]
+static int mtx_chi_asm(struct sim *sim, int h)
 {
     static double mx[2][2];
     static double my[2][2];
@@ -515,7 +575,8 @@ static int fem_lin_mtx_chi_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     static double chi[8];
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct fem *fem = (struct fem *)sim->slv;
+    struct vec *vtx = sim->msh->vtx.dat;
     struct hxd *hxd = &sim->msh->hxd.dat[h];
     struct obj *obj = &sim->obj.dat[hxd->pid];
     struct mat *mat = &sim->mat.dat[obj->mat];
@@ -524,14 +585,20 @@ static int fem_lin_mtx_chi_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
 
     if (mat->chi.type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            chi[k] = mat->chi.as.fun(sim, hxd->vtx[k]);
+            chi[k] = mat->chi.as.fun(&((struct sim_fun_ctx){
+                                         .sim = sim,
+                                         .vtx = hxd->vtx[k],
+                                         .qud = -1,
+                                         .hxd = h,
+                                     }),
+                &sim->msh->vtx.dat[hxd->vtx[k]]);
 
     int v0 = hxd->vtx[0];
     int v7 = hxd->vtx[7];
 
-    double hx = vtx[v7].x - vtx[v0].x;
-    double hy = vtx[v7].y - vtx[v0].y;
-    double hz = vtx[v7].z - vtx[v0].z;
+    double hx = vtx[v7].dat[0] - vtx[v0].dat[0];
+    double hy = vtx[v7].dat[1] - vtx[v0].dat[1];
+    double hz = vtx[v7].dat[2] - vtx[v0].dat[2];
 
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j) {
@@ -574,7 +641,7 @@ static int fem_lin_mtx_chi_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
                 mij += chi_n * (mx[muj][mui] * my[nuj][nui] * mz[ttj][tti]);
             }
 
-            if (smtx_add(mtx, gi, gj, mij))
+            if (smtx_add(&fem->prv.chi, gi, gj, mij))
                 return -1;
         }
     }
@@ -582,11 +649,8 @@ static int fem_lin_mtx_chi_hxd_asm(struct sim *sim, struct smtx *mtx, int h)
     return 0;
 }
 
-static int fem_lin_mtx_rob_qud_asm(struct sim *sim, struct smtx *mtx, int q)
+static int mtx_rob_asm(struct sim *sim, int q)
 {
-    assert(sim);
-    assert(mtx);
-
     static double mxi[2][2];
     static double mzt[2][2];
     static double mnxi[2][2][2];
@@ -594,6 +658,7 @@ static int fem_lin_mtx_rob_qud_asm(struct sim *sim, struct smtx *mtx, int q)
 
     static double bet[4];
 
+    struct fem     *fem = (struct fem *)sim->slv;
     struct qud     *qud = &sim->msh->qud.dat[q];
     struct bnd     *bnd = &sim->bnd.dat[qud->pid];
     struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
@@ -602,7 +667,13 @@ static int fem_lin_mtx_rob_qud_asm(struct sim *sim, struct smtx *mtx, int q)
 
     if (cnd->pps.rob.bet.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            bet[i] = cnd->pps.rob.bet.as.fun(sim, qud->vtx[i]);
+            bet[i] = cnd->pps.rob.bet.as.fun(&((struct sim_fun_ctx){
+                                                 .sim = sim,
+                                                 .vtx = qud->vtx[i],
+                                                 .qud = q,
+                                                 .hxd = qud->hxd,
+                                             }),
+                &sim->msh->vtx.dat[qud->vtx[i]]);
 
     double hxi = 0;
     double hzt = 0;
@@ -650,7 +721,7 @@ static int fem_lin_mtx_rob_qud_asm(struct sim *sim, struct smtx *mtx, int q)
                     break;
             }
 
-            if (smtx_add(mtx, gi, gj, mij))
+            if (smtx_add(&fem->prv.mtx, gi, gj, mij))
                 return -1;
         }
     }
@@ -658,31 +729,27 @@ static int fem_lin_mtx_rob_qud_asm(struct sim *sim, struct smtx *mtx, int q)
     return 0;
 }
 
-static int fem_lin_mtx_dir_qud_asm(struct sim *sim, struct smtx *mtx, int q)
+static int mtx_dir_asm(struct sim *sim, int q)
 {
-    assert(sim);
-    assert(mtx);
-
+    struct fem *fem = (struct fem *)sim->slv;
     struct qud *qud = &sim->msh->qud.dat[q];
 
     for (int i = 0; i < 4; ++i)
-        mtx->dr[qud->vtx[i]] = C;
+        fem->prv.mtx.dr[qud->vtx[i]] = C;
 
     return 0;
 }
 
-static int fem_lin_vec_src_hxd_asm(struct sim *sim, struct vec *vec, int h)
+static int vec_src_asm(struct sim *sim, int h)
 {
-    assert(sim);
-    assert(vec);
-
     static double mx[2][2];
     static double my[2][2];
     static double mz[2][2];
 
     static double src[8];
 
-    struct vtx *vtx = sim->msh->vtx.dat;
+    struct fem *fem = (struct fem *)sim->slv;
+    struct vec *vtx = sim->msh->vtx.dat;
     struct hxd *hxd = &sim->msh->hxd.dat[h];
     struct obj *obj = &sim->obj.dat[hxd->pid];
     struct val *val = &sim->src.dat[obj->src];
@@ -691,14 +758,20 @@ static int fem_lin_vec_src_hxd_asm(struct sim *sim, struct vec *vec, int h)
 
     if (val->type == VAL_FUN)
         for (int k = 0; k < 8; ++k)
-            src[k] = val->as.fun(sim, hxd->vtx[k]);
+            src[k] = val->as.fun(&((struct sim_fun_ctx){
+                                     .sim = sim,
+                                     .vtx = hxd->vtx[k],
+                                     .qud = -1,
+                                     .hxd = h,
+                                 }),
+                &sim->msh->vtx.dat[hxd->vtx[k]]);
 
     int v0 = hxd->vtx[0];
     int v7 = hxd->vtx[7];
 
-    double hx = vtx[v7].x - vtx[v0].x;
-    double hy = vtx[v7].y - vtx[v0].y;
-    double hz = vtx[v7].z - vtx[v0].z;
+    double hx = vtx[v7].dat[0] - vtx[v0].dat[0];
+    double hy = vtx[v7].dat[1] - vtx[v0].dat[1];
+    double hz = vtx[v7].dat[2] - vtx[v0].dat[2];
 
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j) {
@@ -728,17 +801,15 @@ static int fem_lin_vec_src_hxd_asm(struct sim *sim, struct vec *vec, int h)
             bi = src_n * hx * hy * hz / 8;
         }
 
-        vec->dat[gi] += bi;
+        fem->prv.vec.dat[gi] += bi;
     }
 
     return 0;
 }
 
-static int fem_lin_vec_dir_qud_asm(struct sim *sim, struct vec *vec, int q)
+static int vec_dir_asm(struct sim *sim, int q)
 {
-    assert(sim);
-    assert(vec);
-
+    struct fem     *fem = (struct fem *)sim->slv;
     struct qud     *qud = &sim->msh->qud.dat[q];
     struct bnd     *bnd = &sim->bnd.dat[qud->pid];
     struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
@@ -749,21 +820,28 @@ static int fem_lin_vec_dir_qud_asm(struct sim *sim, struct vec *vec, int q)
         int gi = qud->vtx[i];
 
         if (cnd->pps.dir.tgt.type == VAL_FUN)
-            vec->dat[gi] = C * cnd->pps.dir.tgt.as.fun(sim, gi);
+            fem->prv.vec.dat[gi] = C * cnd->pps.dir.tgt.as.fun(&((struct sim_fun_ctx){
+                                                                   .sim = sim,
+                                                                   .vtx = qud->vtx[i],
+                                                                   .qud = q,
+                                                                   .hxd = qud->hxd,
+                                                               }),
+                                           &sim->msh->vtx.dat[qud->vtx[i]]);
         else
-            vec->dat[gi] = C * tgt_n;
+            fem->prv.vec.dat[gi] = C * tgt_n;
     }
 
     return 0;
 }
 
-static int fem_lin_vec_neu_qud_asm(struct sim *sim, struct vec *vec, int q)
+static int vec_neu_asm(struct sim *sim, int q)
 {
     static double mxi[2][2];
     static double mzt[2][2];
 
     static double tta[4];
 
+    struct fem     *fem = (struct fem *)sim->slv;
     struct qud     *qud = &sim->msh->qud.dat[q];
     struct bnd     *bnd = &sim->bnd.dat[qud->pid];
     struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
@@ -772,7 +850,13 @@ static int fem_lin_vec_neu_qud_asm(struct sim *sim, struct vec *vec, int q)
 
     if (cnd->pps.neu.tta.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            tta[i] = cnd->pps.neu.tta.as.fun(sim, qud->vtx[i]);
+            tta[i] = cnd->pps.neu.tta.as.fun(&((struct sim_fun_ctx){
+                                                 .sim = sim,
+                                                 .vtx = qud->vtx[i],
+                                                 .qud = q,
+                                                 .hxd = qud->hxd,
+                                             }),
+                &sim->msh->vtx.dat[qud->vtx[i]]);
 
     double hxi = 0;
     double hzt = 0;
@@ -805,17 +889,14 @@ static int fem_lin_vec_neu_qud_asm(struct sim *sim, struct vec *vec, int q)
             bi = tta_n * hxi * hzt / 4;
         }
 
-        vec->dat[gi] += bi;
+        fem->prv.vec.dat[gi] += bi;
     }
 
     return 0;
 }
 
-static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
+static int vec_rob_asm(struct sim *sim, int q)
 {
-    assert(sim);
-    assert(vec);
-
     static double mxi[2][2];
     static double mzt[2][2];
     static double mnxi[2][2][2];
@@ -824,6 +905,7 @@ static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
     static double bet[4];
     static double ext[4];
 
+    struct fem     *fem = (struct fem *)sim->slv;
     struct qud     *qud = &sim->msh->qud.dat[q];
     struct bnd     *bnd = &sim->bnd.dat[qud->pid];
     struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
@@ -833,11 +915,23 @@ static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
 
     if (cnd->pps.rob.bet.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            bet[i] = cnd->pps.rob.bet.as.fun(sim, qud->vtx[i]);
+            bet[i] = cnd->pps.rob.bet.as.fun(&((struct sim_fun_ctx){
+                                                 .sim = sim,
+                                                 .vtx = qud->vtx[i],
+                                                 .qud = q,
+                                                 .hxd = qud->hxd,
+                                             }),
+                &sim->msh->vtx.dat[qud->vtx[i]]);
 
     if (cnd->pps.rob.ext.type == VAL_FUN)
         for (int i = 0; i < 4; ++i)
-            ext[i] = cnd->pps.rob.ext.as.fun(sim, qud->vtx[i]);
+            ext[i] = cnd->pps.rob.ext.as.fun(&((struct sim_fun_ctx){
+                                                 .sim = sim,
+                                                 .vtx = qud->vtx[i],
+                                                 .qud = q,
+                                                 .hxd = qud->hxd,
+                                             }),
+                &sim->msh->vtx.dat[qud->vtx[i]]);
 
     double hxi = 0;
     double hzt = 0;
@@ -861,7 +955,7 @@ static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
             switch (cnd->pps.rob.ext.type) {
                 case VAL_NUM:
                     for (int i = 0; i < 4; ++i)
-                        vec->dat[qud->vtx[i]] += bet_n * ext_n * hxi * hzt / 4;
+                        fem->prv.vec.dat[qud->vtx[i]] += bet_n * ext_n * hxi * hzt / 4;
 
                     break;
                 case VAL_FUN:
@@ -878,7 +972,7 @@ static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
                             bi += ext[k] * mxi[muk][mui] * mzt[nuk][nui];
                         }
 
-                        vec->dat[qud->vtx[i]] += bet_n * bi;
+                        fem->prv.vec.dat[qud->vtx[i]] += bet_n * bi;
                     }
 
                     break;
@@ -901,7 +995,7 @@ static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
                             bi += bet[k] * mxi[muk][mui] * mzt[nuk][nui];
                         }
 
-                        vec->dat[qud->vtx[i]] += ext_n * bi;
+                        fem->prv.vec.dat[qud->vtx[i]] += ext_n * bi;
                     }
 
                     break;
@@ -924,7 +1018,7 @@ static int fem_lin_vec_rob_qud_asm(struct sim *sim, struct vec *vec, int q)
                             }
                         }
 
-                        vec->dat[qud->vtx[i]] += bi;
+                        fem->prv.vec.dat[qud->vtx[i]] += bi;
                     }
 
                     break;

@@ -15,7 +15,7 @@ static int get_bnd(FILE *f, struct sim *sim);
 
 static int get_ent(const char *src, char *key, char *val);
 static int get_str(const char **src, char *dst);
-static int get_val(void *usr, const char *src, struct val *val);
+static int get_val(struct sim *sim, char *src, struct val *val);
 
 int sim_imp_elm(struct sim *sim, const char *sif)
 {
@@ -93,10 +93,8 @@ int sim_imp_elm(struct sim *sim, const char *sif)
     }
 
 end:
-    if (r) {
-        fem_cls((struct fem *)sim->slv);
+    if (r)
         free(sim->slv);
-    }
 
     fclose(f);
 
@@ -185,10 +183,8 @@ static int get_sim(FILE *f, struct sim *sim)
 
             if (!strcmp("cgns", key)) {
                 ops->exp.mod = SIM_EXP_GNS;
-                ops->exp.ini.ctx = sim;
-                ops->exp.ini.run = sim_exp_ini_gns;
-                ops->exp.put.ctx = sim;
-                ops->exp.put.run = sim_exp_put_gns;
+                ops->exp.ini = sim_exp_gns_ini;
+                ops->exp.put = sim_exp_gns_put;
 
                 continue;
             }
@@ -203,25 +199,12 @@ static int get_sim(FILE *f, struct sim *sim)
         }
 
         if (!strncmp("Timestep Sizes", key, 14)) {
-            sim->ops.tdd.hop = atoi(val);
+            sscanf(val, "%lf %lf", &sim->ops.tdd.beg, &sim->ops.tdd.hop);
             continue;
         }
 
         if (!strcmp("BDF Order", key)) {
-            int ord = atoi(val);
-
-            switch (ord) {
-                case 3:
-                    fem->tdd = FEM_TDD_I3S;
-                    break;
-                case 4:
-                    fem->tdd = FEM_TDD_I4S;
-                    break;
-                default:
-                    fem->tdd = FEM_TDD_I2S;
-                    break;
-            }
-
+            fem->tdd = atoi(val);
             continue;
         }
 
@@ -239,8 +222,6 @@ static int get_sim(FILE *f, struct sim *sim)
         if (!strcmp("Solution Mode", key)) {
             if (!strcmp("Standard", val))
                 fem->mod = FEM_STD;
-            else if (!strcmp("Nonlinear", val))
-                fem->mod = FEM_NON;
             else if (!strcmp("Harmonic", val))
                 fem->mod = FEM_HMC;
 
@@ -255,17 +236,17 @@ static int get_sim(FILE *f, struct sim *sim)
         }
 
         if (!strcmp("Nonlinear System Convergence Tolerance", key)) {
-            fem->non.err = strtod(val, 0);
+            fem->non.ops.err = strtod(val, 0);
             continue;
         }
 
         if (!strcmp("Nonlinear System Max Iterations", key)) {
-            fem->non.max = atoi(val);
+            fem->non.ops.max = atoi(val);
             continue;
         }
 
         if (!strcmp("Nonlinear System Relaxation Factor", key)) {
-            fem->non.rlx = strtod(val, 0);
+            fem->non.ops.rlx = strtod(val, 0);
             continue;
         }
 
@@ -331,6 +312,15 @@ static int get_mat(FILE *f, struct sim *sim)
 
     struct mat *mat = &sim->mat.dat[sim->mat.len - 1];
 
+    mat->lam.type = VAL_NUM;
+    mat->lam.as.num = 0;
+    mat->gam.type = VAL_NUM;
+    mat->gam.as.num = 0;
+    mat->sig.type = VAL_NUM;
+    mat->sig.as.num = 0;
+    mat->chi.type = VAL_NUM;
+    mat->chi.as.num = 0;
+
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
@@ -339,28 +329,28 @@ static int get_mat(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Lambda Coefficient", key)) {
-            if (get_val(sim->ops.usr, val, &mat->lam))
+            if (get_val(sim, val, &mat->lam))
                 return -1;
 
             continue;
         }
 
         if (!strcmp("Gamma Coefficient", key)) {
-            if (get_val(sim->ops.usr, val, &mat->gam))
+            if (get_val(sim, val, &mat->gam))
                 return -1;
 
             continue;
         }
 
         if (!strcmp("Sigma Coefficient", key)) {
-            if (get_val(sim->ops.usr, val, &mat->sig))
+            if (get_val(sim, val, &mat->sig))
                 return -1;
 
             continue;
         }
 
         if (!strcmp("Chi Coefficient", key)) {
-            if (get_val(sim->ops.usr, val, &mat->chi))
+            if (get_val(sim, val, &mat->chi))
                 return -1;
 
             continue;
@@ -381,6 +371,9 @@ static int get_src(FILE *f, struct sim *sim)
 
     struct val *src = &sim->src.dat[sim->src.len - 1];
 
+    src->type = VAL_NUM;
+    src->as.num = 0;
+
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
@@ -389,7 +382,7 @@ static int get_src(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Field Source", key))
-            if (get_val(sim->ops.usr, val, src))
+            if (get_val(sim, val, src))
                 return -1;
     }
 
@@ -407,6 +400,9 @@ static int get_ini(FILE *f, struct sim *sim)
 
     struct cnd_ini *ini = &sim->cnd_ini.dat[sim->cnd_ini.len - 1];
 
+    ini->tgt.type = VAL_NUM;
+    ini->tgt.as.num = 0;
+
     while (fgets(buf, sizeof(buf), f)) {
         if (buf[0] == 'E')
             break;
@@ -415,7 +411,7 @@ static int get_ini(FILE *f, struct sim *sim)
             return -1;
 
         if (!strcmp("Field", key))
-            if (get_val(sim->ops.usr, val, &ini->tgt))
+            if (get_val(sim, val, &ini->tgt))
                 return -1;
     }
 
@@ -453,26 +449,31 @@ static int get_bnd(FILE *f, struct sim *sim)
         } else if (!strcmp("Field", key)) {
             bnd->type = CND_BND_DIR;
 
-            if (get_val(sim->ops.usr, val, &bnd->pps.dir.tgt))
+            if (get_val(sim, val, &bnd->pps.dir.tgt))
                 return -1;
 
             continue;
         } else if (!strcmp("Field Flux (theta)", key)) {
             bnd->type = CND_BND_NEU;
 
-            if (get_val(sim->ops.usr, val, &bnd->pps.neu.tta))
+            if (get_val(sim, val, &bnd->pps.neu.tta))
                 return -1;
 
+            continue;
         } else if (!strcmp("Robin Coefficient (beta)", key)) {
             bnd->type = CND_BND_ROB;
 
-            if (get_val(sim->ops.usr, val, &bnd->pps.rob.bet))
+            if (get_val(sim, val, &bnd->pps.rob.bet))
                 return -1;
+
+            continue;
         } else if (!strcmp("External Field", key)) {
             bnd->type = CND_BND_ROB;
 
-            if (get_val(sim->ops.usr, val, &bnd->pps.rob.ext))
+            if (get_val(sim, val, &bnd->pps.rob.ext))
                 return -1;
+
+            continue;
         }
     }
 
@@ -534,17 +535,30 @@ static int get_str(const char **src, char *dst)
     return 0;
 }
 
-static int get_val(void *usr, const char *src, struct val *val)
+static int get_val(struct sim *sim, char *src, struct val *val)
 {
-    if (isdigit(src[0])) {
+    char *fun = strtok(src, ";");
+
+    if (isdigit(fun[0])) {
         val->type = VAL_NUM;
-        val->as.num = strtod(src, 0);
+        val->as.num = strtod(fun, 0);
     } else {
         val->type = VAL_FUN;
-        val->as.fun = (double (*)(struct sim *, int))dlsym(usr, src);
+        val->as.fun = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr, fun);
 
         if (!val->as.fun)
             return -1;
+    }
+
+    val->ops.fd = false;
+    val->ops.dif = 0;
+
+    if ((fun = strtok(0, ";"))) {
+        val->ops.fd = true;
+        ((struct fem *)sim->slv)->ops.non.ops.fd = true;
+
+        if (strcmp("num", fun))
+            val->ops.dif = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr, fun);
     }
 
     return 0;

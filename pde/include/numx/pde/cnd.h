@@ -9,11 +9,11 @@ typedef struct sim sim;
 
 struct sim_fun_ctx
 {
-    struct sim *sim;
+    struct sim *sim; // simulation
 
-    int vtx;
-    int qud;
-    int hxd;
+    int vtx; // hinted vertex
+    int qud; // hinted quadrangle
+    int hxd; // hinted hexahedron
 };
 
 typedef struct val
@@ -32,8 +32,6 @@ typedef struct val
 
     struct
     {
-        bool sd; // space dependence
-        bool td; // time dependence
         bool fd; // field dependence
 
         double (*dif)(struct sim_fun_ctx *ctx, struct vec *vtx); // partial derivative with respect to field

@@ -10,7 +10,6 @@
         <Type> String </Type>
 
         <Item Type="Active"> <Name> Standard </Name> </Item>
-        <Item> <Name> Nonlinear </Name> </Item>
         <Item> <Name> Harmonic </Name> </Item>
       </Parameter>
       <Parameter Widget="Combo">
@@ -53,6 +52,7 @@
         <Name> Field Flux (theta) </Name>
         <Whatis> Neumann condition for the field. </Whatis>
       </Parameter>
+
       <Parameter  Widget="Edit">
         <Name> Robin Coefficient (beta) </Name>
         <Whatis> Multiplier of the Robin Boundary Condition. </Whatis>

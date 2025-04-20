@@ -40,15 +40,9 @@ int fem_exe(struct sim *sim)
     if (fem_ini(sim))
         return -1;
 
-    sim->slv->apx = fem_lin_apx;
-
-    switch (sim->mod) {
-        case SIM_ELL:
-            return fem_lin_ell_slv(sim);
-        case SIM_PBC:
-            return fem_lin_pbc_slv(sim);
-        case SIM_HYP:
-            return fem_lin_hyp_slv(sim);
+    switch (((struct fem *)sim->slv)->ops.bss) {
+        case FEM_BSS_LIN:
+            return fem_lin_slv(sim);
     }
 
     return 0;
@@ -87,46 +81,40 @@ static int fem_ini(struct sim *sim)
                     z += 1;
     }
 
-    if ((r = mtx_new(&fem->prv.ell, ((struct smtx_pps){n, z}))))
+    if ((r = mtx_new(&fem->prv.mtx, ((struct smtx_pps){n, z}))))
         goto end;
 
     for (int i = 0, e = 0; i < n; ++i) {
-        fem->prv.ell.ia[i] = e;
+        fem->prv.mtx.ia[i] = e;
 
         log_rst(&map[i]);
 
         for (int j = 0; !log_adv(&map[i], &j); e++)
-            fem->prv.ell.ja[e] = j;
+            fem->prv.mtx.ja[e] = j;
     }
 
-    fem->prv.ell.ia[n] = z;
+    fem->prv.mtx.ia[n] = z;
 
     if ((r = vec_new(&fem->prv.vec, n)))
         goto end;
 
     switch (sim->mod) {
         case SIM_HYP:
-            if ((r = mtx_new(&fem->prv.hyp, fem->prv.ell.pps)))
+            if ((r = mtx_new(&fem->prv.chi, fem->prv.mtx.pps)))
                 goto end;
 
-            memcpy(fem->prv.hyp.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
-            memcpy(fem->prv.hyp.ja, fem->prv.ell.ja, sizeof(int) * z);
+            memcpy(fem->prv.chi.ia, fem->prv.mtx.ia, sizeof(int) * (n + 1));
+            memcpy(fem->prv.chi.ja, fem->prv.mtx.ja, sizeof(int) * z);
 
-            if ((r = mtx_new(&fem->prv.pbc, fem->prv.ell.pps)))
-                goto end;
-
-            memcpy(fem->prv.pbc.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
-            memcpy(fem->prv.pbc.ja, fem->prv.ell.ja, sizeof(int) * z);
-
-            break;
+        [[fallthrough]];
         case SIM_PBC:
-            if ((r = mtx_new(&fem->prv.pbc, fem->prv.ell.pps)))
+            if ((r = mtx_new(&fem->prv.sig, fem->prv.mtx.pps)))
                 goto end;
 
-            memcpy(fem->prv.pbc.ia, fem->prv.ell.ia, sizeof(int) * (n + 1));
-            memcpy(fem->prv.pbc.ja, fem->prv.ell.ja, sizeof(int) * z);
+            memcpy(fem->prv.sig.ia, fem->prv.mtx.ia, sizeof(int) * (n + 1));
+            memcpy(fem->prv.sig.ja, fem->prv.mtx.ja, sizeof(int) * z);
 
-            break;
+        [[fallthrough]];
         case SIM_ELL:
             break;
     }
