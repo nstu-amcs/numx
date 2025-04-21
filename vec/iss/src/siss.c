@@ -72,6 +72,9 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         vec_cmb(&s, &r, &r, -omg);
         vec_nrm(&r, &nrm);
 
+        o->ops.run.itr = k;
+        o->ops.run.err = nrm;
+
         if (o->ops.itr.run)
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);
 

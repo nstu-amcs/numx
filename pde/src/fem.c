@@ -40,6 +40,9 @@ int fem_exe(struct sim *sim)
     if (fem_ini(sim))
         return -1;
 
+    if (sim->ops.exp.ini(sim))
+        return -1;
+
     switch (((struct fem *)sim->slv)->ops.bss) {
         case FEM_BSS_LIN:
             return fem_lin_slv(sim);

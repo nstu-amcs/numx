@@ -114,6 +114,23 @@ int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k)
     return 0;
 }
 
+int smtx_rst(struct smtx *m)
+{
+    assert(m);
+
+    int n = m->pps.n;
+    int z = m->pps.z;
+
+    memset(m->dr, 0, sizeof(double) * n);
+
+    if (z > 0) {
+        memset(m->lr, 0, sizeof(double) * z);
+        memset(m->ur, 0, sizeof(double) * z);
+    }
+
+    return 0;
+}
+
 int smtx_ilu(struct smtx *m, struct smtx *r)
 {
     if (!m || !r || m->pps.n != r->pps.n || m->pps.z != r->pps.z) {

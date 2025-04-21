@@ -47,6 +47,7 @@ int smtx_cls(struct smtx *m);
 
 int smtx_add(struct smtx *m, int i, int j, double v);
 int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k);
+int smtx_rst(struct smtx *m);
 
 int smtx_ilu(struct smtx *m, struct smtx *r);
 int smtx_dgl(struct smtx *m, struct smtx *r);

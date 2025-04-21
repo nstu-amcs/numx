@@ -26,11 +26,16 @@ add_custom_command(
 )
 
 install(DIRECTORY include/numx DESTINATION /usr/share/include)
+install(DIRECTORY include/numx DESTINATION /usr/include)
 
 install(FILES mod/ell.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 install(FILES mod/pbc.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 install(FILES mod/hyp.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 
-# add_executable(pde-non-case1 test/non/case1/test.c)
+# add_executable(test-pde-ell-c1 test/ell/case1/test.c)
+# target_link_libraries(test-pde-ell-c1 pde)
+# add_test(NAME numx/pde/ell/c1 COMMAND test-pde-ell-c1 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/pde/test/ell/case1)
+
+# add_executable(test-pde-non-case1 test/non/case1/test.c)
 # target_link_libraries(pde-non-case1 pde)
 # add_test(NAME numx/pde/non/case1 COMMAND pde-non-case1 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/pde/test/non/case1)

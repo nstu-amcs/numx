@@ -2,6 +2,7 @@
 build/
 
 **/*.cgns
+**/*.dat
 
 **/msh/*
 **/elm/*

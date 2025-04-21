@@ -40,7 +40,7 @@ double fem_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
 }
 
 static int ell_slv(struct sim *sim);
-static int hyp_slv(struct sim *sim);
+static int pbc_slv(struct sim *sim);
 
 int fem_lin_slv(struct sim *sim)
 {
@@ -52,9 +52,9 @@ int fem_lin_slv(struct sim *sim)
         case SIM_ELL:
             return ell_slv(sim);
         case SIM_PBC:
-            return hyp_slv(sim);
+            return pbc_slv(sim);
         case SIM_HYP:
-            return hyp_slv(sim);
+            return pbc_slv(sim);
     }
 
     return 0;
@@ -94,7 +94,7 @@ end:
 
 static int pbc_i1s_slv(struct sim *sim);
 
-static int hyp_slv(struct sim *sim)
+static int pbc_slv(struct sim *sim)
 {
     int r = 0;
 
@@ -267,10 +267,13 @@ static int slv_fpi(struct sim *sim)
         goto end;
 
     int    max = fem->ops.non.ops.max;
-    double err = fem->ops.non.ops.max;
+    double err = fem->ops.non.ops.err;
     double cur = 1;
     double tnm = 0;
     double bnm = 0;
+
+    for (int i = 0; i < fem->prv.vec.n; ++i)
+        fem->slv.run.wgt[0]->dat[i] = 1;
 
     for (int i = 0; i < max && cur > err; ++i) {
         if (i > 0)
@@ -285,6 +288,11 @@ static int slv_fpi(struct sim *sim)
                     r = -1;
                     goto end;
             }
+
+        smtx_rst(&fem->prv.mtx);
+        // smtx_rst(&fem->prv.sig);
+        // smtx_rst(&fem->prv.chi);
+        vec_rst(&fem->prv.vec);
 
         if ((r = fem_lin_asm(sim)))
             goto end;

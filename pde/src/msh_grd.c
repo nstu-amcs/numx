@@ -58,6 +58,7 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
         r = -1;
         goto end;
     }
+
     if ((r = vec_cut_dev(&msh->vtx, n)))
         goto end;
 
@@ -105,7 +106,6 @@ int msh_exp_grd(struct msh *msh, const char *dir, const char *pfx)
 
 static int get_vtx(struct msh *msh, FILE *f)
 {
-
     for (int i = 0, j; i < msh->vtx.len; ++i) {
         struct vec *vtx = &msh->vtx.dat[i];
 
@@ -113,9 +113,9 @@ static int get_vtx(struct msh *msh, FILE *f)
             return -1;
 
         if (fscanf(f, "%d %d %lf %lf %lf", &j, &j, 
-              &vtx[i].dat[0], 
-              &vtx[i].dat[1], 
-              &vtx[i].dat[2]) != 5)
+              &vtx->dat[0], 
+              &vtx->dat[1], 
+              &vtx->dat[2]) != 5)
             return -1;
     }
 

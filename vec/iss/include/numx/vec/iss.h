@@ -33,7 +33,7 @@ typedef struct iss_ops
     {
         int    itr;
         double err;
-    } rt;
+    } run;
 } iss_ops;
 
 typedef struct iss_jac_ops
