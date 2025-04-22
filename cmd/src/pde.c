@@ -35,6 +35,7 @@ void on_slv(void *ctx, struct sim *sim)
     struct vec *vtx = sim->msh->vtx.dat;
 
     double err = 0;
+    int num = 0;
 
     for (int h = 0; h < sim->msh->hxd.len; ++h) {
         struct hxd *hxd = &sim->msh->hxd.dat[h];
@@ -72,6 +73,8 @@ void on_slv(void *ctx, struct sim *sim)
                         &v);
 
                     err += fabs(tgt - apx);
+                    num += 1;
+
                     v.dat[2] += ZS;
                 }
 
@@ -84,7 +87,7 @@ void on_slv(void *ctx, struct sim *sim)
 
     char name[256];
 
-    fprintf(dat->fs, "%d & %.7e & %d & %.7e\n", sim->slv->run.ti, err, dat->non.itr, dat->non.err);
+    fprintf(dat->fs, "%d & %.7e & %d & %.7e\n", sim->slv->run.ti, err / num, dat->non.itr, dat->non.err);
 
     if (((struct fem *)sim->slv)->ops.non.ops.fd && sim->slv->run.ti < sim->ops.tdd.num) {
         fclose(dat->fn);
@@ -143,6 +146,8 @@ int pde(int argc, char **argv)
         sprintf(name, "%s/non-0.dat", sim.ops.exp.dir);
         dat.fn = fopen(name, "w+");
     }
+
+    ((struct fem *)sim.slv)->ops.non.mod = NON_NEW;
 
     if (sim_run(&sim)) {
         perror("fatal: execution");

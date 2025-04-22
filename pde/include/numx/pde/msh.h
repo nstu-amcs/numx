@@ -31,7 +31,7 @@ cut_def(seg_cut, seg);
 cut_def(qud_cut, qud);
 cut_def(hxd_cut, hxd);
 
-/** Unstructued mesh. */
+/** Unstructured mesh. */
 typedef struct msh
 {
     struct vec_cut vtx; // vertices
