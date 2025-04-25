@@ -35,7 +35,7 @@ void on_slv(void *ctx, struct sim *sim)
     struct vec *vtx = sim->msh->vtx.dat;
 
     double err = 0;
-    int num = 0;
+    int    num = 0;
 
     for (int h = 0; h < sim->msh->hxd.len; ++h) {
         struct hxd *hxd = &sim->msh->hxd.dat[h];
@@ -89,7 +89,7 @@ void on_slv(void *ctx, struct sim *sim)
 
     fprintf(dat->fs, "%d & %.7e & %d & %.7e\n", sim->slv->run.ti, err / num, dat->non.itr, dat->non.err);
 
-    if (((struct fem *)sim->slv)->ops.non.ops.fd && sim->slv->run.ti < sim->ops.tdd.num) {
+    if (sim->slv->ops.non.ops.fd && sim->slv->run.ti < sim->ops.tdd.num) {
         fclose(dat->fn);
         sprintf(name, "%s/non-%d.dat", sim->ops.exp.dir, sim->slv->run.ti + 1);
         dat->fn = fopen(name, "w+");
@@ -100,11 +100,13 @@ void on_non(void *ctx, struct sim *sim)
 {
     struct dat *dat = (struct dat *)ctx;
 
-    dat->non.itr = ((struct fem *)sim->slv)->ops.non.run.itr;
-    dat->non.err = ((struct fem *)sim->slv)->ops.non.run.err;
+    dat->non.itr = sim->slv->ops.non.run.itr;
+    dat->non.err = sim->slv->ops.non.run.err;
 
-    fprintf(dat->fn, "%d & %.7e & %d & %.7e\n", dat->non.itr, dat->non.err,
-        ((struct fem *)sim->slv)->ops.iss.ops.bcg.ops.run.itr, ((struct fem *)sim->slv)->ops.iss.ops.bcg.ops.run.err);
+    double rlx = sim->slv->ops.non.run.rlx;
+
+    fprintf(dat->fn, "%d & %.7e & %.3f & %d & %.7e\n", dat->non.itr, dat->non.err, rlx,
+        sim->slv->ops.iss.ops.bcg.ops.run.itr, sim->slv->ops.iss.ops.bcg.ops.run.err);
 }
 
 int pde(int argc, char **argv)
@@ -122,32 +124,36 @@ int pde(int argc, char **argv)
         return -1;
     }
 
+    sim.slv->ops.non.mod = NON_FPI;
+    sim.slv->ops.non.ops.dif = DIF_GIV;
+    sim.slv->ops.non.ops.rlx = true;
+
+    sprintf(sim.ops.usr.pfx, "u1");
+
     if (sim_imp_elm(&sim, argv[2])) {
         perror("fatal: import");
         return -1;
     }
 
-    dat.tgt = dlsym(sim.ops.usr, "target");
+    dat.tgt = dlsym(sim.ops.usr.hdl, "target");
     dat.non.itr = 0;
     dat.non.err = 0;
 
     sim.slv->itr.ctx = &dat;
     sim.slv->itr.run = on_slv;
 
-    ((struct fem *)sim.slv)->ops.non.ops.itr.ctx = &dat;
-    ((struct fem *)sim.slv)->ops.non.ops.itr.run = on_non;
+    sim.slv->ops.non.ops.itr.ctx = &dat;
+    sim.slv->ops.non.ops.itr.run = on_non;
 
     char name[256];
 
     sprintf(name, "%s/slv.dat", sim.ops.exp.dir);
     dat.fs = fopen(name, "w+");
 
-    if (((struct fem *)sim.slv)->ops.non.ops.fd) {
+    if (sim.slv->ops.non.ops.fd) {
         sprintf(name, "%s/non-0.dat", sim.ops.exp.dir);
         dat.fn = fopen(name, "w+");
     }
-
-    ((struct fem *)sim.slv)->ops.non.mod = NON_NEW;
 
     if (sim_run(&sim)) {
         perror("fatal: execution");
@@ -157,7 +163,7 @@ int pde(int argc, char **argv)
     sim_cls(&sim);
     fclose(dat.fs);
 
-    if (((struct fem *)sim.slv)->ops.non.ops.fd) {
+    if (sim.slv->ops.non.ops.fd) {
         fclose(dat.fn);
     }
 

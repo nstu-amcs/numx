@@ -2,8 +2,8 @@
 #define NUMX_PDE_SLV_H
 
 #include <numx/pde/msh.h>
-#include <numx/vec/vec.h>
 #include <numx/vec/iss.h>
+#include <numx/vec/vec.h>
 
 struct sim;
 
@@ -58,7 +58,13 @@ typedef struct slv
 
                 int    max; // maximum number of iterations
                 double err; // convergence tolerance
-                double rlx; // relaxation factor
+                bool   rlx; // enable relaxation
+
+                enum
+                {
+                    DIF_NUM,
+                    DIF_GIV,
+                } dif;
             } ops;
 
             /** Runtime data made available by solver. */
@@ -66,6 +72,7 @@ typedef struct slv
             {
                 int    itr; // current iteration
                 double err; // current error
+                double rlx; // optimal relaxation factor
             } run;
         } non;
 
@@ -122,8 +129,8 @@ typedef struct slv
     {
         struct vec *wgt[4]; // buffered solution
 
-        int tb; // number of buffered layers (1 - 4)
-        int ti; // current time iteration
+        int    tb; // number of buffered layers (1 - 4)
+        int    ti; // current time iteration
         double tv; // current time value
     } run;
 } slv;

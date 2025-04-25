@@ -15,20 +15,20 @@ int fem_new(struct fem *fem)
     fem->ops.mod = FEM_STD;
     fem->ops.bss = FEM_BSS_LIN;
 
-    fem->ops.iss.mod = ISS_BCG;
-    fem->ops.iss.ops.bcg.con.sm = 0;
-    fem->ops.iss.ops.bcg.ops.err = 1e-10;
-    fem->ops.iss.ops.bcg.ops.itr.run = 0;
-    fem->ops.iss.ops.bcg.ops.max = 500;
+    fem->slv.ops.iss.mod = ISS_BCG;
+    fem->slv.ops.iss.ops.bcg.con.sm = 0;
+    fem->slv.ops.iss.ops.bcg.ops.err = 1e-10;
+    fem->slv.ops.iss.ops.bcg.ops.itr.run = 0;
+    fem->slv.ops.iss.ops.bcg.ops.max = 500;
 
-    fem->ops.non.mod = NON_FPI;
-    fem->ops.non.ops.itr.ctx = 0;
-    fem->ops.non.ops.itr.run = 0;
-    fem->ops.non.ops.max = 50;
-    fem->ops.non.ops.err = 1e-10;
-    fem->ops.non.ops.rlx = 1;
+    fem->slv.ops.non.mod = NON_FPI;
+    fem->slv.ops.non.ops.itr.ctx = 0;
+    fem->slv.ops.non.ops.itr.run = 0;
+    fem->slv.ops.non.ops.max = 50;
+    fem->slv.ops.non.ops.err = 1e-10;
+    fem->slv.ops.non.ops.rlx = 1;
 
-    fem->ops.tdd = FEM_TDD_I2S;
+    fem->slv.ops.tdd = TDD_I2S;
 
     return 0;
 }
@@ -109,7 +109,7 @@ static int fem_ini(struct sim *sim)
             memcpy(fem->prv.chi.ia, fem->prv.mtx.ia, sizeof(int) * (n + 1));
             memcpy(fem->prv.chi.ja, fem->prv.mtx.ja, sizeof(int) * z);
 
-        [[fallthrough]];
+            [[fallthrough]];
         case SIM_PBC:
             if ((r = mtx_new(&fem->prv.sig, fem->prv.mtx.pps)))
                 goto end;
@@ -117,7 +117,7 @@ static int fem_ini(struct sim *sim)
             memcpy(fem->prv.sig.ia, fem->prv.mtx.ia, sizeof(int) * (n + 1));
             memcpy(fem->prv.sig.ja, fem->prv.mtx.ja, sizeof(int) * z);
 
-        [[fallthrough]];
+            [[fallthrough]];
         case SIM_ELL:
             break;
     }

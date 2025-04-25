@@ -25,18 +25,6 @@ int sim_imp_elm(struct sim *sim, const char *sif)
     int   r = 0;
     FILE *f = 0;
 
-    struct fem *fem = 0;
-
-    if (!(fem = malloc(sizeof(struct fem)))) {
-        r = -1;
-        goto end;
-    }
-
-    if ((r = fem_new(fem)))
-        goto end;
-
-    sim->slv = &fem->slv;
-
     if (!(f = fopen(sif, "r"))) {
         r = -1;
         goto end;
@@ -129,17 +117,18 @@ static int get_hdr(FILE *f, struct sim *sim)
 
                 break;
             case 'I':
-                get_str(&cur, tmp);
+                get_str(&cur, sim->ops.usr.dir);
 
-                if (!tmp[0])
+                if (!sim->ops.usr.dir[0])
                     break;
 
-                sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s", tmp);
+                sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s/%s.c", sim->ops.usr.dir,
+                    sim->ops.usr.pfx);
                 system(cmd);
 
-                sim->ops.usr = dlopen("/tmp/numx_usr.so", RTLD_NOW);
+                sim->ops.usr.hdl = dlopen("/tmp/numx_usr.so", RTLD_NOW);
 
-                if (!sim->ops.usr)
+                if (!sim->ops.usr.hdl)
                     return -1;
 
                 break;
@@ -204,7 +193,7 @@ static int get_sim(FILE *f, struct sim *sim)
         }
 
         if (!strcmp("BDF Order", key)) {
-            fem->tdd = atoi(val);
+            sim->slv->ops.tdd = atoi(val);
             continue;
         }
 
@@ -236,35 +225,30 @@ static int get_sim(FILE *f, struct sim *sim)
         }
 
         if (!strcmp("Nonlinear System Convergence Tolerance", key)) {
-            fem->non.ops.err = strtod(val, 0);
+            sim->slv->ops.non.ops.err = strtod(val, 0);
             continue;
         }
 
         if (!strcmp("Nonlinear System Max Iterations", key)) {
-            fem->non.ops.max = atoi(val);
-            continue;
-        }
-
-        if (!strcmp("Nonlinear System Relaxation Factor", key)) {
-            fem->non.ops.rlx = strtod(val, 0);
+            sim->slv->ops.non.ops.max = atoi(val);
             continue;
         }
 
         if (!strcmp("Linear System Iterative Method", key)) {
             if (!strcmp("BiCGStab", val)) {
-                fem->iss.mod = ISS_BCG;
+                sim->slv->ops.iss.mod = ISS_BCG;
             }
 
             continue;
         }
 
         if (!strcmp("Linear System Max Iterations", key)) {
-            fem->iss.ops.bcg.ops.max = atoi(val);
+            sim->slv->ops.iss.ops.bcg.ops.max = atoi(val);
             continue;
         }
 
         if (!strcmp("Linear System Convergence Tolerance", key)) {
-            fem->iss.ops.bcg.ops.err = strtod(val, 0);
+            sim->slv->ops.iss.ops.bcg.ops.err = strtod(val, 0);
             continue;
         }
     }
@@ -544,7 +528,7 @@ static int get_val(struct sim *sim, char *src, struct val *val)
         val->as.num = strtod(fun, 0);
     } else {
         val->type = VAL_FUN;
-        val->as.fun = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr, fun);
+        val->as.fun = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr.hdl, fun);
 
         if (!val->as.fun)
             return -1;
@@ -555,10 +539,10 @@ static int get_val(struct sim *sim, char *src, struct val *val)
 
     if ((fun = strtok(0, ";"))) {
         val->ops.fd = true;
-        ((struct fem *)sim->slv)->ops.non.ops.fd = true;
+        sim->slv->ops.non.ops.fd = true;
 
         if (strcmp("num", fun))
-            val->ops.dif = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr, fun);
+            val->ops.dif = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr.hdl, fun);
     }
 
     return 0;

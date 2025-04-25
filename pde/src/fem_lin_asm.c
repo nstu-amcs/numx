@@ -153,7 +153,7 @@ static int pbc_asm(struct sim *sim)
 
     int itr = sim->slv->run.ti;
 
-    if (f[min(itr, (int)fem->ops.tdd - 1) - 1](sim))
+    if (f[min(itr, (int)fem->slv.ops.tdd - 1) - 1](sim))
         return -1;
 
     return 0;

@@ -57,7 +57,14 @@ typedef struct sim
 
     struct sim_ops
     {
-        void *usr; // user-defined functions
+        /** User-defined functions. */
+        struct
+        {
+            char dir[128]; // usr directory
+            char pfx[64];  // usr prefix
+
+            void *hdl; // dynamic-library handler
+        } usr;
 
         /** Export options. */
         struct

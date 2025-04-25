@@ -99,6 +99,20 @@ int vec_nrm(struct vec *v, double *r)
     return 0;
 }
 
+int vec_mul(struct vec *v, struct vec *r, double m)
+{
+    int     n = v->n;
+
+    double *vd = v->dat;
+    double *rd = r->dat;
+
+#pragma omp parallel for
+    for (int i = 0; i < n; ++i)
+        rd[i] = vd[i] * m;
+
+    return 0;
+}
+
 int vec_cpy(struct vec *s, struct vec *d)
 {
     assert(s);

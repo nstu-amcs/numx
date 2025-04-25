@@ -18,19 +18,19 @@ set_property(TARGET cgns PROPERTY IMPORTED_LOCATION "/usr/lib/libcgns.so")
 target_link_libraries(pde PUBLIC com vec iss cgns)
 target_include_directories(pde PUBLIC include/)
 
-add_custom_target(docs-pde-fem-non DEPENDS fem-non.pdf VERBATIM)
-add_custom_command(
-  OUTPUT fem-non.pdf 
-  COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/fem-non.tex 
-  DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/fem-non.tex
-)
-
 install(DIRECTORY include/numx DESTINATION /usr/share/include)
 install(DIRECTORY include/numx DESTINATION /usr/include)
 
 install(FILES mod/ell.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 install(FILES mod/pbc.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 install(FILES mod/hyp.xml DESTINATION /usr/local/share/ElmerGUI/edf)
+
+add_custom_target(docs-pde-fem-non DEPENDS fem-non.pdf VERBATIM)
+add_custom_command(
+  OUTPUT fem-non.pdf 
+  COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/fem-non.tex 
+  DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/fem-non.tex
+)
 
 # add_executable(test-pde-ell-c1 test/ell/case1/test.c)
 # target_link_libraries(test-pde-ell-c1 pde)

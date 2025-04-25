@@ -1,12 +1,12 @@
 Header
   CHECK KEYWORDS Warn
   Mesh DB "/home/paraskun/x86/numx/pde/test/non/case1" "elm"
-  Include Path "/home/paraskun/x86/numx/pde/test/non/case1/code.c"
+  Include Path "/home/paraskun/x86/numx/pde/test/non/case1"
   Results Directory "/home/paraskun/x86/numx/pde/test/non/case1/res"
 End
 
 Simulation
-  Max Output Level = 3
+  Max Output Level = 5
   Coordinate System = Cartesian
   Coordinate Mapping(3) = 1 2 3
   Simulation Type = Steady state
@@ -42,7 +42,7 @@ Solver 1
   Optimize Bandwidth = True
   Steady State Convergence Tolerance = 1.0e-5
   Nonlinear System Convergence Tolerance = 1.0e-7
-  Nonlinear System Max Iterations = 200
+  Nonlinear System Max Iterations = 20
   Nonlinear System Newton After Iterations = 3
   Nonlinear System Newton After Tolerance = 1.0e-3
   Nonlinear System Relaxation Factor = 1
@@ -51,7 +51,7 @@ Solver 1
   Linear System Max Iterations = 500
   Linear System Convergence Tolerance = 1.0e-10
   BiCGstabl polynomial degree = 2
-  Linear System Preconditioning = none
+  Linear System Preconditioning = ILU0
   Linear System ILUT Tolerance = 1.0e-3
   Linear System Abort Not Converged = False
   Linear System Residual Output = 10
@@ -65,8 +65,8 @@ End
 
 Material 1
   Name = "Material 1"
-  Lambda Coefficient = lam;num
   Gamma Coefficient = 0.4
+  Lambda Coefficient = lam;dlam
 End
 
 Body Force 1
@@ -109,6 +109,6 @@ End
 Boundary Condition 6
   Target Boundaries(1) = 5 
   Name = "BoundaryCondition 6"
-  External Field = rob3
   Robin Coefficient (beta) = 10
+  External Field = rob3
 End

@@ -17,10 +17,17 @@ int sim_new(struct sim *sim)
     assert(sim);
 
     sim->mod = SIM_ELL;
-    sim->ops.usr = 0;
+    sim->ops.usr.hdl = 0;
     sim->ops.exp.mod = SIM_EXP_GNS;
     sim->ops.tdd.num = 0;
     sim->ops.tdd.hop = 0;
+
+    struct fem *fem = malloc(sizeof(struct fem));
+
+    if (!fem || fem_new(fem))
+        goto err;
+
+    sim->slv = &fem->slv;
 
     if (!(sim->msh = malloc(sizeof(struct msh))))
         goto err;
@@ -61,6 +68,7 @@ int sim_cls(struct sim *sim)
     msh_cls(sim->msh);
 
     free(sim->msh);
+    free(sim->slv);
 
     mat_cut_cls(&sim->mat);
     val_cut_cls(&sim->src);
@@ -70,7 +78,7 @@ int sim_cls(struct sim *sim)
     cnd_ini_cut_cls(&sim->cnd_ini);
     cnd_bnd_cut_cls(&sim->cnd_bnd);
 
-    dlclose(sim->ops.usr);
+    dlclose(sim->ops.usr.hdl);
 
     return 0;
 }
