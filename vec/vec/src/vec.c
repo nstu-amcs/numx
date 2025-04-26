@@ -59,7 +59,7 @@ int vec_cmb(struct vec *a, struct vec *b, struct vec *r, double k)
     double *bd = b->dat;
     double *rd = r->dat;
 
-#pragma omp parallel for
+    [[omp::directive(parallel for)]]
     for (int i = 0; i < n; ++i)
         rd[i] = ad[i] + k * bd[i];
 
@@ -79,7 +79,7 @@ int vec_dot(struct vec *a, struct vec *b, double *r)
 
     double s = 0;
 
-#pragma omp parallel for reduction(+ : s)
+    [[omp::directive(parallel for reduction(+:s))]]
     for (int i = 0; i < dim; ++i)
         s += ad[i] * bd[i];
 
@@ -101,24 +101,36 @@ int vec_nrm(struct vec *v, double *r)
 
 int vec_mul(struct vec *v, struct vec *r, double m)
 {
-    int     n = v->n;
+    int n = v->n;
 
     double *vd = v->dat;
     double *rd = r->dat;
 
-#pragma omp parallel for
+    [[omp::directive(parallel for)]]
     for (int i = 0; i < n; ++i)
         rd[i] = vd[i] * m;
 
     return 0;
 }
 
-int vec_cpy(struct vec *s, struct vec *d)
+int vec_dup(struct vec *s, struct vec *d)
 {
     assert(s);
     assert(d);
 
     memcpy(d->dat, s->dat, sizeof(double) * s->n);
+
+    return 0;
+}
+
+int vec_swp(struct vec *a, struct vec *b)
+{
+    assert(a);
+    assert(b);
+
+    double *t = a->dat;
+    a->dat = b->dat;
+    b->dat = t;
 
     return 0;
 }

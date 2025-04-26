@@ -18,8 +18,8 @@ typedef struct imtx
 int imtx_new(struct imtx *m, struct imtx_pps pps);
 int imtx_cls(struct imtx *m);
 
-int imtx_vmlt(struct imtx *m, struct vec *x, struct vec *f);
-int imtx_mmlt(struct imtx *a, struct imtx *b, struct imtx *r);
+int imtx_vmul(struct imtx *m, struct vec *x, struct vec *f);
+int imtx_mmul(struct imtx *a, struct imtx *b, struct imtx *r);
 
 /**
  * Sparse matrix in row-column storage mode.
@@ -45,15 +45,19 @@ typedef struct smtx
 int smtx_new(struct smtx *m, struct smtx_pps pps);
 int smtx_cls(struct smtx *m);
 
-int smtx_add(struct smtx *m, int i, int j, double v);
+int smtx_inc(struct smtx *m, int i, int j, double v);
 int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k);
+
+int smtx_vdup(struct smtx *s, struct smtx *d);
+int smtx_sdup(struct smtx *s, struct smtx *d);
+
 int smtx_rst(struct smtx *m);
 
 int smtx_ilu(struct smtx *m, struct smtx *r);
 int smtx_dgl(struct smtx *m, struct smtx *r);
 
-int smtx_vmlt(struct smtx *m, struct vec *x, struct vec *f);
-int smtx_mmlt(struct smtx *a, struct smtx *b, struct smtx *r);
+int smtx_vmul(struct smtx *m, struct vec *x, struct vec *f);
+int smtx_mmul(struct smtx *a, struct smtx *b, struct smtx *r);
 
 /**
  * Sparse matrix in compressed-diagonal storage mode.
@@ -76,7 +80,7 @@ typedef struct dmtx
 int dmtx_new(struct dmtx *m, struct dmtx_pps pps);
 int dmtx_cls(struct dmtx *m);
 
-int dmtx_vmlt(struct dmtx *m, struct vec *x, struct vec *f);
+int dmtx_vmul(struct dmtx *m, struct vec *x, struct vec *f);
 
 typedef struct jmtx
 {
@@ -99,15 +103,20 @@ int jmtx_cls(struct jmtx *m);
 #define mtx_cls(X)                                                                                                     \
     _Generic((X), struct imtx *: imtx_cls, struct smtx *: smtx_cls, struct dmtx *: dmtx_cls, struct jmtx *: jmtx_cls)(X)
 
+#define mtx_inc(X, i, j, v) _Generic((X), struct smtx *: smtx_inc)(X, i, j, v)
 #define mtx_cmb(X, b, r, k) _Generic((X), struct smtx *: smtx_cmb)(X, b, r, k)
 
 #define mtx_ilu(X, r) _Generic((X), struct smtx *: smtx_ilu)(X, r)
-
 #define mtx_dgl(X, r) _Generic((X), struct smtx *: smtx_dgl)(X, r)
 
-#define mtx_vmlt(X, v, r)                                                                                              \
-    _Generic((X), struct imtx *: imtx_vmlt, struct smtx *: smtx_vmlt, struct dmtx *: dmtx_vmlt)(X, v, r)
+#define mtx_vdup(X, d) _Generic((X), struct smtx *: smtx_vdup)(X, d)
+#define mtx_sdup(X, d) _Generic((X), struct smtx *: smtx_sdup)(X, d)
 
-#define mtx_mmlt(X, b, r) _Generic((X), struct imtx *: imtx_mmlt, struct smtx *: smtx_mmlt)(X, b, r)
+#define mtx_rst(X) _Generic((X), struct smtx *: smtx_rst)(X)
+
+#define mtx_vmul(X, v, r)                                                                                              \
+    _Generic((X), struct imtx *: imtx_vmul, struct smtx *: smtx_vmul, struct dmtx *: dmtx_vmul)(X, v, r)
+
+#define mtx_mmul(X, b, r) _Generic((X), struct imtx *: imtx_mmul, struct smtx *: smtx_mmul)(X, b, r)
 
 #endif // NUMX_VEC_MTX_H

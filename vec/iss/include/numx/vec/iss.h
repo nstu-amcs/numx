@@ -14,10 +14,12 @@ typedef enum iss_mod
 
 typedef struct iss_ops
 {
+    int    max; // maximum number of iterations
+    double err; // convergence tolerance
+
     /**
-     * Iteration callback (user defined).
-     *
-     * @param ops - that options
+     *  Iteration callback (user defined).
+     *  Called on each iteration.
      */
     struct
     {
@@ -25,14 +27,14 @@ typedef struct iss_ops
         void (*run)(void *ctx, struct iss_ops *ops);
     } itr;
 
-    double err; // target residual
-    int    max; // maximum number of iterations
-
-    /** Runtime data made available by solver. */
+    /**
+     *  Runtime data made available by solver.
+     *  Updated on each iteration.
+     */
     struct
     {
-        int    itr;
-        double err;
+        int    itr; // number of iterations
+        double err; // residual
     } run;
 } iss_ops;
 

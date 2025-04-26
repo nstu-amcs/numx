@@ -24,7 +24,8 @@ int vec_dot(struct vec *a, struct vec *b, double *r);
 int vec_nrm(struct vec *v, double *r);
 int vec_mul(struct vec *v, struct vec *r, double m);
 
-int vec_cpy(struct vec *s, struct vec *d);
+int vec_dup(struct vec *s, struct vec *d);
+int vec_swp(struct vec *a, struct vec *b);
 int vec_rst(struct vec *v);
 
 #define vec_new(v, ...) vec_new_ini(v, __VA_ARGS__, DBL_MAX)

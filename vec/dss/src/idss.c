@@ -3,77 +3,77 @@
 #include <numx/vec/dss.h>
 #include <stdlib.h>
 
-int idss_red_slv(struct imtx* m, struct vec* x, struct vec* f) {
-  if (!m || !x || !f || m->pps.n != m->pps.m || m->pps.n != x->n || m->pps.n != f->n) {
-    errno = EINVAL;
-    return -1;
-  }
+int idss_red_slv(struct imtx *m, struct vec *x, struct vec *f)
+{
+    assert(m);
+    assert(x);
+    assert(f);
 
-  int n = m->pps.n;
-  int* pos = malloc(sizeof(int) * n);
+    int  n = m->pps.n;
+    int *pos = malloc(sizeof(int) * n);
 
-  double** md = m->dat;
-  double* xd = x->dat;
-  double* fd = f->dat;
+    double **md = m->dat;
+    double  *xd = x->dat;
+    double  *fd = f->dat;
 
-  for (int i = 0; i < n; ++i)
-    pos[i] = i;
+    for (int i = 0; i < n; ++i)
+        pos[i] = i;
 
-  for (int i = 0; i < n; ++i) {
-    double mv = fabs(md[pos[i]][i]);
-    int mi = i;
+    for (int i = 0; i < n; ++i) {
+        double mv = fabs(md[pos[i]][i]);
+        int    mi = i;
 
-    for (int j = i + 1; j < n; ++j) {
-      double mij = fabs(md[pos[j]][i]);
+        for (int j = i + 1; j < n; ++j) {
+            double mij = fabs(md[pos[j]][i]);
 
-      if (mij > mv) {
-        mv = mij;
-        mi = j;
-      }
+            if (mij > mv) {
+                mv = mij;
+                mi = j;
+            }
+        }
+
+        if (i != mi) {
+            int t = pos[i];
+            pos[i] = pos[mi];
+            pos[mi] = t;
+        }
+
+        for (int j = i + 1; j < n; ++j) {
+            if (fabs(md[pos[i]][i]) < 1e-200) {
+                free(pos);
+
+                errno = EDOM;
+                return -1;
+            }
+
+            double k = md[pos[j]][i] / md[pos[i]][i];
+
+            for (int c = i + 1; c < n; ++c)
+                md[pos[j]][c] -= md[pos[i]][c] * k;
+
+            fd[pos[j]] -= fd[pos[i]] * k;
+        }
     }
 
-    if (i != mi) {
-      int t = pos[i];
-      pos[i] = pos[mi];
-      pos[mi] = t;
+    for (int h = 0, i = n - 1; h < n; ++h, --i) {
+        double sum = fd[pos[i]];
+
+        for (int j = i + 1; j < n; ++j)
+            sum -= xd[j] * md[pos[i]][j];
+
+        if (fabs(md[pos[i]][i]) < 1e-200) {
+            free(pos);
+
+            errno = EDOM;
+            return -1;
+        }
+
+        xd[i] = sum / md[pos[i]][i];
     }
 
-    for (int j = i + 1; j < n; ++j) {
-      if (fabs(md[pos[i]][i]) < 1e-200) {
-        free(pos);
+    free(pos);
 
-        errno = EDOM;
-        return -1;
-      }
-
-      double k = md[pos[j]][i] / md[pos[i]][i];
-
-      for (int c = i + 1; c < n; ++c)
-        md[pos[j]][c] -= md[pos[i]][c] * k;
-
-      fd[pos[j]] -= fd[pos[i]] * k;
-    }
-  }
-
-  for (int h = 0, i = n - 1; h < n; ++h, --i) {
-    double sum = fd[pos[i]];
-
-    for (int j = i + 1; j < n; ++j)
-      sum -= xd[j] * md[pos[i]][j];
-
-    if (fabs(md[pos[i]][i]) < 1e-200) {
-      free(pos);
-
-      errno = EDOM;
-      return -1;
-    }
-
-    xd[i] = sum / md[pos[i]][i];
-  }
-
-  free(pos);
-
-  return 0;
+    return 0;
 }
 
 // static void dss_sky_l(

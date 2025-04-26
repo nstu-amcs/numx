@@ -45,14 +45,14 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
     double tmp = 0;
     double nrm = 0;
 
-    mtx_vmlt(m, x, &r);
+    mtx_vmul(m, x, &r);
     vec_cmb(f, &r, &r, -1);
 
-    vec_cpy(&r, &z);
-    vec_cpy(&r, &p);
+    vec_dup(&r, &z);
+    vec_dup(&r, &p);
 
     for (int k = 1; k <= o->ops.max; ++k) {
-        mtx_vmlt(m, &p, &h);
+        mtx_vmul(m, &p, &h);
 
         vec_dot(&r, &z, &tmp);
         vec_dot(&h, &z, &bet);
@@ -61,7 +61,7 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
 
         vec_cmb(&r, &h, &s, -alf);
 
-        mtx_vmlt(m, &s, &r);
+        mtx_vmul(m, &s, &r);
         vec_dot(&r, &s, &omg);
         vec_dot(&r, &r, &bet);
 
@@ -220,17 +220,17 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
     double tmp = 0;
     double nrm = 0;
 
-    mtx_vmlt(m, x, &r);
+    mtx_vmul(m, x, &r);
     vec_cmb(f, &r, &r, -1);
 
-    vec_cpy(&r, &z);
-    vec_cpy(&r, &p);
+    vec_dup(&r, &z);
+    vec_dup(&r, &p);
 
     for (int k = 1; k <= o->ops.max; ++k) {
         siss_con_lslv(o->con.sm, &pt, &p);
         siss_con_uslv(o->con.sm, &pt, &pt);
 
-        mtx_vmlt(m, &pt, &h);
+        mtx_vmul(m, &pt, &h);
 
         vec_dot(&r, &z, &tmp);
         vec_dot(&h, &z, &bet);
@@ -242,7 +242,7 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         siss_con_lslv(o->con.sm, &st, &s);
         siss_con_uslv(o->con.sm, &st, &st);
 
-        mtx_vmlt(m, &s, &r);
+        mtx_vmul(m, &s, &r);
         vec_dot(&r, &s, &omg);
         vec_dot(&r, &r, &bet);
 

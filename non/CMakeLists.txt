@@ -1,7 +1,7 @@
 add_library(non 
   src/apx.c
   src/dif.c
-  # src/non.c
+  src/opm.c
 )
 
 target_link_libraries(non com vec dss)

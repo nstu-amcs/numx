@@ -63,7 +63,7 @@ int smtx_cls(struct smtx *m)
     return 0;
 }
 
-int smtx_add(struct smtx *m, int i, int j, double v)
+int smtx_inc(struct smtx *m, int i, int j, double v)
 {
     assert(m);
 
@@ -110,6 +110,42 @@ int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k)
         r->lr[i] = a->lr[i] + b->lr[i] * k;
         r->ur[i] = a->ur[i] + b->ur[i] * k;
     }
+
+    return 0;
+}
+
+int smtx_vdup(struct smtx *s, struct smtx *d)
+{
+    assert(s);
+    assert(d);
+
+    int n = s->pps.n;
+    int z = s->pps.z;
+
+    memcpy(d->ia, s->ia, sizeof(int) * (n + 1));
+    memcpy(d->dr, s->dr, sizeof(double) * n);
+
+    if (z > 0) {
+        memcpy(d->ja, s->ja, sizeof(int) * z);
+        memcpy(d->lr, s->lr, sizeof(double) * z);
+        memcpy(d->ur, s->ur, sizeof(double) * z);
+    }
+
+    return 0;
+}
+
+int smtx_sdup(struct smtx *s, struct smtx *d)
+{
+    assert(s);
+    assert(d);
+
+    int n = s->pps.n;
+    int z = s->pps.z;
+
+    memcpy(d->ia, s->ia, sizeof(int) * (n + 1));
+
+    if (z > 0)
+        memcpy(d->ja, s->ja, sizeof(int) * z);
 
     return 0;
 }
@@ -207,10 +243,8 @@ int smtx_ilu(struct smtx *m, struct smtx *r)
 
 int smtx_dgl(struct smtx *m, struct smtx *r)
 {
-    if (!m || !r || m->pps.n != r->pps.n) {
-        errno = EINVAL;
-        return -1;
-    }
+    assert(m);
+    assert(r);
 
     int n = m->pps.n;
 
@@ -223,12 +257,11 @@ int smtx_dgl(struct smtx *m, struct smtx *r)
     return 0;
 }
 
-int smtx_vmlt(struct smtx *m, struct vec *x, struct vec *f)
+int smtx_vmul(struct smtx *m, struct vec *restrict x, struct vec *restrict f)
 {
-    if (!m || !x || !f || m->pps.n != x->n || m->pps.n != f->n) {
-        errno = EINVAL;
-        return -1;
-    }
+    assert(m);
+    assert(x);
+    assert(f);
 
     int n = m->pps.n;
 

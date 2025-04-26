@@ -3,8 +3,8 @@ build/
 
 **/*.cgns
 **/*.dat
+**/*.unv
 
-**/msh/*
 **/elm/*
 
 !**/elm/case.sif

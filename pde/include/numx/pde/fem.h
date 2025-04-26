@@ -23,17 +23,6 @@ struct fem
             FEM_BSS_LIN, // triliniear
         } bss;
     } ops;
-
-    /** Private data for internal usage. */
-    struct
-    {
-        struct smtx mtx;
-        struct smtx sig;
-        struct smtx chi;
-
-        struct vec vec;
-        struct vec tmp;
-    } prv;
 };
 
 int fem_new(struct fem *fem);

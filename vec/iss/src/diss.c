@@ -70,7 +70,7 @@ int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_op
         step(m, x, f, &t, omg);
         swap(x, &t);
 
-        mtx_vmlt(m, x, &t);
+        mtx_vmul(m, x, &t);
         vec_cmb(f, &t, &t, -1);
         vec_nrm(&t, &nt);
 
@@ -113,7 +113,7 @@ int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_op
     for (int k = 0; k < max && res >= eps; ++k) {
         step(m, x, f, x, omg);
 
-        mtx_vmlt(m, x, &t);
+        mtx_vmul(m, x, &t);
         vec_cmb(f, &t, &t, -1);
         vec_nrm(&t, &nt);
 

@@ -89,24 +89,23 @@ void on_slv(void *ctx, struct sim *sim)
 
     fprintf(dat->fs, "%d & %.7e & %d & %.7e\n", sim->slv->run.ti, err / num, dat->non.itr, dat->non.err);
 
-    if (sim->slv->ops.non.ops.fd && sim->slv->run.ti < sim->ops.tdd.num) {
+    if (sim->slv->ops.non.map && sim->slv->run.ti < sim->ops.tdd.num) {
         fclose(dat->fn);
         sprintf(name, "%s/non-%d.dat", sim->ops.exp.dir, sim->slv->run.ti + 1);
         dat->fn = fopen(name, "w+");
     }
 }
 
-void on_non(void *ctx, struct sim *sim)
+void on_non(void *ctx, struct non_ops *ops)
 {
     struct dat *dat = (struct dat *)ctx;
 
-    dat->non.itr = sim->slv->ops.non.run.itr;
-    dat->non.err = sim->slv->ops.non.run.err;
+    dat->non.itr = ops->run.itr;
+    dat->non.err = ops->run.err;
 
-    double rlx = sim->slv->ops.non.run.rlx;
+    double rlx = ops->run.rlx;
 
-    fprintf(dat->fn, "%d & %.7e & %.3f & %d & %.7e\n", dat->non.itr, dat->non.err, rlx,
-        sim->slv->ops.iss.ops.bcg.ops.run.itr, sim->slv->ops.iss.ops.bcg.ops.run.err);
+    fprintf(dat->fn, "%d & %.7e & %.3f\n", dat->non.itr, dat->non.err, rlx);
 }
 
 int pde(int argc, char **argv)
@@ -150,7 +149,7 @@ int pde(int argc, char **argv)
     sprintf(name, "%s/slv.dat", sim.ops.exp.dir);
     dat.fs = fopen(name, "w+");
 
-    if (sim.slv->ops.non.ops.fd) {
+    if (sim.slv->ops.non.map) {
         sprintf(name, "%s/non-0.dat", sim.ops.exp.dir);
         dat.fn = fopen(name, "w+");
     }
@@ -163,7 +162,7 @@ int pde(int argc, char **argv)
     sim_cls(&sim);
     fclose(dat.fs);
 
-    if (sim.slv->ops.non.ops.fd) {
+    if (sim.slv->ops.non.map) {
         fclose(dat.fn);
     }
 

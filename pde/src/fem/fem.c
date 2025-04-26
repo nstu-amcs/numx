@@ -3,8 +3,9 @@
 #include <numx/com/cmp.h>
 #include <numx/com/log.h>
 #include <numx/pde/fem.h>
+#include <numx/pde/sim.h>
 
-#include "fem_lin.h"
+#include <prv/fem/lin.h>
 
 int fem_new(struct fem *fem)
 {
@@ -33,11 +34,16 @@ int fem_new(struct fem *fem)
     return 0;
 }
 
-static int fem_ini(struct sim *sim);
+static int fem_ctx_new(struct sim *sim, struct fem_ctx *ctx);
+static int fem_ctx_cls(struct sim *sim, struct fem_ctx *ctx);
 
 int fem_exe(struct sim *sim)
 {
-    if (fem_ini(sim))
+    assert(sim);
+
+    struct fem_ctx ctx;
+
+    if (fem_ctx_new(sim, &ctx))
         return -1;
 
     if (sim->ops.exp.ini(sim))
@@ -45,16 +51,16 @@ int fem_exe(struct sim *sim)
 
     switch (((struct fem *)sim->slv)->ops.bss) {
         case FEM_BSS_LIN:
-            return fem_lin_slv(sim);
+            return fem_lin_slv(sim, &ctx);
     }
+
+    fem_ctx_cls(sim, &ctx);
 
     return 0;
 }
 
-static int fem_ini(struct sim *sim)
+static int fem_ctx_new(struct sim *sim, struct fem_ctx *ctx)
 {
-    struct fem *fem = (struct fem *)sim->slv;
-
     int n = sim->msh->vtx.len;
     int z = 0;
     int r = 0;
@@ -84,38 +90,36 @@ static int fem_ini(struct sim *sim)
                     z += 1;
     }
 
-    if ((r = mtx_new(&fem->prv.mtx, ((struct smtx_pps){n, z}))))
+    if ((r = mtx_new(&ctx->mtx, ((struct smtx_pps){n, z}))))
         goto end;
 
     for (int i = 0, e = 0; i < n; ++i) {
-        fem->prv.mtx.ia[i] = e;
+        ctx->mtx.ia[i] = e;
 
         log_rst(&map[i]);
 
         for (int j = 0; !log_adv(&map[i], &j); e++)
-            fem->prv.mtx.ja[e] = j;
+            ctx->mtx.ja[e] = j;
     }
 
-    fem->prv.mtx.ia[n] = z;
+    ctx->mtx.ia[n] = z;
 
-    if ((r = vec_new(&fem->prv.vec, n)))
+    if ((r = vec_new(&ctx->vec, n)))
         goto end;
 
     switch (sim->mod) {
         case SIM_HYP:
-            if ((r = mtx_new(&fem->prv.chi, fem->prv.mtx.pps)))
+            if ((r = mtx_new(&ctx->chi, ctx->mtx.pps)))
                 goto end;
 
-            memcpy(fem->prv.chi.ia, fem->prv.mtx.ia, sizeof(int) * (n + 1));
-            memcpy(fem->prv.chi.ja, fem->prv.mtx.ja, sizeof(int) * z);
+            mtx_sdup(&ctx->mtx, &ctx->chi);
 
             [[fallthrough]];
         case SIM_PBC:
-            if ((r = mtx_new(&fem->prv.sig, fem->prv.mtx.pps)))
+            if ((r = mtx_new(&ctx->sig, ctx->mtx.pps)))
                 goto end;
 
-            memcpy(fem->prv.sig.ia, fem->prv.mtx.ia, sizeof(int) * (n + 1));
-            memcpy(fem->prv.sig.ja, fem->prv.mtx.ja, sizeof(int) * z);
+            mtx_sdup(&ctx->mtx, &ctx->sig);
 
             [[fallthrough]];
         case SIM_ELL:
@@ -129,4 +133,25 @@ end:
     free(map);
 
     return r;
+}
+
+static int fem_ctx_cls(struct sim *sim, struct fem_ctx *ctx)
+{
+    mtx_cls(&ctx->mtx);
+    vec_cls(&ctx->vec);
+
+    switch (sim->mod) {
+        case SIM_HYP:
+            mtx_cls(&ctx->chi);
+
+            [[fallthrough]];
+        case SIM_PBC:
+            mtx_cls(&ctx->sig);
+
+            [[fallthrough]];
+        case SIM_ELL:
+            break;
+    }
+
+    return 0;
 }

@@ -5,6 +5,30 @@
 #include <numx/vec/iss.h>
 #include <numx/vec/vec.h>
 
+#include <stdint.h>
+
+#define NON_LAM(N) (N & (0b10000000))
+#define NON_GAM(N) (N & (0b01000000))
+#define NON_BET(N) (N & (0b00100000))
+#define NON_SIG(N) (N & (0b00010000))
+#define NON_CHI(N) (N & (0b00001000))
+#define NON_SRC(N) (N & (0b00000100))
+#define NON_TTA(N) (N & (0b00000010))
+#define NON_EXT(N) (N & (0b00000001))
+
+#define NON_ELL_MTX(N) ((N) & 0b11100000)
+#define NON_ELL_VEC(N) ((N) & 0b00100111)
+#define NON_ELL_ALL(N) (((N) & 0b11100000) && ((N) & 0b00100111))
+
+#define NON_LAM_SET(N) (N |= (0b10000000))
+#define NON_GAM_SET(N) (N |= (0b01000000))
+#define NON_BET_SET(N) (N |= (0b00100000))
+#define NON_SIG_SET(N) (N |= (0b00010000))
+#define NON_CHI_SET(N) (N |= (0b00001000))
+#define NON_SRC_SET(N) (N |= (0b00000100))
+#define NON_TTA_SET(N) (N |= (0b00000010))
+#define NON_EXT_SET(N) (N |= (0b00000001))
+
 struct sim;
 
 struct apx_fun_ctx
@@ -20,10 +44,10 @@ struct apx_fun_ctx
 /** Simulation solver. */
 typedef struct slv
 {
-    struct
+    struct slv_ops
     {
         /** Time discretization strategy. */
-        enum
+        enum tdd_mod
         {
             TDD_I2S = 2, // implicit 2-layered
             TDD_I3S = 3, // implicit 3-layered
@@ -33,47 +57,45 @@ typedef struct slv
         /** Options for nonlinear system solver. */
         struct
         {
-            enum
+            uint8_t map;
+
+            enum non_mod
             {
                 NON_FPI, // fixed-point iteration
                 NON_NEW, // Newton's linearization
             } mod;
 
-            struct
+            struct non_ops
             {
-                bool fd; // field dependence
+                int    max; // maximum number of iterations
+                double err; // convergence tolerance
+                bool   rlx; // enable relaxation
 
                 /**
                  *  Nonlinear iteration callback (user defined).
                  *
                  *  Called for each nonlinear iteration.
-                 *
-                 *  @param sim - simulation
                  */
                 struct
                 {
                     void *ctx;
-                    void (*run)(void *ctx, struct sim *sim);
+                    void (*run)(void *ctx, struct non_ops *ops);
                 } itr;
-
-                int    max; // maximum number of iterations
-                double err; // convergence tolerance
-                bool   rlx; // enable relaxation
 
                 enum
                 {
                     DIF_NUM,
                     DIF_GIV,
                 } dif;
-            } ops;
 
-            /** Runtime data made available by solver. */
-            struct
-            {
-                int    itr; // current iteration
-                double err; // current error
-                double rlx; // optimal relaxation factor
-            } run;
+                /** Runtime data made available by solver. */
+                struct
+                {
+                    int    itr; // current iteration
+                    double err; // current error
+                    double rlx; // optimal relaxation factor
+                } run;
+            } ops;
         } non;
 
         /** Options for linear system solver. */
@@ -129,7 +151,7 @@ typedef struct slv
     {
         struct vec *wgt[4]; // buffered solution
 
-        int    tb; // number of buffered layers (1 - 4)
+        int    bs; // number of buffered layers (1 - 4)
         int    ti; // current time iteration
         double tv; // current time value
     } run;

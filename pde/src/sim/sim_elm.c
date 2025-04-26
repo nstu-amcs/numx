@@ -316,12 +316,18 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->lam))
                 return -1;
 
+            if (mat->lam.ops.fd)
+                NON_LAM_SET(sim->slv->ops.non.map);
+
             continue;
         }
 
         if (!strcmp("Gamma Coefficient", key)) {
             if (get_val(sim, val, &mat->gam))
                 return -1;
+
+            if (mat->gam.ops.fd)
+                NON_GAM_SET(sim->slv->ops.non.map);
 
             continue;
         }
@@ -330,12 +336,18 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->sig))
                 return -1;
 
+            if (mat->sig.ops.fd)
+                NON_SIG_SET(sim->slv->ops.non.map);
+
             continue;
         }
 
         if (!strcmp("Chi Coefficient", key)) {
             if (get_val(sim, val, &mat->chi))
                 return -1;
+
+            if (mat->chi.ops.fd)
+                NON_CHI_SET(sim->slv->ops.non.map);
 
             continue;
         }
@@ -365,9 +377,13 @@ static int get_src(FILE *f, struct sim *sim)
         if (get_ent(buf, key, val))
             return -1;
 
-        if (!strcmp("Field Source", key))
+        if (!strcmp("Field Source", key)) {
             if (get_val(sim, val, src))
                 return -1;
+
+            if (src->ops.fd)
+                NON_SRC_SET(sim->slv->ops.non.map);
+        }
     }
 
     return 0;
@@ -443,6 +459,9 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.neu.tta))
                 return -1;
 
+            if (bnd->pps.neu.tta.ops.fd)
+                NON_TTA_SET(sim->slv->ops.non.map);
+
             continue;
         } else if (!strcmp("Robin Coefficient (beta)", key)) {
             bnd->type = CND_BND_ROB;
@@ -450,12 +469,18 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.rob.bet))
                 return -1;
 
+            if (bnd->pps.rob.bet.ops.fd)
+                NON_BET_SET(sim->slv->ops.non.map);
+
             continue;
         } else if (!strcmp("External Field", key)) {
             bnd->type = CND_BND_ROB;
 
             if (get_val(sim, val, &bnd->pps.rob.ext))
                 return -1;
+
+            if (bnd->pps.rob.ext.ops.fd)
+                NON_EXT_SET(sim->slv->ops.non.map);
 
             continue;
         }
@@ -535,11 +560,10 @@ static int get_val(struct sim *sim, char *src, struct val *val)
     }
 
     val->ops.fd = false;
-    val->ops.dif = 0;
+    val->ops.dif = NULL;
 
     if ((fun = strtok(0, ";"))) {
         val->ops.fd = true;
-        sim->slv->ops.non.ops.fd = true;
 
         if (strcmp("num", fun))
             val->ops.dif = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr.hdl, fun);
