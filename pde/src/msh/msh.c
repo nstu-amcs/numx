@@ -11,22 +11,21 @@ int msh_new(struct msh *msh)
     assert(msh);
 
     if (vec_cut_new(&msh->vtx))
-        goto new_err;
+        goto err;
 
     if (seg_cut_new(&msh->seg))
-        goto new_err;
+        goto err;
 
     if (qud_cut_new(&msh->qud))
-        goto new_err;
+        goto err;
 
     if (hxd_cut_new(&msh->hxd))
-        goto new_err;
+        goto err;
 
     return 0;
 
-new_err:
+err:
     msh_cls(msh);
-
     return -1;
 }
 

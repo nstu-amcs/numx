@@ -1,10 +1,9 @@
 .cache/
 build/
 
-**/*.cgns
-**/*.dat
 **/*.unv
 
 **/elm/*
+**/res/*
 
 !**/elm/case.sif

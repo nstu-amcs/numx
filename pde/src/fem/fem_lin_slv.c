@@ -70,28 +70,23 @@ static int ell_slv(struct sim *sim, struct fem_ctx *ctx)
 {
     int r = 0;
 
-    struct fem *fem = (struct fem *)sim->slv;
-    struct vec  wgt;
-
-    if ((r = vec_new(&wgt, ctx->vec.n)))
+    if ((r = vec_new(&ctx->w0, ctx->vec.n)))
         goto end;
 
-    fem->slv.run.ti = 0;
-    fem->slv.run.tv = 0;
-    fem->slv.run.bs = 1;
-    fem->slv.run.wgt[0] = &wgt;
+    sim->slv->run.bs = 1;
+    sim->slv->run.wgt[0] = &ctx->w0;
 
     if ((r = sys_slv(sim, ctx)))
         goto end;
 
-    if (fem->slv.itr.run)
-        fem->slv.itr.run(fem->slv.itr.ctx, sim);
+    if (sim->slv->itr.run)
+        sim->slv->itr.run(sim->slv->itr.ctx, sim);
 
     if (sim->ops.exp.put)
         sim->ops.exp.put(sim);
 
 end:
-    vec_cls(&wgt);
+    vec_cls(&ctx->w0);
     return r;
 }
 
@@ -231,17 +226,17 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx);
 
 static int sys_slv(struct sim *sim, struct fem_ctx *ctx)
 {
-    struct fem *fem = (struct fem *)sim->slv;
+    struct slv_ops *ops = &sim->slv->ops;
 
-    if (fem->slv.ops.non.map)
+    if (ops->non.map)
         return slv_non(sim, ctx);
 
     if (fem_lin_asm(sim, ctx))
         return -1;
 
-    switch (fem->slv.ops.iss.mod) {
+    switch (ops->iss.mod) {
         case ISS_BCG:
-            if (iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &fem->slv.ops.iss.ops.bcg))
+            if (iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &ops->iss.ops.bcg))
                 return -1;
 
             break;
@@ -267,14 +262,10 @@ struct est_ctx
 
 static double est(struct est_ctx *ctx, struct vec *wgt)
 {
-    struct vec est = {
-        .n = wgt->n,
-        .dat = wgt->dat,
-    };
+    struct vec est = {.n = wgt->n, .dat = wgt->dat};
 
     if (ctx->rlx != 0) {
         vec_mul(wgt, ctx->upd, ctx->rlx);
-        vec_cmb(ctx->upd, wgt, ctx->upd, ctx->rlx);
         vec_cmb(ctx->upd, ctx->prv, ctx->upd, 1 - ctx->rlx);
 
         est.dat = ctx->upd->dat;
@@ -311,6 +302,9 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
     struct vec prv;
     struct vec upd;
 
+    double nrm = 0;
+    double cur = 0;
+
     if ((r = vec_new(&tmp, ctx->vec.n)))
         goto end;
 
@@ -322,7 +316,8 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
             goto end;
     }
 
-    struct est_ctx asm_ctx = {
+    struct est_ctx est_ctx = {
+        .sim = sim,
         .rlx = 0,
         .ctx = ctx,
         .tmp = &tmp,
@@ -331,20 +326,29 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
     };
 
     struct opm_ops opm_ops = {
-        .beg = 1,
-        .end = 2,
-        .eps = 0.1,
+        .beg = 0.5,
+        .end = 1.5,
+        .eps = 0.01,
         .twk = est_twk_rlx,
         .var = -1,
         .vtx = &ctx->w0,
     };
 
-    double nrm = 0;
-    double cur = est(&asm_ctx, opm_ops.vtx);
+    ops->run.itr = 0;
+    ops->run.rlx = 0;
+    cur = est(&est_ctx, &ctx->w0);
 
     vec_nrm(&ctx->vec, &nrm);
 
+    cur = cur / nrm;
+    ops->run.err = cur;
+
+    if (ops->itr.run)
+        ops->itr.run(ops->itr.ctx, ops);
+
     for (int i = 1; i <= ops->max && cur > ops->err; ++i) {
+        ops->run.itr = i;
+
         if (sim->slv->ops.non.mod == NON_NEW)
             if (fem_lin_new(sim, ctx))
                 return -1;
@@ -365,19 +369,17 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
         }
 
         if (ops->rlx) {
-            double opm = opm_loc_bis(&asm_ctx, (double (*)(void *, struct vec *))est, &opm_ops);
+            double opm = opm_loc_bis(&est_ctx, (double (*)(void *, struct vec *))est, &opm_ops);
 
             vec_mul(&ctx->w0, &upd, opm);
             vec_cmb(&upd, &prv, &upd, 1 - opm);
             vec_swp(&upd, &ctx->w0);
 
-            asm_ctx.rlx = 0;
-            sim->slv->ops.non.ops.run.rlx = opm;
+            est_ctx.rlx = 0;
+            ops->run.rlx = opm;
         }
 
-        cur = est(&asm_ctx, &ctx->w0) / nrm;
-
-        ops->run.itr = i;
+        cur = est(&est_ctx, &ctx->w0) / nrm;
         ops->run.err = cur;
 
         if (ops->itr.run)
@@ -386,7 +388,6 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
 
 end:
     vec_cls(&tmp);
-
     return r;
 }
 

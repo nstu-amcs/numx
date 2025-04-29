@@ -1,8 +1,8 @@
 Header
   CHECK KEYWORDS Warn
-  Mesh DB "/home/paraskun/x86/numx/pde/test/non/case1" "elm"
-  Include Path "/home/paraskun/x86/numx/pde/test/non/case1"
-  Results Directory "/home/paraskun/x86/numx/pde/test/non/case1/res"
+  Mesh DB "/home/paraskun/x86/numx/pde/test/non/case" "elm"
+  Include Path "/home/paraskun/x86/numx/pde/test/non/case"
+  Results Directory "/home/paraskun/x86/numx/pde/test/non/case/res"
 End
 
 Simulation
@@ -42,7 +42,7 @@ Solver 1
   Optimize Bandwidth = True
   Steady State Convergence Tolerance = 1.0e-5
   Nonlinear System Convergence Tolerance = 1.0e-7
-  Nonlinear System Max Iterations = 20
+  Nonlinear System Max Iterations = 1000
   Nonlinear System Newton After Iterations = 3
   Nonlinear System Newton After Tolerance = 1.0e-3
   Nonlinear System Relaxation Factor = 1

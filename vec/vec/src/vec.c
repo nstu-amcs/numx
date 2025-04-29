@@ -41,6 +41,9 @@ int vec_cls(struct vec *v)
 
     free(v->dat);
 
+    v->n = 0;
+    v->dat = NULL;
+
     return 0;
 }
 

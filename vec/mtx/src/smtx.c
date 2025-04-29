@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <errno.h>
 #include <math.h>
 #include <numx/vec/mtx.h>
 #include <stdlib.h>
@@ -23,9 +22,9 @@ int smtx_new(struct smtx *m, struct smtx_pps pps)
     memset(m->dr, 0, sizeof(double) * pps.n);
     memset(m->ia, 0, sizeof(int) * (pps.n + 1));
 
-    m->lr = 0;
-    m->ur = 0;
-    m->ja = 0;
+    m->lr = NULL;
+    m->ur = NULL;
+    m->ja = NULL;
 
     if (pps.z > 0) {
         m->lr = malloc(sizeof(double) * pps.z);
@@ -169,10 +168,8 @@ int smtx_rst(struct smtx *m)
 
 int smtx_ilu(struct smtx *m, struct smtx *r)
 {
-    if (!m || !r || m->pps.n != r->pps.n || m->pps.z != r->pps.z) {
-        errno = EINVAL;
-        return -1;
-    }
+    assert(m);
+    assert(r);
 
     int n = m->pps.n;
     int z = m->pps.z;
@@ -257,7 +254,7 @@ int smtx_dgl(struct smtx *m, struct smtx *r)
     return 0;
 }
 
-int smtx_vmul(struct smtx *m, struct vec *restrict x, struct vec *restrict f)
+int smtx_vmul(struct smtx *m, struct vec *x, struct vec *f)
 {
     assert(m);
     assert(x);

@@ -9,12 +9,10 @@
 struct fem_ctx
 {
     struct smtx mtx;
+    struct vec  vec;
 
-    struct smtx ell;
     struct smtx sig;
     struct smtx chi;
-
-    struct vec vec;
 
     struct vec w0;
     struct vec w1;

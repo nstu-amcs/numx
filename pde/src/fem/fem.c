@@ -11,25 +11,46 @@ int fem_new(struct fem *fem)
 {
     assert(fem);
 
+    fem->slv.ops.tdd = TDD_I2S;
+
+    fem->slv.ops.non.mod = NON_FPI;
+    fem->slv.ops.non.map = 0;
+    fem->slv.ops.non.ops.max = 200;
+    fem->slv.ops.non.ops.err = 1e-10;
+    fem->slv.ops.non.ops.rlx = false;
+    fem->slv.ops.non.ops.itr.ctx = NULL;
+    fem->slv.ops.non.ops.itr.run = NULL;
+    fem->slv.ops.non.ops.dif = DIF_NUM;
+    fem->slv.ops.non.ops.run.itr = 0;
+    fem->slv.ops.non.ops.run.err = 0;
+    fem->slv.ops.non.ops.run.rlx = 0;
+
+    fem->slv.ops.iss.mod = ISS_BCG;
+    fem->slv.ops.iss.ops.bcg.ops.max = 500;
+    fem->slv.ops.iss.ops.bcg.ops.err = 1e-10;
+    fem->slv.ops.iss.ops.bcg.ops.itr.ctx = NULL;
+    fem->slv.ops.iss.ops.bcg.ops.itr.run = NULL;
+    fem->slv.ops.iss.ops.bcg.ops.run.itr = 0;
+    fem->slv.ops.iss.ops.bcg.ops.run.err = 0;
+    fem->slv.ops.iss.ops.bcg.con.sm = NULL;
+
     fem->slv.exe = fem_exe;
+    fem->slv.apx = NULL;
+
+    fem->slv.itr.ctx = NULL;
+    fem->slv.itr.run = NULL;
+
+    fem->slv.run.wgt[0] = NULL;
+    fem->slv.run.wgt[1] = NULL;
+    fem->slv.run.wgt[2] = NULL;
+    fem->slv.run.wgt[3] = NULL;
+
+    fem->slv.run.bs = 1;
+    fem->slv.run.ti = 0;
+    fem->slv.run.tv = 0;
 
     fem->ops.mod = FEM_STD;
     fem->ops.bss = FEM_BSS_LIN;
-
-    fem->slv.ops.iss.mod = ISS_BCG;
-    fem->slv.ops.iss.ops.bcg.con.sm = 0;
-    fem->slv.ops.iss.ops.bcg.ops.err = 1e-10;
-    fem->slv.ops.iss.ops.bcg.ops.itr.run = 0;
-    fem->slv.ops.iss.ops.bcg.ops.max = 500;
-
-    fem->slv.ops.non.mod = NON_FPI;
-    fem->slv.ops.non.ops.itr.ctx = 0;
-    fem->slv.ops.non.ops.itr.run = 0;
-    fem->slv.ops.non.ops.max = 50;
-    fem->slv.ops.non.ops.err = 1e-10;
-    fem->slv.ops.non.ops.rlx = 1;
-
-    fem->slv.ops.tdd = TDD_I2S;
 
     return 0;
 }
@@ -59,8 +80,35 @@ int fem_exe(struct sim *sim)
     return 0;
 }
 
+static void mtx_prep(struct smtx *mtx)
+{
+    mtx->dr = NULL;
+    mtx->lr = NULL;
+    mtx->ur = NULL;
+    mtx->ia = NULL;
+    mtx->ja = NULL;
+    mtx->pps.n = 0;
+    mtx->pps.z = 0;
+}
+
+static void vec_prep(struct vec *vec)
+{
+    vec->n = 0;
+    vec->dat = NULL;
+}
+
 static int fem_ctx_new(struct sim *sim, struct fem_ctx *ctx)
 {
+    mtx_prep(&ctx->mtx);
+    mtx_prep(&ctx->sig);
+    mtx_prep(&ctx->chi);
+
+    vec_prep(&ctx->vec);
+    vec_prep(&ctx->w0);
+    vec_prep(&ctx->w1);
+    vec_prep(&ctx->w2);
+    vec_prep(&ctx->w3);
+
     int n = sim->msh->vtx.len;
     int z = 0;
     int r = 0;

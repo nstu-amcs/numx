@@ -123,11 +123,11 @@ int pde(int argc, char **argv)
         return -1;
     }
 
-    sim.slv->ops.non.mod = NON_FPI;
-    sim.slv->ops.non.ops.dif = DIF_GIV;
+    sim.slv->ops.non.mod = NON_NEW;
+    sim.slv->ops.non.ops.dif = DIF_NUM;
     sim.slv->ops.non.ops.rlx = true;
 
-    sprintf(sim.ops.usr.pfx, "u1");
+    sprintf(sim.ops.usr.pfx, "u2");
 
     if (sim_imp_elm(&sim, argv[2])) {
         perror("fatal: import");
@@ -159,12 +159,13 @@ int pde(int argc, char **argv)
         return -1;
     }
 
-    sim_cls(&sim);
     fclose(dat.fs);
 
     if (sim.slv->ops.non.map) {
         fclose(dat.fn);
     }
+
+    sim_cls(&sim);
 
     return 0;
 }

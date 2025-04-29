@@ -57,13 +57,13 @@ typedef struct slv
         /** Options for nonlinear system solver. */
         struct
         {
-            uint8_t map;
-
             enum non_mod
             {
                 NON_FPI, // fixed-point iteration
                 NON_NEW, // Newton's linearization
             } mod;
+
+            uint8_t map;
 
             struct non_ops
             {

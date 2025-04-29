@@ -5,6 +5,7 @@
 \usepackage{polyglossia}
 \usepackage{algorithm2e}
 \usepackage{setspace}
+\usepackage{tabularx, booktabs}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{minted}
@@ -30,6 +31,8 @@
 
 \setdefaultlanguage{russian}
 
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
 \begin{document}
 \begin{titlepage}
 \centering
@@ -43,7 +46,7 @@
 \vfill
 \vskip 3cm
 
-{\scshape Лабораторная работа}
+{\scshape Лабораторная работа \textnumero 2}
 \vskip 3mm
 \begin{spacing}{1.7}
     {\huge\bf Метод конечных элементов для нелинейных уравнений}
@@ -51,7 +54,7 @@
 \vskip 5mm
 {\scriptsize ФПМИ, ПМ-24}
 \vskip 2mm
-{\large\it Параскун И.}
+{\large\it Параскун И., Герасименко В.}
 
 \vfill
 
@@ -79,7 +82,7 @@
   \label{equation} -\nabla(\lambda(u)\nabla u) + \gamma (u) u = f(u)
 \end{align}
 
-\vskip 2mm
+\vskip 4mm
 \noindent с учётом следующих краевых условий:
 
 \begin{align}
@@ -105,7 +108,7 @@
   \end{split}
 \end{align}
 
-\vskip 2mm
+\vskip 5mm
 \noindent Раскладывая функции $u$ и $v_0$ по базису, переходим 
 к конечноэлементной СЛАУ:
 
@@ -122,7 +125,7 @@
   \end{split}
 \end{align}
 
-\vskip 2mm
+\vskip 5mm
 \noindent или, в более удобной форме записи
 
 \begin{align*}
@@ -130,7 +133,7 @@
   &b_{i} = b^{\Omega}_{i} + b^{S_2}_{i} + b^{S_3}_{i}
 \end{align*}
 
-\vskip 2mm
+\vskip 5mm
 \noindent где
 
 \begin{align}
@@ -142,7 +145,7 @@
   &\hat{b}^{S_3}_{i} = \int_{\hat{S_3}}\hat{\beta}(u)\hat{u}_{\beta}(u)\hat{\psi}_i d\hat{S}
 \end{align}
 
-\vskip 2mm
+\vskip 5mm
 \noindent Раскладывая параметры по базисным функциям на конечном элементе
 
 \begin{align}
@@ -191,7 +194,7 @@
     \int_{\hat{S_3}}\hat{\psi}_k\hat{\psi}_j\hat{\psi}_i d\hat{S}
 \end{align}
 
-\vskip 2mm
+\vskip 5mm
 \noindent Учитывая вид трилинейных базисных функций
 
 \begin{align*}
@@ -235,18 +238,42 @@
   )
 \end{align}
 
+\vskip 5mm
+\noindent где
+
+\begin{align}
+  &{}^{n}G^{x} = h_x
+    \begin{pmatrix}
+      \frac{1}{2} & -\frac{1}{2} \\
+      -\frac{1}{2} & \frac{1}{2}
+    \end{pmatrix} \\
+  &{}^{n}M^{x} = \frac{1}{h_x}
+    \begin{pmatrix}
+      \frac{1}{4} & \frac{1}{12} \\
+      \frac{1}{12} & \frac{1}{12}
+    \end{pmatrix},
+    \begin{pmatrix}
+      \frac{1}{12} & \frac{1}{12} \\
+      \frac{1}{12} & \frac{1}{4}
+    \end{pmatrix}
+\end{align}
+
 \subsection{Метод простой итерации}
 
 \noindent
 Для решения полученной нелинейной системы организуем следующий итерационный процесс:
 
 \begin{align}
+  {\bf A}({\bf q}^{(k-1)}){\bf q}^{(k)} = {\bf b}({\bf q}^{(k-1)})
 \end{align}
 
+\vskip 5mm
 \noindent
 с условием остановки
 
-\begin{align}
+\begin{align} \label{eq:1}
+  R({\bf q}^{(k)}) = \frac{||{\bf A}({\bf q}^{(k)}){\bf q}^{(k)} - {\bf b}({\bf q}^{(k)})||}
+  {||{\bf b}({\bf q}^{(0)})||} < \epsilon
 \end{align}
 
 \subsection{Метод Ньютона}
@@ -255,42 +282,116 @@
 Линеаризуем полученную нелинейную систему, раскладывая компоненты в ряд Тейлора:
 
 \begin{align}
+  &A_{ij}({\bf q})q_j \approx A_{ij}({\bf q}^{(k-1)})q_j^{(k-1)} +
+    \sum_{r}\frac{\partial (A_{ij}({\bf q})q_j)}%
+      {\partial q_r}\bigg\rvert_{{\bf q} = {\bf q}^{(k-1)}}(q_r - q_r^{(k-1)}) \\
+  &b_i({\bf q}) \approx b_i({\bf q}^{(k-1)}) +
+    \sum_{r}\frac{\partial b_{i}({\bf q})}%
+      {\partial q_r}\bigg\rvert_{{\bf q} = {\bf q}^{(k-1)}}(q_r - q_r^{(k-1)})
 \end{align}
 
+\vskip 5mm
 \noindent
 Полагая, что параметр $\lambda$ зависит от решения, а остальные параметры нет,
 получаем следующие выражения для составления линеаризованной системы:
 
 \begin{align}
+  &\hat{A}^{L}_{ij} = \hat{A}_{ij}(\hat{{\bf q}}^{(k-1)}) +
+    \sum_{r=1}^{8}\frac{\partial \hat{A}_{ir}(\hat{\bf q})}%
+      {\partial \hat{q}_j}\bigg\rvert_{\hat{\bf q} = \hat{\bf q}^{(k-1)}}
+        \hat{q}_{r}^{(k-1)} \\
+  &\hat{b}^{L}_{i} = \hat{b}_{i}(\hat{{\bf q}}^{(k-1)}) +
+    \sum_{j=1}^{8}\hat{q}^{(k-1)}_{j}
+      \sum_{r=1}^{8}\frac{\partial \hat{A}_{ij}(\hat{\bf q})}%
+        {\partial \hat{q}_r}\bigg\rvert_{\hat{\bf q} = \hat{\bf q}^{(k-1)}}
+          \hat{q}_{r}^{(k-1)} \\
+  &\frac{\partial \hat{A}_{ij}(\hat{\bf q})}{\partial \hat{q}_r}
+    \bigg\rvert_{\hat{\bf q} = \hat{\bf q}^{(k-1)}} =
+    \int_{\hat{\Omega}}\frac{\partial\lambda^{\Omega}(\hat{\bf q}, \hat{\bf v}_r)}
+        {\partial\hat{q}_r}\bigg\rvert_{\hat{\bf q} = \hat{\bf q}^{(k-1)}}
+      \hat{\psi}_r\nabla\hat{\psi}_j\nabla\hat{\psi}_i d\Omega
 \end{align}
 
+\vskip 5mm
 \noindent
 Итерационный процесс организуем аналогично тому, как это делалось в методе
 простой итерации.
 
-\section{Описание разработанных программ}
+\subsection{Использование параметра релаксации}
 
-\section{Описание тестирования программ}
+\begin{align}
+  {\bf q}^{(k)} = \omega^{(k)}\bar{\bf {q}}^{(k)} 
+    + (1 - \omega^{(k)}){\bf q}^{(k-1)}
+\end{align}
 
-\subsection{Линейное поле}
+\vskip 5mm
+\noindent где $\omega^{(k)}$ определяется при помощи минимизации
+функционала невязки \ref{eq:1}.
+
+\newpage
+
+\section{Описание тестирования программы}
 
 \subsubsection{Описание задачи}
 
-\subsubsection{Оценка оптимального параметра релаксации}
+\noindent Пусть дана конечноэлементная сетка следующего вида:
 
-\subsubsection{Сравнительный анализ методов решения}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{pde/test/non/case/img/msh.png}
+\end{figure}
 
-\subsection{Полиномиальное поле}
+\noindent Для заданного решения $u(x, y, z) = x + y + z$ построим
+краевую задачу
 
-\subsubsection{Описание задачи}
+\begin{align*}
+  &f = -\frac{\partial\lambda}{\partial x}
+      -\frac{\partial\lambda}{\partial x}
+      -\frac{\partial\lambda}{\partial x} + 0.4(x + y + z) \\
+  &\theta\big|_{S_1} = -\lambda \\
+  &\theta\big|_{S_2} = \lambda \\
+  &\theta\big|_{S_3} = \lambda \\
+  &u_{\beta}\big|_{S_4} = (x + y + z) - \frac{\lambda}{10} \\
+  &u_{\beta}\big|_{S_5} = (x + y + z) + \frac{\lambda}{10} \\
+  &u_{\beta}\big|_{S_6} = (x + y + z) - \frac{\lambda}{10}
+\end{align*}
 
-\subsubsection{Оценка оптимального параметра релаксации}
+\vskip 5mm
+\noindent при различных зависимостях $\lambda$. В случае задачи 
+теплопроводности, решение выглядит следующим образом:
 
-\noindent
-С помощью метода дихотомии, оценим 
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{pde/test/non/case/img/res.png}
+\end{figure}
 
-\subsubsection{Сравнительный анализ методов решения}
+\subsubsection{Результат выполнения в различных условиях}
 
-\section{Проведенные исследования и выводы}
+\begin{table}[H]
+  \centering
+
+  \begin{tabularx}{\textwidth}{@{}l|cYY|cYY@{}}
+    \toprule
+    $\lambda$ & \multicolumn{3}{c}{МПИ без релаксации} & \multicolumn{3}{c}{МПИ с релаксацией} \\
+    \cmidrule(lr){2-4}
+    \cmidrule(lr){5-7}
+    & $k$ & $\overline{|u - u^*|}$ & $R({\bf q}^{(k)})$ & $k$ & $\overline{|u - u^*|}$ & $R({\bf q}^{(k)})$ \\
+    \midrule
+    $10$ & 1 & 5.8125638e-12 & 4.0489735e-14 & 1 & 5.8125638e-12 & 4.0489735e-14\\
+    $u$ & 9 & 2.0090454e-06 & 3.4397768e-08 & 1 & 5.8125638e-12 & 4.0489735e-14\\
+    $u^2$ & 17 & 3.1087130e-02 & 5.2876226e-08 & 1 & 5.8125638e-12 & 4.0489735e-14\\
+    $u^3$ & 5 & - & - & 1 & 5.8125638e-12 & 4.0489735e-14\\
+    $sin(u)$ & 1000 & 4.1737475e+01 & 1.9141056e-02 & 1 & 5.8125638e-12 & 4.0489735e-14\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Текст программы}
+
+\inputminted{c}{pde/include/numx/pde/msh.h}
+\inputminted{c}{pde/include/numx/pde/sim.h}
+\inputminted{c}{pde/include/numx/pde/cnd.h}
+\inputminted{c}{pde/include/numx/pde/slv.h}
+\inputminted{c}{pde/include/numx/pde/fem.h}
 
 \end{document}

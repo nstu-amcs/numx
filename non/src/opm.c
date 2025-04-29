@@ -37,5 +37,5 @@ double opm_loc_bis(void *ctx, double (*fun)(void *, struct vec *), struct opm_op
             a = x1;
     }
 
-    return (b - a) / 2;
+    return (a + b) / 2;
 }

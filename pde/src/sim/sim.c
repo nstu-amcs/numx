@@ -17,10 +17,23 @@ int sim_new(struct sim *sim)
     assert(sim);
 
     sim->mod = SIM_ELL;
+
     sim->ops.usr.hdl = 0;
+    sim->ops.usr.dir[0] = 0;
+    sim->ops.usr.pfx[0] = 0;
+
     sim->ops.exp.mod = SIM_EXP_GNS;
+    sim->ops.exp.dir[0] = 0;
+    sim->ops.exp.pfx[0] = 0;
+    sim->ops.exp.ini = NULL;
+    sim->ops.exp.put = NULL;
+
     sim->ops.tdd.num = 0;
+    sim->ops.tdd.beg = 0;
     sim->ops.tdd.hop = 0;
+
+    sim->msh = NULL;
+    sim->slv = NULL;
 
     struct fem *fem = malloc(sizeof(struct fem));
 
@@ -57,7 +70,6 @@ int sim_new(struct sim *sim)
 
 err:
     sim_cls(sim);
-
     return -1;
 }
 

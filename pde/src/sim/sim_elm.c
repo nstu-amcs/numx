@@ -80,6 +80,13 @@ int sim_imp_elm(struct sim *sim, const char *sif)
         }
     }
 
+    mat_cut_shr(&sim->mat);
+    val_cut_shr(&sim->src);
+    obj_cut_shr(&sim->obj);
+    bnd_cut_shr(&sim->bnd);
+    cnd_ini_cut_shr(&sim->cnd_ini);
+    cnd_bnd_cut_shr(&sim->cnd_bnd);
+
 end:
     if (r)
         free(sim->slv);
