@@ -70,7 +70,7 @@ int dmtx_vmul(struct dmtx *m, struct vec *x, struct vec *f)
     double *xv = x->dat;
     double *fv = f->dat;
 
-    [[omp::directive(parallel for)]]
+    // [[omp::directive(parallel for)]]
     for (int i = 0; i < n; ++i) {
         double *rv = m->ad[i];
 

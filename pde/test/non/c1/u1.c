@@ -1,14 +1,12 @@
 #include <numx/pde/sim.h>
 
-#include <math.h>
-
-#define U(x, y, z) ((x) + (y) + (z))
-#define L(x, y, z) (sin(U(x, y, z)))
-#define LX(x, y, z) (cos(U(x, y, z)))
-#define LY(x, y, z) (cos(U(x, y, z)))
-#define LZ(x, y, z) (cos(U(x, y, z)))
-#define BET 10.0
-#define GAM 0.4
+#define U(x, y, z)  ((x) + (y) + (z))
+#define L(x, y, z)  (1)
+#define LX(x, y, z) (0)
+#define LY(x, y, z) (0)
+#define LZ(x, y, z) (0)
+#define BET         10.0
+#define GAM         0.4
 
 double target(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
@@ -39,9 +37,7 @@ double lam(struct sim_fun_ctx *ctx, struct vec *vtx)
     (void)ctx;
     (void)vtx;
 
-    double u = ctx->sim->slv->run.wgt[0]->dat[ctx->vtx];
-
-    return sin(u);
+    return 1;
 }
 
 double dlam(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -49,19 +45,13 @@ double dlam(struct sim_fun_ctx *ctx, struct vec *vtx)
     (void)ctx;
     (void)vtx;
 
-    double u = ctx->sim->slv->run.wgt[0]->dat[ctx->vtx];
-
-    return cos(u);
+    return 0;
 }
 
 double neu1(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
     (void)ctx;
     (void)vtx;
-
-    double x = vtx->dat[0];
-    double y = vtx->dat[1];
-    double z = vtx->dat[2];
 
     return -L(x, y, z);
 }
@@ -71,10 +61,6 @@ double neu2(struct sim_fun_ctx *ctx, struct vec *vtx)
     (void)ctx;
     (void)vtx;
 
-    double x = vtx->dat[0];
-    double y = vtx->dat[1];
-    double z = vtx->dat[2];
-
     return L(x, y, z);
 }
 
@@ -82,10 +68,6 @@ double neu3(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
     (void)ctx;
     (void)vtx;
-
-    double x = vtx->dat[0];
-    double y = vtx->dat[1];
-    double z = vtx->dat[2];
 
     return L(x, y, z);
 }
@@ -125,4 +107,3 @@ double rob3(struct sim_fun_ctx *ctx, struct vec *vtx)
 
     return U(x, y, z) - L(x, y, z) / BET;
 }
-

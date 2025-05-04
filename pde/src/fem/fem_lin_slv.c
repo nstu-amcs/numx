@@ -272,10 +272,7 @@ static double est(struct est_ctx *ctx, struct vec *wgt)
     }
 
     vec_swp(&est, &ctx->ctx->w0);
-
-    if (fem_lin_asm(ctx->sim, ctx->ctx))
-        return -1;
-
+    fem_lin_asm(ctx->sim, ctx->ctx);
     vec_swp(&est, &ctx->ctx->w0);
 
     double err = 0;
@@ -356,6 +353,8 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
         if (ops->rlx)
             vec_swp(&ctx->w0, &prv);
 
+        vec_rst(&ctx->w0);
+
         switch (sim->slv->ops.iss.mod) {
             case ISS_BCG:
                 if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &sim->slv->ops.iss.ops.bcg)))
@@ -388,6 +387,12 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
 
 end:
     vec_cls(&tmp);
+
+    if (ops->rlx) {
+        vec_cls(&prv);
+        vec_cls(&upd);
+    }
+
     return r;
 }
 

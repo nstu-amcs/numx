@@ -1,9 +1,14 @@
 .cache/
 build/
+_minted/
 
 **/*.unv
+**/*.aux
+**/*.log
+**/*.pdf
 
 **/elm/*
 **/res/*
 
 !**/elm/case.sif
+

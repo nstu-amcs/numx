@@ -62,22 +62,25 @@ int fem_exe(struct sim *sim)
 {
     assert(sim);
 
+    int r = 0;
+
     struct fem_ctx ctx;
 
-    if (fem_ctx_new(sim, &ctx))
-        return -1;
+    if ((r = fem_ctx_new(sim, &ctx)))
+        goto end;
 
-    if (sim->ops.exp.ini(sim))
-        return -1;
+    if ((r = sim->ops.exp.ini(sim)))
+        goto end;
 
     switch (((struct fem *)sim->slv)->ops.bss) {
         case FEM_BSS_LIN:
-            return fem_lin_slv(sim, &ctx);
+            if ((r = fem_lin_slv(sim, &ctx)))
+                goto end;
     }
 
+end:
     fem_ctx_cls(sim, &ctx);
-
-    return 0;
+    return r;
 }
 
 static void mtx_prep(struct smtx *mtx)

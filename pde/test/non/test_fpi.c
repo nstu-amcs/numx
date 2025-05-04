@@ -28,7 +28,7 @@ int main()
 {
     struct sim sim;
     struct ctx ctx = {
-        .fs = fopen("pde/test/non/case/res/fpi.slv", "w+"),
+        .fs = fopen("pde/test/non/" CASE "/res/fpi.slv", "w+"),
         .fn = NULL,
         .non = {
                 .itr = 0,
@@ -44,7 +44,7 @@ int main()
         strcpy(sim.ops.usr.pfx, usr[i]);
         strcpy(sim.ops.exp.pfx, usr[i]);
 
-        sim_imp_elm(&sim, "pde/test/non/case/elm/case.sif");
+        sim_imp_elm(&sim, "pde/test/non/" CASE "/elm/case.sif");
 
         sim.slv->ops.non.ops.itr.ctx = &ctx;
         sim.slv->ops.non.ops.itr.run = on_non;
@@ -127,6 +127,8 @@ static void on_slv(void *c, struct sim *sim)
             v.dat[0] += xs;
         }
     }
+
+    vec_cls(&v);
 
     fprintf(ctx->fs, "%d & %.7e & %.7e\n", ctx->non.itr, err / num, ctx->non.err);
 }

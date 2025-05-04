@@ -1,12 +1,12 @@
 #include <numx/pde/sim.h>
 
-#define U(x, y, z) ((x) + (y) + (z))
-#define L(x, y, z) (U(x, y, z))
+#define U(x, y, z)  ((x) + (y) + (z))
+#define L(x, y, z)  (U(x, y, z))
 #define LX(x, y, z) (1)
 #define LY(x, y, z) (1)
 #define LZ(x, y, z) (1)
-#define BET 10.0
-#define GAM 0.4
+#define BET         10.0
+#define GAM         0.4
 
 double target(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
@@ -37,17 +37,17 @@ double lam(struct sim_fun_ctx *ctx, struct vec *vtx)
     (void)ctx;
     (void)vtx;
 
-    double u = ctx->sim->slv->run.wgt[0]->dat[ctx->vtx];
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
+    double z = vtx->dat[2];
 
-    return u;
+    return x + y + z;
 }
 
 double dlam(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
     (void)ctx;
     (void)vtx;
-
-    // double u = ctx->sim->slv->run.wgt[0]->dat[ctx->vtx];
 
     return 1;
 }

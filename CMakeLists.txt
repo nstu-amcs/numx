@@ -7,6 +7,8 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS "-std=c23 -Wall -Werror -Wextra -fopenmp")
 set(CMAKE_C_STANDARD 23)
 
+add_compile_definitions(OMP_NUM_THREADS=1)
+
 include(CTest)
 enable_testing()
 

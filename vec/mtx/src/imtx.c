@@ -53,11 +53,11 @@ int imtx_vmul(struct imtx *m, struct vec *v, struct vec *r)
     double  *vd = v->dat;
     double  *rd = r->dat;
 
-    [[omp::directive(parallel for)]]
+    // [[omp::directive(parallel for)]]
     for (int i = 0; i < m->pps.m; ++i) {
         double s = 0;
 
-        [[omp::directive(parallel for reduction(+ : s))]]
+        // [[omp::directive(parallel for reduction(+ : s))]]
         for (int j = 0; j < m->pps.n; ++j)
             s += md[i][j] * vd[j];
 
@@ -77,14 +77,14 @@ int imtx_mmul(struct imtx *a, struct imtx *b, struct imtx *r)
     double **bd = b->dat;
     double **rd = r->dat;
 
-    [[omp::directive(parallel for)]]
+    // [[omp::directive(parallel for)]]
     for (int i = 0; i < r->pps.m; ++i) {
 
-        [[omp::directive(parallel for)]]
+        // [[omp::directive(parallel for)]]
         for (int j = 0; j < r->pps.n; ++j) {
             double s = 0;
 
-            [[omp::directive(parallel for reduction(+ : s))]]
+            // [[omp::directive(parallel for reduction(+ : s))]]
             for (int e = 0; e < a->pps.n; ++e)
                 s += ad[i][e] * bd[e][i];
 
