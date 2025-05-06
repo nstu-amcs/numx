@@ -45,7 +45,7 @@
 \vfill
 \vskip 3cm
 
-{\scshape Лабораторная работа \textnumero 2}
+{\scshape Практическая работа \textnumero 2}
 \vskip 3mm
 \begin{spacing}{1.7}
     {\huge\bf Метод конечных элементов для нелинейных уравнений}
@@ -457,9 +457,9 @@
     \midrule
     $1$ & 1 & 1.4640046e-13 & 7.9956790e-16 & 1 & 1.4640046e-13 & 7.9956790e-16 \\
     $x + y + z$ & 1 & 1.7866714e-13 & 4.2313926e-15 & 1 & 1.7866714e-13 & 4.2313926e-15 \\
-    $u$ & 10 & 2.7583768e+02 & 3.0773912e-14 & 10 & 2.7583768e+02 & 3.3383068e-14 \\
-    $u^2$ & 22 & 3.1087038e-02 & 5.6728015e-14 & 22 & 3.1087038e-02 & 5.9967901e-14 \\
-    $sin(u)$ & 100 & 4.8444670e+22 & 1.0913538e+20 & 100 & 4.9217184e+15 & 6.4972219e+12 \\
+    $u$ & 4 & 1.5846144e-13 & 6.2578839e-15 & 4 & 1.9563008e-13 & 5.5466718e-15 \\
+    $u^2$ & 5 & 3.1087038e-02 & 3.9142611e-14 & 5 & 3.1087038e-02 & 3.9287809e-14 \\
+    $sin(u)$ & 100 & 2.3116369e+20 & 5.0084414e+17 & 100 & 1.6141609e+15 & 3.8087195e+12 \\
     \bottomrule
   \end{tabularx}
 
@@ -478,25 +478,33 @@
     \midrule
     $1$ & 1 & 1.5654518e-13 & 1.4343268e-15 & 1 & 1.5654518e-13 & 1.4343268e-15 \\
     $x + y + z$ & 1 & 2.7974269e-13 & 2.4910842e-14 & 1 & 2.7974269e-13 & 2.4910842e-14 \\
-    $u$ & 100 & 2.3277467e+03 & 6.4247942e-01 & 100 & 5.0207074e+03 & 4.2619358e+03 \\
-    $u^2$ & 24 & 6.9405577e-03 & 2.4428863e-13 & 24 & 6.9405577e-03 & 2.3108708e-13 \\
-    $sin(u)$ & 100 & 6.4882599e+39 & 2.2157023e+37 & 100 & 6.0247776e+14 & 2.5035995e+12 \\
+    $u$ & 4 & 2.2988016e-13 & 1.8061893e-14 & 4 & 2.5966395e-13 & 2.0472630e-14 \\
+    $u^2$ & 5 & 6.9405577e-03 & 2.2263042e-13 & 5 & 6.9405577e-03 & 3.2868906e-13 \\
+    $sin(u)$ & 13 & - & - & 80 & - & - \\
     \bottomrule
   \end{tabularx}
 
   \caption{Метод Ньютона. Сетка из 216 конечных элементов.}
 \end{table}
 
+\section{Вывод}
+
+\begin{itemize}
+  \item Использование параметра релаксации не оказывает
+    существенного воздействия на сходимость итерационного процесса;
+  \item Метод Ньютона требует наличия хорошего начального приближения.
+\end{itemize}
+
 \section{Текст программы}
 
-% \inputminted{c}{pde/include/numx/pde/msh.h}
-% \inputminted{c}{pde/include/numx/pde/sim.h}
-% \inputminted{c}{pde/include/numx/pde/cnd.h}
-% \inputminted{c}{pde/include/numx/pde/slv.h}
-% \inputminted{c}{pde/include/numx/pde/fem.h}
-% 
-% \inputminted{c}{pde/src/fem/fem.c}
-% \inputminted{c}{pde/src/fem/fem_lin_slv.c}
-% \inputminted{c}{pde/src/fem/fem_lin_asm.c}
+\inputminted{c}{pde/include/numx/pde/msh.h}
+\inputminted{c}{pde/include/numx/pde/sim.h}
+\inputminted{c}{pde/include/numx/pde/cnd.h}
+\inputminted{c}{pde/include/numx/pde/slv.h}
+\inputminted{c}{pde/include/numx/pde/fem.h}
+
+\inputminted{c}{pde/src/fem/fem.c}
+\inputminted{c}{pde/src/fem/fem_lin_slv.c}
+\inputminted{c}{pde/src/fem/fem_lin_asm.c}
 
 \end{document}

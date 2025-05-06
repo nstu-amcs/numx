@@ -105,6 +105,9 @@ static int pbc_slv(struct sim *sim, struct fem_ctx *ctx)
     if ((r = vec_new(&ctx->w1, ctx->vec.n)))
         goto end;
 
+    if ((r = vec_new(&ctx->tmp, ctx->vec.n)))
+        goto end;
+
     fem->slv.run.bs = 2;
 
     if (fem->slv.ops.tdd > 2) {
@@ -157,6 +160,8 @@ end:
     vec_cls(&ctx->w1);
     vec_cls(&ctx->w2);
     vec_cls(&ctx->w3);
+
+    vec_cls(&ctx->tmp);
 
     return r;
 }
@@ -330,6 +335,16 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
         .var = -1,
         .vtx = &ctx->w0,
     };
+
+    for (int i = 0; i < sim->msh->vtx.len; ++i) {
+      struct vec* v = &sim->msh->vtx.dat[i];
+
+      double x = v->dat[0];
+      double y = v->dat[1];
+      double z = v->dat[2];
+
+      ctx->w0.dat[i] = 0.6 * x + 0.7 * y + 0.8 * z;
+    }
 
     ops->run.itr = 0;
     ops->run.rlx = 0;

@@ -18,6 +18,8 @@ struct fem_ctx
     struct vec w1;
     struct vec w2;
     struct vec w3;
+
+    struct vec tmp;
 };
 
 #endif // NUMX_PDE_PRV_FEM_H

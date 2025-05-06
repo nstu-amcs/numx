@@ -49,7 +49,7 @@ double dlam(struct sim_fun_ctx *ctx, struct vec *vtx)
     (void)ctx;
     (void)vtx;
 
-    return 1;
+    return 0;
 }
 
 double neu1(struct sim_fun_ctx *ctx, struct vec *vtx)
