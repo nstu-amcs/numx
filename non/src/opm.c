@@ -1,6 +1,6 @@
 #include <numx/non/opm.h>
 
-double opm_loc_bis(void *ctx, double (*fun)(void *, struct vec *), struct opm_ops *ops)
+double opm_loc_bis(void *ctx, mfun fun, struct opm_ops *ops)
 {
     assert(fun);
     assert(ops);

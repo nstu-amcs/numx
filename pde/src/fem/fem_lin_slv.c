@@ -97,8 +97,6 @@ static int pbc_slv(struct sim *sim, struct fem_ctx *ctx)
 {
     int r = 0;
 
-    struct fem *fem = (struct fem *)sim->slv;
-
     if ((r = vec_new(&ctx->w0, ctx->vec.n)))
         goto end;
 
@@ -108,46 +106,54 @@ static int pbc_slv(struct sim *sim, struct fem_ctx *ctx)
     if ((r = vec_new(&ctx->tmp, ctx->vec.n)))
         goto end;
 
-    fem->slv.run.bs = 2;
+    sim->slv->run.bs = 2;
 
-    if (fem->slv.ops.tdd > 2) {
+    if (sim->slv->ops.tdd > 2) {
         if ((r = vec_new(&ctx->w2, ctx->vec.n)))
             goto end;
 
-        fem->slv.run.bs = 3;
+        sim->slv->run.bs = 3;
     }
 
-    if (fem->slv.ops.tdd > 3) {
+    if (sim->slv->ops.tdd > 3) {
         if ((r = vec_new(&ctx->w3, ctx->vec.n)))
             goto end;
 
-        fem->slv.run.bs = 4;
+        sim->slv->run.bs = 4;
     }
 
-    fem->slv.run.wgt[0] = &ctx->w0;
-    fem->slv.run.wgt[1] = &ctx->w1;
-    fem->slv.run.wgt[2] = &ctx->w2;
-    fem->slv.run.wgt[3] = &ctx->w3;
+    sim->slv->run.wgt[0] = &ctx->w0;
+    sim->slv->run.wgt[1] = &ctx->w1;
+    sim->slv->run.wgt[2] = &ctx->w2;
+    sim->slv->run.wgt[3] = &ctx->w3;
 
     double beg = sim->ops.tdd.beg;
     double hop = sim->ops.tdd.hop;
     int    num = sim->ops.tdd.num;
 
-    fem->slv.run.ti = 0;
-    fem->slv.run.tv = beg;
+    sim->slv->run.ti = 0;
+    sim->slv->run.tv = beg;
 
     if ((r = pbc_i1s_slv(sim, ctx)))
         goto end;
 
-    for (int i = 1, t = hop; i <= num; i += 1, t += hop) {
-        fem->slv.run.ti = i;
-        fem->slv.run.tv = t;
+    if (sim->slv->itr.run)
+        sim->slv->itr.run(sim->slv->itr.ctx, sim);
+
+    if (sim->ops.exp.put)
+        sim->ops.exp.put(sim);
+
+    pbc_ctx_shr(sim, ctx);
+
+    for (int i = 1; i <= num; ++i) {
+        sim->slv->run.ti = i;
+        sim->slv->run.tv += hop;
 
         if ((r = sys_slv(sim, ctx)))
             goto end;
 
-        if (fem->slv.itr.run)
-            fem->slv.itr.run(fem->slv.itr.ctx, sim);
+        if (sim->slv->itr.run)
+            sim->slv->itr.run(sim->slv->itr.ctx, sim);
 
         if (sim->ops.exp.put)
             sim->ops.exp.put(sim);
@@ -183,7 +189,8 @@ static int pbc_i1s_slv(struct sim *sim, struct fem_ctx *ctx)
 
             for (int k = 0; k < 8; ++k) {
                 fctx.vtx = hxd->vtx[k];
-                ctx->w0.dat[hxd->vtx[k]] = ini->tgt.as.fun(&fctx, &sim->msh->vtx.dat[hxd->vtx[k]]);
+                ctx->w0.dat[hxd->vtx[k]] =
+                    ini->tgt.as.fun(&fctx, &sim->msh->vtx.dat[hxd->vtx[k]]);
             }
         } else {
             for (int k = 0; k < 8; ++k)
@@ -196,8 +203,6 @@ static int pbc_i1s_slv(struct sim *sim, struct fem_ctx *ctx)
 
 static int pbc_ctx_shr(struct sim *sim, struct fem_ctx *ctx)
 {
-    double *tmp = 0;
-
     struct vec *w0 = &ctx->w0;
     struct vec *w1 = &ctx->w1;
     struct vec *w2 = &ctx->w2;
@@ -205,22 +210,16 @@ static int pbc_ctx_shr(struct sim *sim, struct fem_ctx *ctx)
 
     switch (sim->slv->ops.tdd) {
         case TDD_I2S:
-            tmp = w1->dat;
-            w1->dat = w0->dat;
-            w0->dat = tmp;
+            vec_swp(w0, w1);
             break;
         case TDD_I3S:
-            tmp = w2->dat;
-            w2->dat = w1->dat;
-            w1->dat = w0->dat;
-            w0->dat = tmp;
+            vec_swp(w1, w2);
+            vec_swp(w0, w1);
             break;
         case TDD_I4S:
-            tmp = w3->dat;
-            w3->dat = w2->dat;
-            w2->dat = w1->dat;
-            w1->dat = w0->dat;
-            w0->dat = tmp;
+            vec_swp(w2, w3);
+            vec_swp(w1, w2);
+            vec_swp(w0, w1);
             break;
     }
 
@@ -238,6 +237,8 @@ static int sys_slv(struct sim *sim, struct fem_ctx *ctx)
 
     if (fem_lin_asm(sim, ctx))
         return -1;
+
+    vec_rst(&ctx->w0);
 
     switch (ops->iss.mod) {
         case ISS_BCG:
@@ -337,13 +338,13 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
     };
 
     for (int i = 0; i < sim->msh->vtx.len; ++i) {
-      struct vec* v = &sim->msh->vtx.dat[i];
+        struct vec *v = &sim->msh->vtx.dat[i];
 
-      double x = v->dat[0];
-      double y = v->dat[1];
-      double z = v->dat[2];
+        double x = v->dat[0];
+        double y = v->dat[1];
+        double z = v->dat[2];
 
-      ctx->w0.dat[i] = 0.6 * x + 0.7 * y + 0.8 * z;
+        ctx->w0.dat[i] = 0.6 * x + 0.7 * y + 0.8 * z;
     }
 
     ops->run.itr = 0;
@@ -372,7 +373,8 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
 
         switch (sim->slv->ops.iss.mod) {
             case ISS_BCG:
-                if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &sim->slv->ops.iss.ops.bcg)))
+                if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec,
+                         &sim->slv->ops.iss.ops.bcg)))
                     goto end;
 
                 break;
@@ -383,7 +385,8 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
         }
 
         if (ops->rlx) {
-            double opm = opm_loc_bis(&est_ctx, (double (*)(void *, struct vec *))est, &opm_ops);
+            double opm = opm_loc_bis(
+                &est_ctx, (double (*)(void *, struct vec *))est, &opm_ops);
 
             vec_mul(&ctx->w0, &upd, opm);
             vec_cmb(&upd, &prv, &upd, 1 - opm);

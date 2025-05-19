@@ -272,9 +272,10 @@ int smtx_vmul(struct smtx *m, struct vec *x, struct vec *f)
     double *xv = x->dat;
     double *fv = f->dat;
 
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
         fv[i] = xv[i] * dr[i];
 
+    for (int i = 0; i < n; ++i) {
         int ar0 = ia[i];
         int ar1 = ia[i + 1];
 

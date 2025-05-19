@@ -19,7 +19,7 @@ typedef struct iss_ops
 
     /**
      *  Iteration callback (user defined).
-     *  Called on each iteration.
+     *  Calls on each iteration.
      */
     struct
     {
@@ -29,7 +29,7 @@ typedef struct iss_ops
 
     /**
      *  Runtime data made available by solver.
-     *  Updated on each iteration.
+     *  Updates on each iteration.
      */
     struct
     {
@@ -52,6 +52,11 @@ typedef struct iss_rlx_ops
     double rlx; // relaxation parameter
 } iss_rlx_ops;
 
+typedef struct iss_gmr_ops
+{
+    struct iss_ops ops;
+} iss_gmr_ops;
+
 typedef struct iss_bcg_ops
 {
     struct iss_ops ops;
@@ -59,21 +64,73 @@ typedef struct iss_bcg_ops
     /** Preconditioner (maybe null). */
     union con
     {
+        struct imtx *im;
         struct smtx *sm;
+        struct dmtx *dm;
     } con;
 } iss_bcg_ops;
 
-int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *ops);
-int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops *ops);
-int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *ops);
+int iiss_jac_slv(
+    struct imtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *ops);
+int iiss_rlx_slv(
+    struct imtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops *ops);
+int iiss_gmr_slv(
+    struct imtx *m, struct vec *x, struct vec *f, struct iss_gmr_ops *ops);
+int iiss_bcg_slv(
+    struct imtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *ops);
 
-/** Jacobi solver for systems of linear equations, Mx = f */
-#define iss_jac_slv(M, x, f, o) _Generic((M), struct dmtx *: diss_jac_slv)(M, x, f, o)
+int diss_jac_slv(
+    struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *ops);
+int diss_rlx_slv(
+    struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops *ops);
+int diss_gmr_slv(
+    struct dmtx *m, struct vec *x, struct vec *f, struct iss_gmr_ops *ops);
+int diss_bcg_slv(
+    struct dmtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *ops);
 
-/** Relaxation (Gauss-Seidel) solver for systems of linear equations, Mx = f */
-#define iss_rlx_slv(M, x, f, o) _Generic((M), struct dmtx *: diss_rlx_slv)(M, x, f, o)
+int siss_jac_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *ops);
+int siss_rlx_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops *ops);
+int siss_gmr_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_gmr_ops *ops);
+int siss_bcg_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *ops);
 
-/** Stabilized biconjugate gradient solver for systems of linear equations, Mx = f */
-#define iss_bcg_slv(M, x, f, o) _Generic((M), struct smtx *: siss_bcg_slv)(M, x, f, o)
+/**
+ *  Jacobi solver for systems of linear equations.
+ */
+#define iss_jac_slv(M, x, f, o)                                                \
+    _Generic((M),                                                              \
+        struct imtx *: iiss_jac_slv,                                           \
+        struct dmtx *: diss_jac_slv,                                           \
+        struct smtx *: siss_jac_slv)(M, x, f, o)
+
+/**
+ *  Relaxation (Gauss-Seidel) solver for systems of linear equations.
+ */
+#define iss_rlx_slv(M, x, f, o)                                                \
+    _Generic((M),                                                              \
+        struct imtx *: iiss_rlx_slv,                                           \
+        struct dmtx *: diss_rlx_slv,                                           \
+        struct smtx *: siss_rlx_slv)(M, x, f, o)
+
+/**
+ *  Generalized minimal residual solver for systems of linear equations.
+ */
+#define iss_gmr_slv(M, x, f, o)                                                \
+    _Generic((M),                                                              \
+        struct imtx *: iiss_gmr_slv,                                           \
+        struct dmtx *: diss_gmr_slv,                                           \
+        struct smtx *: siss_gmr_slv)(M, x, f, o)
+
+/**
+ *  Stabilized biconjugate gradient solver for systems of linear equations.
+ */
+#define iss_bcg_slv(M, x, f, o)                                                \
+    _Generic((M),                                                              \
+        struct imtx *: iiss_bcg_slv,                                           \
+        struct dmtx *: diss_bcg_slv,                                           \
+        struct smtx *: siss_bcg_slv)(M, x, f, o)
 
 #endif // NUMX_VEC_ISS_H

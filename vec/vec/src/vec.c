@@ -1,9 +1,10 @@
 #include <assert.h>
 #include <math.h>
-#include <numx/vec/vec.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <numx/vec/vec.h>
 
 int vec_new_ini(struct vec *v, int n, ...)
 {
@@ -62,7 +63,9 @@ int vec_cmb(struct vec *a, struct vec *b, struct vec *r, double k)
     double *bd = b->dat;
     double *rd = r->dat;
 
-    // [[omp::directive(parallel for)]]
+#ifdef OMP
+    [[omp::directive(parallel for)]]
+#endif
     for (int i = 0; i < n; ++i)
         rd[i] = ad[i] + k * bd[i];
 
@@ -82,7 +85,9 @@ int vec_dot(struct vec *a, struct vec *b, double *r)
 
     double s = 0;
 
-    // [[omp::directive(parallel for reduction(+:s))]]
+#ifdef OMP
+    [[omp::directive(parallel for reduction(+:s))]]
+#endif
     for (int i = 0; i < dim; ++i)
         s += ad[i] * bd[i];
 
@@ -109,7 +114,9 @@ int vec_mul(struct vec *v, struct vec *r, double m)
     double *vd = v->dat;
     double *rd = r->dat;
 
-    // [[omp::directive(parallel for)]]
+#ifdef OMP
+    [[omp::directive(parallel for)]]
+#endif
     for (int i = 0; i < n; ++i)
         rd[i] = vd[i] * m;
 

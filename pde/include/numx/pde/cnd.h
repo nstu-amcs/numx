@@ -2,6 +2,7 @@
 #define NUMX_PDE_CND_H
 
 #include <numx/com/cut.h>
+#include <numx/non/fun.h>
 #include <numx/pde/msh.h>
 #include <numx/vec/vec.h>
 
@@ -26,15 +27,14 @@ typedef struct val
 
     union
     {
-        double num;
-        double (*fun)(struct sim_fun_ctx *ctx, struct vec *vtx); // function of space, time and field
+        double num; // constant value
+        mfun   fun; // function of space, time and field
     } as;
 
     struct
     {
-        bool fd; // field dependence
-
-        double (*dif)(struct sim_fun_ctx *ctx, struct vec *vtx); // partial derivative with respect to field
+        bool fd;  // field dependence
+        mfun dif; // partial derivative with respect to field
     } ops;
 } val;
 

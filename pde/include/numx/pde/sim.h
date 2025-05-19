@@ -66,6 +66,12 @@ typedef struct sim
             void *hdl; // dynamic-library handler
         } usr;
 
+        struct
+        {
+            char dir[128]; // mesh directory
+            char pfx[64];  // mesh prefix
+        } msh;
+
         /** Export options. */
         struct
         {

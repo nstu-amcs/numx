@@ -1,6 +1,7 @@
 #ifndef NUMX_NON_DIF_H
 #define NUMX_NON_DIF_H
 
+#include <numx/non/fun.h>
 #include <numx/vec/vec.h>
 
 #define NUMX_NON_DIF_HOP 0.001
@@ -24,6 +25,6 @@ typedef struct dif_ops
 /**
  *  Three-point midpoint partial differentiation.
  */
-double dif_tpm(void *ctx, double (*fun)(void *, struct vec *), struct dif_ops *ops);
+double dif_tpm(void *ctx, mfun fun, struct dif_ops *ops);
 
 #endif // NUMX_NON_DIF_H

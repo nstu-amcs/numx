@@ -19,37 +19,33 @@ target_link_libraries(pde PUBLIC com vec iss cgns)
 target_include_directories(pde PUBLIC include/)
 target_include_directories(pde PRIVATE src/fem/)
 
-add_compile_definitions(CASE="c2")
-
-add_executable(test_ell test/ell/test.c)
-add_executable(test_non_fpi_def test/non/test_fpi.c)
-add_executable(test_non_fpi_rlx test/non/test_fpi_rlx.c)
-add_executable(test_non_new_def test/non/test_new.c)
-add_executable(test_pbc test/pbc/test.c)
-
-target_link_libraries(test_ell pde)
-target_link_libraries(test_non_fpi_def pde)
-target_link_libraries(test_non_fpi_rlx pde)
-target_link_libraries(test_non_new_def pde)
-target_link_libraries(test_pbc pde)
-
-add_test(NAME numx/pde/ell COMMAND test_ell WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-add_test(NAME numx/pde/non/fpi/def COMMAND test_non_fpi_def WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-add_test(NAME numx/pde/non/fpi/rlx COMMAND test_non_fpi_rlx WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-add_test(NAME numx/pde/non/new/def COMMAND test_non_new_def WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-add_test(NAME numx/pde/pbc COMMAND test_pbc WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_executable(test_pde 
+  test/test.c
+  test/ell/test.c
+  test/pbc/test.c
+)
+target_link_libraries(test_pde pde munit)
+add_test(NAME numx/pde COMMAND test_pde WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 install(DIRECTORY include/numx DESTINATION /usr/share/include)
 install(DIRECTORY include/numx DESTINATION /usr/include)
 
-install(FILES mod/ell.xml DESTINATION /usr/local/share/ElmerGUI/edf)
-install(FILES mod/pbc.xml DESTINATION /usr/local/share/ElmerGUI/edf)
-install(FILES mod/hyp.xml DESTINATION /usr/local/share/ElmerGUI/edf)
+install(FILES cfg/ell.xml DESTINATION /usr/local/share/ElmerGUI/edf)
+install(FILES cfg/pbc.xml DESTINATION /usr/local/share/ElmerGUI/edf)
+install(FILES cfg/hyp.xml DESTINATION /usr/local/share/ElmerGUI/edf)
 
 add_custom_target(docs-pde-fem-non DEPENDS pde/docs/fem-non.pdf VERBATIM)
 add_custom_command(
   OUTPUT pde/docs/fem-non.pdf 
   COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-non.tex 
   DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-non.tex
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(docs-pde-fem-pbc DEPENDS pde/docs/fem-pbc.pdf VERBATIM)
+add_custom_command(
+  OUTPUT pde/docs/fem-pbc.pdf 
+  COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-pbc.tex 
+  DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-pbc.tex
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )

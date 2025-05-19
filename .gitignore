@@ -2,10 +2,10 @@
 build/
 _minted/
 
-**/*.unv
 **/*.aux
 **/*.log
 **/*.pdf
+**/*.toc
 
 **/elm/*
 **/res/*

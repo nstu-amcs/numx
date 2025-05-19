@@ -5,7 +5,6 @@
 
 #include <numx/pde/sim.h>
 
-static int get_hdr(FILE *f, struct sim *sim);
 static int get_sim(FILE *f, struct sim *sim);
 static int get_obj(FILE *f, struct sim *sim);
 static int get_mat(FILE *f, struct sim *sim);
@@ -14,7 +13,6 @@ static int get_ini(FILE *f, struct sim *sim);
 static int get_bnd(FILE *f, struct sim *sim);
 
 static int get_ent(const char *src, char *key, char *val);
-static int get_str(const char **src, char *dst);
 static int get_val(struct sim *sim, char *src, struct val *val);
 
 int sim_imp_elm(struct sim *sim, const char *sif)
@@ -34,11 +32,6 @@ int sim_imp_elm(struct sim *sim, const char *sif)
 
     while (fgets(buf, sizeof(buf), f)) {
         switch (*buf) {
-            case 'H':
-                if ((r = get_hdr(f, sim)))
-                    goto end;
-
-                break;
             case 'S':
                 if ((r = get_sim(f, sim)))
                     goto end;
@@ -96,74 +89,12 @@ end:
     return r;
 }
 
-static int get_hdr(FILE *f, struct sim *sim)
-{
-    char buf[256];
-    char cmd[256];
-    char dir[192];
-    char pfx[64];
-    char tmp[64];
-
-    while (fgets(buf, sizeof(buf), f)) {
-        if (buf[0] == 'E')
-            break;
-
-        const char *cur = buf;
-
-        while (*cur == ' ')
-            ++cur;
-
-        switch (*cur) {
-            case 'M':
-                get_str(&cur, dir);
-                get_str(&cur, tmp);
-
-                strcat(dir, "/");
-                strcat(dir, tmp);
-                strcpy(pfx, "mesh");
-
-                break;
-            case 'I':
-                get_str(&cur, sim->ops.usr.dir);
-
-                if (!sim->ops.usr.dir[0])
-                    break;
-
-                sprintf(cmd, "gcc -o /tmp/numx_usr.so -I/usr/share/include -shared -fPIC %s/%s.c", sim->ops.usr.dir,
-                    sim->ops.usr.pfx);
-                system(cmd);
-
-                sim->ops.usr.hdl = dlopen("/tmp/numx_usr.so", RTLD_NOW);
-
-                if (!sim->ops.usr.hdl)
-                    return -1;
-
-                break;
-            case 'R':
-                get_str(&cur, sim->ops.exp.dir);
-
-                if (!sim->ops.exp.dir[0]) {
-                    sim->ops.exp.dir[0] = '.';
-                    sim->ops.exp.dir[1] = '\0';
-                }
-
-                break;
-        }
-    }
-
-    if (msh_imp_grd(sim->msh, dir, pfx))
-        return -1;
-
-    return 0;
-}
-
 static int get_sim(FILE *f, struct sim *sim)
 {
     char buf[128];
     char key[64];
     char val[64];
 
-    struct sim_ops *ops = &sim->ops;
     struct fem_ops *fem = &((struct fem *)sim->slv)->ops;
 
     while (fgets(buf, sizeof(buf), f)) {
@@ -172,22 +103,6 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (get_ent(buf, key, val))
             return -1;
-
-        if (!strcmp("Post File", key)) {
-            strcpy(ops->exp.pfx, strtok(val, "."));
-            strcpy(key, strtok(0, "."));
-
-            if (!strcmp("cgns", key)) {
-                ops->exp.mod = SIM_EXP_GNS;
-                ops->exp.ini = sim_exp_gns_ini;
-                ops->exp.put = sim_exp_gns_put;
-
-                continue;
-            }
-
-            errno = ENOTSUP;
-            return -1;
-        }
 
         if (!strncmp("Timestep intervals", key, 18)) {
             sim->ops.tdd.num = atoi(val);
@@ -532,25 +447,6 @@ static int get_ent(const char *src, char *key, char *val)
     return 0;
 }
 
-static int get_str(const char **src, char *dst)
-{
-    const char *cur = *src;
-    int         len = 0;
-
-    while (*cur != '"')
-        ++cur;
-
-    cur += 1;
-
-    for (len = 0; *cur != '"'; ++len, ++cur)
-        dst[len] = *cur;
-
-    dst[len] = 0;
-    *src = cur + 1;
-
-    return 0;
-}
-
 static int get_val(struct sim *sim, char *src, struct val *val)
 {
     char *fun = strtok(src, ";");
@@ -560,7 +456,7 @@ static int get_val(struct sim *sim, char *src, struct val *val)
         val->as.num = strtod(fun, 0);
     } else {
         val->type = VAL_FUN;
-        val->as.fun = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr.hdl, fun);
+        val->as.fun = dlsym(sim->ops.usr.hdl, fun);
 
         if (!val->as.fun)
             return -1;
@@ -573,7 +469,7 @@ static int get_val(struct sim *sim, char *src, struct val *val)
         val->ops.fd = true;
 
         if (strcmp("num", fun))
-            val->ops.dif = (double (*)(struct sim_fun_ctx *ctx, struct vec *vtx))dlsym(sim->ops.usr.hdl, fun);
+            val->ops.dif = dlsym(sim->ops.usr.hdl, fun);
     }
 
     return 0;

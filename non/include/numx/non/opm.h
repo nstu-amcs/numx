@@ -1,6 +1,7 @@
 #ifndef NUMX_NON_OPM_H
 #define NUMX_NON_OPM_H
 
+#include <numx/non/fun.h>
 #include <numx/vec/vec.h>
 
 #define NUMX_NON_OPM_EPS 0.001
@@ -26,6 +27,6 @@ typedef struct opm_ops
 /**
  *  Bisection univariable local optimization.
  */
-double opm_loc_bis(void *ctx, double (*fun)(void *, struct vec *), struct opm_ops *ops);
+double opm_loc_bis(void *ctx, mfun fun, struct opm_ops *ops);
 
 #endif // NUMX_NON_OPM_H

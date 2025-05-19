@@ -6,3 +6,6 @@ add_library(non
 
 target_link_libraries(non com vec dss)
 target_include_directories(non PUBLIC include/)
+
+install(DIRECTORY include/numx DESTINATION /usr/share/include)
+install(DIRECTORY include/numx DESTINATION /usr/include)

@@ -1,0 +1,75 @@
+Simulation
+  Coordinate System = Cartesian
+  Post File = case.cgns
+  Timestep intervals(1) = 100
+  Timestep Sizes(2) = 0 1
+  Timestepping Method = BDF
+  BDF Order = 2
+End
+
+Body 1
+  Target Bodies(1) = 1
+  Equation = 1
+  Material = 1
+  Body Force = 1
+  Initial condition = 1
+End
+
+Solver 1
+  Equation = Parabolic Equation
+  Basis = Linear
+  Solution Mode = Standard
+  Nonlinear System Convergence Tolerance = 1.0e-7
+  Nonlinear System Max Iterations = 20
+  Linear System Iterative Method = BiCGStab
+  Linear System Max Iterations = 500
+  Linear System Convergence Tolerance = 1.0e-10
+  Linear System Preconditioning = none
+End
+
+Material 1
+  Gamma Coefficient = 0
+  Lambda Coefficient = 1
+  Sigma Coefficient = 2
+End
+
+Body Force 1
+  Field Source = source
+End
+
+Initial Condition 1
+  Field = initial
+End
+
+Boundary Condition 1
+  Target Boundaries(1) = 1 
+  Field Flux (theta) = neu1
+End
+
+Boundary Condition 2
+  Target Boundaries(1) = 3 
+  Field Flux (theta) = neu2
+End
+
+Boundary Condition 3
+  Target Boundaries(1) = 5 
+  Field Flux (theta) = neu3
+End
+
+Boundary Condition 4
+  Target Boundaries(1) = 2 
+  Robin Coefficient (beta) = 10
+  External Field = rob1
+End
+
+Boundary Condition 5
+  Target Boundaries(1) = 4 
+  Robin Coefficient (beta) = 10
+  External Field = rob2
+End
+
+Boundary Condition 6
+  Target Boundaries(1) = 6 
+  External Field = rob3
+  Robin Coefficient (beta) = 10
+End

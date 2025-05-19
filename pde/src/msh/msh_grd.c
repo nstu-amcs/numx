@@ -24,7 +24,7 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
     FILE *ems = 0;
     FILE *bnd = 0;
 
-    char path[64];
+    char path[256];
 
     sprintf(path, "%s/%s.header", dir, pfx);
 

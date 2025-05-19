@@ -1,6 +1,6 @@
 #include <numx/non/dif.h>
 
-double dif_tpm(void *ctx, double (*fun)(void *, struct vec *), struct dif_ops *ops)
+double dif_tpm(void *ctx, mfun fun, struct dif_ops *ops)
 {
     assert(fun);
     assert(ops);

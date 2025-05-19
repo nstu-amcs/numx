@@ -35,19 +35,6 @@ int sim_new(struct sim *sim)
     sim->msh = NULL;
     sim->slv = NULL;
 
-    struct fem *fem = malloc(sizeof(struct fem));
-
-    if (!fem || fem_new(fem))
-        goto err;
-
-    sim->slv = &fem->slv;
-
-    if (!(sim->msh = malloc(sizeof(struct msh))))
-        goto err;
-
-    if (msh_new(sim->msh))
-        goto err;
-
     if (mat_cut_new(&sim->mat))
         goto err;
 
