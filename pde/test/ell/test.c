@@ -1,12 +1,55 @@
 #include <munit.h>
 
-static MunitResult test_fem(const MunitParameter[], void *)
+MunitResult test(const MunitParameter[], void *);
+
+static char *c1_slv[] = {"fem", NULL};
+static char *c1_msh[] = {"m1", NULL};
+static char *c1_frq[] = {"f1", "f2", NULL};
+static char *c1_usr[] = {"u1", NULL};
+static char *c1_bdf[] = {"1", NULL};
+static char *c1_ini[] = {"0", NULL};
+
+static char *c2_slv[] = {"fem", NULL};
+static char *c2_msh[] = {"m2", NULL};
+static char *c2_frq[] = {"f1", NULL};
+static char *c2_usr[] = {"u1", NULL};
+static char *c2_bdf[] = {"1", NULL};
+static char *c2_ini[] = {"0", NULL};
+
+static MunitParameterEnum c1_pps[] = {
+    {"slv", c1_slv},
+    {"msh", c1_msh},
+    {"frq", c1_frq},
+    {"usr", c1_usr},
+    {"bdf", c1_bdf},
+    {"ini", c1_ini},
+    {NULL,  NULL  },
+};
+
+static MunitParameterEnum c2_pps[] = {
+    {"slv", c2_slv},
+    {"msh", c2_msh},
+    {"frq", c2_frq},
+    {"usr", c2_usr},
+    {"bdf", c2_bdf},
+    {"ini", c2_ini},
+    {NULL,  NULL  },
+};
+
+static void *c1_sup(const MunitParameter[], void *)
 {
-    return MUNIT_OK;
+    return "pde/test/ell/c1";
+}
+
+static void *c2_sup(const MunitParameter[], void *)
+{
+    return "pde/test/ell/c2";
 }
 
 static MunitTest tests[] = {
-    {"/fem", test_fem, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+    {"/c1", test, c1_sup, NULL, MUNIT_TEST_OPTION_NONE, c1_pps},
+    {"/c2", test, c2_sup, NULL, MUNIT_TEST_OPTION_NONE, c2_pps},
+    {NULL,  NULL, NULL,   NULL, MUNIT_TEST_OPTION_NONE, NULL  },
 };
 
 MunitSuite ell_suite = {
@@ -20,4 +63,4 @@ MunitSuite ell_suite = {
 MunitSuite unit_pde_ell_suite()
 {
     return ell_suite;
-}
+};

@@ -131,32 +131,24 @@ static int pbc_slv(struct sim *sim, struct fem_ctx *ctx)
     double hop = sim->ops.tdd.hop;
     int    num = sim->ops.tdd.num;
 
-    sim->slv->run.ti = 0;
     sim->slv->run.tv = beg;
 
-    if ((r = pbc_i1s_slv(sim, ctx)))
-        goto end;
-
-    if (sim->slv->itr.run)
-        sim->slv->itr.run(sim->slv->itr.ctx, sim);
-
-    if (sim->ops.exp.put)
-        sim->ops.exp.put(sim);
-
-    pbc_ctx_shr(sim, ctx);
-
-    for (int i = 1; i <= num; ++i) {
+    for (int i = 0; i <= num; ++i) {
         sim->slv->run.ti = i;
-        sim->slv->run.tv += hop;
 
-        if ((r = sys_slv(sim, ctx)))
-            goto end;
+        if (i < sim->slv->ops.ini.num) {
+            pbc_i1s_slv(sim, ctx);
+        } else {
+            sys_slv(sim, ctx);
+        }
 
         if (sim->slv->itr.run)
             sim->slv->itr.run(sim->slv->itr.ctx, sim);
 
         if (sim->ops.exp.put)
             sim->ops.exp.put(sim);
+
+        sim->slv->run.tv += hop;
 
         pbc_ctx_shr(sim, ctx);
     }

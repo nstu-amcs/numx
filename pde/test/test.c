@@ -90,13 +90,14 @@ void export(void *und, struct sim *sim)
 
 MunitResult test(const MunitParameter pps[], void *dir)
 {
-    char *slv = 0;
-    char *msh = 0;
-    char *frq = 0;
-    char *usr = 0;
-    char *bdf = 0;
+    char *slv = "fem";
+    char *msh = "m1";
+    char *frq = "f1";
+    char *usr = "u1";
+    char *bdf = "2";
+    char *ini = "1";
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 6; ++i) {
         if (!strcmp("slv", pps[i].name)) {
             slv = pps[i].value;
             continue;
@@ -119,6 +120,11 @@ MunitResult test(const MunitParameter pps[], void *dir)
 
         if (!strcmp("bdf", pps[i].name)) {
             bdf = pps[i].value;
+            continue;
+        }
+
+        if (!strcmp("ini", pps[i].name)) {
+            ini = pps[i].value;
             continue;
         }
     }
@@ -172,7 +178,7 @@ MunitResult test(const MunitParameter pps[], void *dir)
     if (sim_imp_elm(&sim, path))
         return MUNIT_FAIL;
 
-    sprintf(path, "%s/%s.%s.b%s.slv", (char *)dir, frq, usr, bdf);
+    sprintf(path, "%s/res/%s.%s.b%s.slv", (char *)dir, frq, usr, bdf);
 
     struct ctx ctx = {
         .tgt = dlsym(sim.ops.usr.hdl, "target"),
@@ -182,6 +188,7 @@ MunitResult test(const MunitParameter pps[], void *dir)
     sim.slv->itr.ctx = &ctx;
     sim.slv->itr.run = export;
     sim.slv->ops.tdd = atoi(bdf);
+    sim.slv->ops.ini.num = atoi(ini);
 
     if (sim_run(&sim))
         return MUNIT_FAIL;

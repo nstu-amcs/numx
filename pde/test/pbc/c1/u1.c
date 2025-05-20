@@ -22,12 +22,7 @@ double source(struct sim_fun_ctx *ctx, struct vec *vtx)
 
 double initial(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
-    [[maybe_unused]] double t = ctx->sim->ops.tdd.beg;
-    [[maybe_unused]] double x = vtx->dat[0];
-    [[maybe_unused]] double y = vtx->dat[1];
-    [[maybe_unused]] double z = vtx->dat[2];
-
-    return 5 * x * t * t * t - 2 * z * t * t + y * t + 1;
+    return target(ctx, vtx);
 }
 
 double neu1(struct sim_fun_ctx *ctx, struct vec *vtx)

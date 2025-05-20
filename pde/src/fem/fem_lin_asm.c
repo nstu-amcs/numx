@@ -149,7 +149,7 @@ static int pbc_asm(struct sim *sim, struct fem_ctx *ctx)
 static int pbc_asm_i2s(struct sim *sim, struct fem_ctx *ctx)
 {
     // int itr = sim->slv->run.ti;
-    int hop = sim->ops.tdd.hop;
+    double hop = sim->ops.tdd.hop;
 
     mtx_cmb(&ctx->mtx, &ctx->sig, &ctx->mtx, 1.0 / hop);
 
@@ -175,7 +175,7 @@ static int pbc_asm_i2s(struct sim *sim, struct fem_ctx *ctx)
 static int pbc_asm_i3s(struct sim *sim, struct fem_ctx *ctx)
 {
     // int itr = sim->slv->run.ti;
-    int hop = sim->ops.tdd.hop;
+    double hop = sim->ops.tdd.hop;
 
     mtx_cmb(&ctx->mtx, &ctx->sig, &ctx->mtx, 3.0 / (2 * hop));
 
@@ -210,7 +210,7 @@ static int pbc_asm_i3s(struct sim *sim, struct fem_ctx *ctx)
 static int pbc_asm_i4s(struct sim *sim, struct fem_ctx *ctx)
 {
     // int itr = sim->slv->run.ti;
-    int hop = sim->ops.tdd.hop;
+    double hop = sim->ops.tdd.hop;
 
     mtx_cmb(&ctx->mtx, &ctx->sig, &ctx->mtx, 11.0 / (6 * hop));
 
@@ -753,10 +753,9 @@ static int assemble(struct sim *sim, struct asm_ops ops)
                     if (ops.vdir == NULL)
                         continue;
 
-                    if (cnd->pps.dir.tgt.type == VAL_FUN)
+                    if (tgt_val->type == VAL_FUN)
                         ops.vdir->dat[gi] =
-                            C * cnd->pps.dir.tgt.as.fun(
-                                    &fun_ctx, &sim->msh->vtx.dat[gi]);
+                            C * tgt_val->as.fun(&fun_ctx, &vtx[gi]);
                     else
                         ops.vdir->dat[gi] = C * tgt_n;
                 }

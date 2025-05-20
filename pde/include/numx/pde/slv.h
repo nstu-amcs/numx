@@ -54,6 +54,12 @@ typedef struct slv
             TDD_I4S = 4, // implicit 4-layered
         } tdd;
 
+        /** Options related to initial conditions. */
+        struct
+        {
+            int num; // number of precomputed layers
+        } ini;
+
         /** Options for nonlinear system solver. */
         struct
         {

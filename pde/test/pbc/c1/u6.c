@@ -24,7 +24,7 @@ double source(struct sim_fun_ctx *ctx, struct vec *vtx)
 
 double initial(struct sim_fun_ctx *ctx, struct vec *vtx)
 {
-    [[maybe_unused]] double t = ctx->sim->ops.tdd.beg;
+    [[maybe_unused]] double t = ctx->sim->slv->run.tv;
     [[maybe_unused]] double x = vtx->dat[0];
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];

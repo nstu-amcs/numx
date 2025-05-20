@@ -7,7 +7,6 @@ _minted/
 **/*.pdf
 **/*.toc
 
-**/elm/*
 **/res/*
 
 !**/elm/case.sif
