@@ -188,7 +188,7 @@ MunitResult test(const MunitParameter pps[], void *dir)
     sim.slv->itr.ctx = &ctx;
     sim.slv->itr.run = export;
     sim.slv->ops.tdd = atoi(bdf);
-    sim.slv->ops.ini.num = atoi(ini);
+    sim.ops.tdd.ini = atoi(ini);
 
     if (sim_run(&sim))
         return MUNIT_FAIL;

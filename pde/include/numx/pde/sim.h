@@ -14,7 +14,7 @@ typedef struct mat
 {
     val lam; // diffusion coefficient
     val gam; // reaction coefficient
-    val sig;
+    val sig; // capacity coefficient
     val chi;
 } mat;
 
@@ -47,12 +47,19 @@ cut_def(bnd_cut, bnd);
 /** Simulation. */
 typedef struct sim
 {
-    /** Simulation mode (equation type). */
+    /** Equation type. */
     enum
     {
         SIM_ELL, // elliptic
         SIM_PBC, // parabolic
         SIM_HYP, // hyperbolic
+    } eqn;
+
+    /** Solution mode. */
+    enum
+    {
+        SIM_STD, // standard
+        SIM_HMC, // harmonic
     } mod;
 
     struct sim_ops
@@ -102,10 +109,17 @@ typedef struct sim
         struct
         {
             int num; // number of time intervals
+            int ini; // number of precomputed layers
 
             double beg; // initial time
             double hop; // time interval length
         } tdd;
+
+        /** Harmonic options. */
+        struct
+        {
+            double frq; // frequency
+        } hmc;
     } ops;
 
     struct msh *msh; // active mesh

@@ -16,7 +16,8 @@ int sim_new(struct sim *sim)
 {
     assert(sim);
 
-    sim->mod = SIM_ELL;
+    sim->eqn = SIM_ELL;
+    sim->mod = SIM_STD;
 
     sim->ops.usr.hdl = 0;
     sim->ops.usr.dir[0] = 0;
@@ -31,6 +32,8 @@ int sim_new(struct sim *sim)
     sim->ops.tdd.num = 0;
     sim->ops.tdd.beg = 0;
     sim->ops.tdd.hop = 0;
+
+    sim->ops.hmc.frq = 0;
 
     sim->msh = NULL;
     sim->slv = NULL;

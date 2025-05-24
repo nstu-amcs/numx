@@ -121,20 +121,20 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (!strcmp("Equation", key)) {
             if (!strcmp("Elliptic Equation", val))
-                sim->mod = SIM_ELL;
+                sim->eqn = SIM_ELL;
             else if (!strcmp("Parabolic Equation", val))
-                sim->mod = SIM_PBC;
+                sim->eqn = SIM_PBC;
             else if (!strcmp("Hyperbolic Equation", val))
-                sim->mod = SIM_HYP;
+                sim->eqn = SIM_HYP;
 
             continue;
         }
 
         if (!strcmp("Solution Mode", key)) {
             if (!strcmp("Standard", val))
-                fem->mod = FEM_STD;
+                sim->mod = SIM_STD;
             else if (!strcmp("Harmonic", val))
-                fem->mod = FEM_HMC;
+                sim->mod = SIM_HMC;
 
             continue;
         }
@@ -238,7 +238,7 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->lam))
                 return -1;
 
-            if (mat->lam.ops.fd)
+            if (mat->lam.ops.dep)
                 NON_LAM_SET(sim->slv->ops.non.map);
 
             continue;
@@ -248,7 +248,7 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->gam))
                 return -1;
 
-            if (mat->gam.ops.fd)
+            if (mat->gam.ops.dep)
                 NON_GAM_SET(sim->slv->ops.non.map);
 
             continue;
@@ -258,7 +258,7 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->sig))
                 return -1;
 
-            if (mat->sig.ops.fd)
+            if (mat->sig.ops.dep)
                 NON_SIG_SET(sim->slv->ops.non.map);
 
             continue;
@@ -268,7 +268,7 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->chi))
                 return -1;
 
-            if (mat->chi.ops.fd)
+            if (mat->chi.ops.dep)
                 NON_CHI_SET(sim->slv->ops.non.map);
 
             continue;
@@ -303,7 +303,7 @@ static int get_src(FILE *f, struct sim *sim)
             if (get_val(sim, val, src))
                 return -1;
 
-            if (src->ops.fd)
+            if (src->ops.dep)
                 NON_SRC_SET(sim->slv->ops.non.map);
         }
     }
@@ -381,7 +381,7 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.neu.tta))
                 return -1;
 
-            if (bnd->pps.neu.tta.ops.fd)
+            if (bnd->pps.neu.tta.ops.dep)
                 NON_TTA_SET(sim->slv->ops.non.map);
 
             continue;
@@ -391,7 +391,7 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.rob.bet))
                 return -1;
 
-            if (bnd->pps.rob.bet.ops.fd)
+            if (bnd->pps.rob.bet.ops.dep)
                 NON_BET_SET(sim->slv->ops.non.map);
 
             continue;
@@ -401,7 +401,7 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.rob.ext))
                 return -1;
 
-            if (bnd->pps.rob.ext.ops.fd)
+            if (bnd->pps.rob.ext.ops.dep)
                 NON_EXT_SET(sim->slv->ops.non.map);
 
             continue;
@@ -462,11 +462,11 @@ static int get_val(struct sim *sim, char *src, struct val *val)
             return -1;
     }
 
-    val->ops.fd = false;
+    val->ops.dep = false;
     val->ops.dif = NULL;
 
     if ((fun = strtok(0, ";"))) {
-        val->ops.fd = true;
+        val->ops.dep = true;
 
         if (strcmp("num", fun))
             val->ops.dif = dlsym(sim->ops.usr.hdl, fun);

@@ -8,8 +8,12 @@ add_library(pde
   src/msh/msh_gns.c
 
   src/fem/fem.c
-  src/fem/fem_lin_asm.c
-  src/fem/fem_lin_slv.c
+  src/fem/std/fem.c
+  src/fem/std/lin/slv.c
+  src/fem/std/lin/asm.c
+  src/fem/hmc/fem.c
+  src/fem/hmc/lin/slv.c
+  src/fem/hmc/lin/asm.c
 )
 
 add_library(cgns SHARED IMPORTED)
@@ -17,7 +21,6 @@ set_property(TARGET cgns PROPERTY IMPORTED_LOCATION "/usr/lib/libcgns.so")
 
 target_link_libraries(pde PUBLIC com vec iss cgns)
 target_include_directories(pde PUBLIC include/)
-target_include_directories(pde PRIVATE src/fem/)
 
 add_executable(test_pde 
   test/test.c

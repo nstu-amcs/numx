@@ -5,7 +5,7 @@
 #include <numx/non/dif.h>
 #include <numx/pde/sim.h>
 
-#include <prv/fem/lin.h>
+#include "fem.h"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -51,16 +51,16 @@ static double mnx[2][2][2];
 static double mny[2][2][2];
 static double mnz[2][2][2];
 
-static int ell_asm(struct sim *sim, struct fem_ctx *ctx);
-static int pbc_asm(struct sim *sim, struct fem_ctx *ctx);
-static int hyp_asm(struct sim *sim, struct fem_ctx *ctx);
+static int ell_asm(struct sim *sim, struct fem_std_ctx *ctx);
+static int pbc_asm(struct sim *sim, struct fem_std_ctx *ctx);
+static int hyp_asm(struct sim *sim, struct fem_std_ctx *ctx);
 
-int fem_lin_asm(struct sim *sim, struct fem_ctx *ctx)
+int fem_std_lin_asm(struct sim *sim, struct fem_std_ctx *ctx)
 {
     assert(sim);
     assert(ctx);
 
-    switch (sim->mod) {
+    switch (sim->eqn) {
         case SIM_ELL:
             return ell_asm(sim, ctx);
         case SIM_PBC:
@@ -89,7 +89,7 @@ struct asm_ops
 
 static int assemble(struct sim *sim, struct asm_ops ops);
 
-static int ell_asm(struct sim *sim, struct fem_ctx *ctx)
+static int ell_asm(struct sim *sim, struct fem_std_ctx *ctx)
 {
     mtx_rst(&ctx->mtx);
     vec_rst(&ctx->vec);
@@ -110,11 +110,11 @@ static int ell_asm(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int pbc_asm_i2s(struct sim *sim, struct fem_ctx *ctx);
-static int pbc_asm_i3s(struct sim *sim, struct fem_ctx *ctx);
-static int pbc_asm_i4s(struct sim *sim, struct fem_ctx *ctx);
+static int pbc_asm_i2s(struct sim *sim, struct fem_std_ctx *ctx);
+static int pbc_asm_i3s(struct sim *sim, struct fem_std_ctx *ctx);
+static int pbc_asm_i4s(struct sim *sim, struct fem_std_ctx *ctx);
 
-static int pbc_asm(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_asm(struct sim *sim, struct fem_std_ctx *ctx)
 {
     int itr = sim->slv->run.ti;
 
@@ -135,7 +135,7 @@ static int pbc_asm(struct sim *sim, struct fem_ctx *ctx)
                       .vrob = NULL,
                   });
 
-    static int (*f[3])(struct sim *, struct fem_ctx *) = {
+    static int (*f[3])(struct sim *, struct fem_std_ctx *) = {
         pbc_asm_i2s,
         pbc_asm_i3s,
         pbc_asm_i4s,
@@ -146,7 +146,7 @@ static int pbc_asm(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int pbc_asm_i2s(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_asm_i2s(struct sim *sim, struct fem_std_ctx *ctx)
 {
     // int itr = sim->slv->run.ti;
     double hop = sim->ops.tdd.hop;
@@ -172,7 +172,7 @@ static int pbc_asm_i2s(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int pbc_asm_i3s(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_asm_i3s(struct sim *sim, struct fem_std_ctx *ctx)
 {
     // int itr = sim->slv->run.ti;
     double hop = sim->ops.tdd.hop;
@@ -207,7 +207,7 @@ static int pbc_asm_i3s(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int pbc_asm_i4s(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_asm_i4s(struct sim *sim, struct fem_std_ctx *ctx)
 {
     // int itr = sim->slv->run.ti;
     double hop = sim->ops.tdd.hop;
@@ -248,7 +248,7 @@ static int pbc_asm_i4s(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int hyp_asm(struct sim *, struct fem_ctx *)
+static int hyp_asm(struct sim *, struct fem_std_ctx *)
 {
     exit(-1);
 }
@@ -637,6 +637,8 @@ static int assemble(struct sim *sim, struct asm_ops ops)
                                         }
 
                                         break;
+                                    case VAL_HMC:
+                                        return -1;
                                 }
 
                             break;
@@ -718,9 +720,13 @@ static int assemble(struct sim *sim, struct asm_ops ops)
                                         }
 
                                         break;
+                                    case VAL_HMC:
+                                        return -1;
                                 }
 
                             break;
+                        case VAL_HMC:
+                            return -1;
                     }
 
                     break;
@@ -776,7 +782,7 @@ static void dif_twk_wgt(void *ctx, double hop, struct dif_ops *ops)
     ((struct sim_fun_ctx *)ctx)->sim->slv->run.wgt[0]->dat[ops->var] += hop;
 }
 
-int fem_lin_new(struct sim *sim, struct fem_ctx *ctx)
+int fem_std_lin_new(struct sim *sim, struct fem_std_ctx *ctx)
 {
     struct vec *vtx = sim->msh->vtx.dat;
 

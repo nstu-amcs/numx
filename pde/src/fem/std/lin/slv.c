@@ -1,9 +1,9 @@
 #include <numx/non/dif.h>
 #include <numx/non/opm.h>
 
-#include <prv/fem/lin.h>
+#include "fem.h"
 
-double fem_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
+double fem_std_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
 {
     assert(ctx);
     assert(vtx);
@@ -42,17 +42,17 @@ double fem_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
     return r;
 }
 
-static int ell_slv(struct sim *sim, struct fem_ctx *ctx);
-static int pbc_slv(struct sim *sim, struct fem_ctx *ctx);
-static int hyp_slv(struct sim *sim, struct fem_ctx *ctx);
+static int ell_slv(struct sim *sim, struct fem_std_ctx *ctx);
+static int pbc_slv(struct sim *sim, struct fem_std_ctx *ctx);
+static int hyp_slv(struct sim *sim, struct fem_std_ctx *ctx);
 
-int fem_lin_slv(struct sim *sim, struct fem_ctx *ctx)
+int fem_std_lin_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     assert(sim);
 
-    sim->slv->apx = fem_lin_apx;
+    sim->slv->apx = fem_std_lin_apx;
 
-    switch (sim->mod) {
+    switch (sim->eqn) {
         case SIM_ELL:
             return ell_slv(sim, ctx);
         case SIM_PBC:
@@ -64,9 +64,9 @@ int fem_lin_slv(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int sys_slv(struct sim *sim, struct fem_ctx *ctx);
+static int sys_slv(struct sim *sim, struct fem_std_ctx *ctx);
 
-static int ell_slv(struct sim *sim, struct fem_ctx *ctx)
+static int ell_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     int r = 0;
 
@@ -90,10 +90,10 @@ end:
     return r;
 }
 
-static int pbc_i1s_slv(struct sim *sim, struct fem_ctx *ctx);
-static int pbc_ctx_shr(struct sim *sim, struct fem_ctx *ctx);
+static int pbc_i1s_slv(struct sim *sim, struct fem_std_ctx *ctx);
+static int pbc_ctx_shr(struct sim *sim, struct fem_std_ctx *ctx);
 
-static int pbc_slv(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     int r = 0;
 
@@ -136,7 +136,7 @@ static int pbc_slv(struct sim *sim, struct fem_ctx *ctx)
     for (int i = 0; i <= num; ++i) {
         sim->slv->run.ti = i;
 
-        if (i < sim->slv->ops.ini.num) {
+        if (i < sim->ops.tdd.num) {
             pbc_i1s_slv(sim, ctx);
         } else {
             sys_slv(sim, ctx);
@@ -164,7 +164,7 @@ end:
     return r;
 }
 
-static int pbc_i1s_slv(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_i1s_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     for (int i = 0; i < sim->msh->hxd.len; ++i) {
         struct hxd     *hxd = &sim->msh->hxd.dat[i];
@@ -193,7 +193,7 @@ static int pbc_i1s_slv(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int pbc_ctx_shr(struct sim *sim, struct fem_ctx *ctx)
+static int pbc_ctx_shr(struct sim *sim, struct fem_std_ctx *ctx)
 {
     struct vec *w0 = &ctx->w0;
     struct vec *w1 = &ctx->w1;
@@ -218,16 +218,16 @@ static int pbc_ctx_shr(struct sim *sim, struct fem_ctx *ctx)
     return 0;
 }
 
-static int slv_non(struct sim *sim, struct fem_ctx *ctx);
+static int slv_non(struct sim *sim, struct fem_std_ctx *ctx);
 
-static int sys_slv(struct sim *sim, struct fem_ctx *ctx)
+static int sys_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     struct slv_ops *ops = &sim->slv->ops;
 
     if (ops->non.map)
         return slv_non(sim, ctx);
 
-    if (fem_lin_asm(sim, ctx))
+    if (fem_std_lin_asm(sim, ctx))
         return -1;
 
     vec_rst(&ctx->w0);
@@ -255,7 +255,7 @@ struct est_ctx
     struct vec *prv;
     struct vec *upd;
 
-    struct fem_ctx *ctx;
+    struct fem_std_ctx *ctx;
 };
 
 static double est(struct est_ctx *ctx, struct vec *wgt)
@@ -270,7 +270,7 @@ static double est(struct est_ctx *ctx, struct vec *wgt)
     }
 
     vec_swp(&est, &ctx->ctx->w0);
-    fem_lin_asm(ctx->sim, ctx->ctx);
+    fem_std_lin_asm(ctx->sim, ctx->ctx);
     vec_swp(&est, &ctx->ctx->w0);
 
     double err = 0;
@@ -287,7 +287,7 @@ void est_twk_rlx(void *ctx, double val, struct opm_ops *)
     ((struct est_ctx *)ctx)->rlx = val;
 }
 
-static int slv_non(struct sim *sim, struct fem_ctx *ctx)
+static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
 {
     int r = 0;
 
@@ -355,7 +355,7 @@ static int slv_non(struct sim *sim, struct fem_ctx *ctx)
         ops->run.itr = i;
 
         if (sim->slv->ops.non.mod == NON_NEW)
-            if (fem_lin_new(sim, ctx))
+            if (fem_std_lin_new(sim, ctx))
                 return -1;
 
         if (ops->rlx)
@@ -406,7 +406,7 @@ end:
     return r;
 }
 
-static int hyp_slv(struct sim *, struct fem_ctx *)
+static int hyp_slv(struct sim *, struct fem_std_ctx *)
 {
     return 0;
 }

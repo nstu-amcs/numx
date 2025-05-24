@@ -10,13 +10,6 @@ struct fem
 
     struct fem_ops
     {
-        /** Solution mode. */
-        enum
-        {
-            FEM_STD, // standard
-            FEM_HMC, // harmonic
-        } mod;
-
         /** Basis functions. */
         enum
         {

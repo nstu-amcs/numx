@@ -6,12 +6,13 @@
 
 int sim_exp_gns_ini(struct sim *sim)
 {
-    (void)sim;
+    if (sim->mod == SIM_HMC)
+        return 0;
 
     if (msh_exp_gns(sim->msh, sim->ops.exp.dir, sim->ops.exp.pfx))
         return -1;
 
-    if (sim->mod == SIM_ELL)
+    if (sim->eqn == SIM_ELL)
         return 0;
 
     int num = sim->ops.tdd.num;
@@ -60,7 +61,8 @@ int sim_exp_gns_ini(struct sim *sim)
 
 int sim_exp_gns_put(struct sim *sim)
 {
-    assert(sim);
+    if (sim->mod == SIM_HMC)
+        return 0;
 
     char fname[256];
     char sname[64];
@@ -74,7 +76,8 @@ int sim_exp_gns_put(struct sim *sim)
 
     cg_open(fname, CG_MODE_MODIFY, &fi);
     cg_sol_write(fi, 1, 1, sname, Vertex, &si);
-    cg_field_write(fi, 1, 1, si, RealDouble, "Temperature", sim->slv->run.wgt[0]->dat, &ii);
+    cg_field_write(fi, 1, 1, si, RealDouble, "Temperature",
+        sim->slv->run.wgt[0]->dat, &ii);
     cg_close(fi);
 
     return 0;

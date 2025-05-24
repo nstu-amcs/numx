@@ -23,17 +23,24 @@ typedef struct val
     {
         VAL_NUM, // constant
         VAL_FUN, // function
+        VAL_HMC, // harmonic
     } type;
 
     union
     {
         double num; // constant value
         mfun   fun; // function of space, time and field
+
+        struct
+        {
+            mfun sin;
+            mfun cos;
+        } hmc;
     } as;
 
     struct
     {
-        bool fd;  // field dependence
+        bool dep; // field dependence
         mfun dif; // partial derivative with respect to field
     } ops;
 } val;
