@@ -85,14 +85,18 @@ static int ctx_new(struct sim *sim, struct fem_hmc_ctx *ctx)
         ctx->mtx.ia[2 * i] = e;
         log_rst(&map[i]);
 
-        for (int j = 0; !log_adv(&map[i], &j); e++)
-            ctx->mtx.ja[e] = j;
+        for (int j = 0; !log_adv(&map[i], &j); e += 2) {
+            ctx->mtx.ja[e] = 2 * j;
+            ctx->mtx.ja[e + 1] = 2 * j + 1;
+        }
 
         ctx->mtx.ia[2 * i + 1] = e;
         log_rst(&map[i]);
 
-        for (int j = 0; !log_adv(&map[i], &j); e++)
-            ctx->mtx.ja[e] = j;
+        for (int j = 0; !log_adv(&map[i], &j); e += 2) {
+            ctx->mtx.ja[e] = 2 * j;
+            ctx->mtx.ja[e + 1] = 2 * j + 1;
+        }
 
         ctx->mtx.ja[e++] = 2 * i;
     }

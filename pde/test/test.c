@@ -8,6 +8,7 @@
 
 MunitSuite unit_pde_ell_suite();
 MunitSuite unit_pde_pbc_suite();
+MunitSuite unit_pde_hmc_suite();
 
 struct ctx
 {
@@ -204,6 +205,7 @@ int main(int argc, char **argv)
     MunitSuite suites[] = {
         unit_pde_ell_suite(),
         unit_pde_pbc_suite(),
+        unit_pde_hmc_suite(),
     };
 
     const MunitSuite suite = {

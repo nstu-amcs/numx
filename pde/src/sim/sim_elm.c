@@ -119,6 +119,11 @@ static int get_sim(FILE *f, struct sim *sim)
             continue;
         }
 
+        if (!strcmp("Frequency", key)) {
+            sim->ops.hmc.frq = strtod(val, 0);
+            continue;
+        }
+
         if (!strcmp("Equation", key)) {
             if (!strcmp("Elliptic Equation", val))
                 sim->eqn = SIM_ELL;
@@ -449,7 +454,11 @@ static int get_ent(const char *src, char *key, char *val)
 
 static int get_val(struct sim *sim, char *src, struct val *val)
 {
-    char *fun = strtok(src, ";");
+    char *f1 = strtok(src, ",");
+    char *f2 = strtok(0, ",");
+
+    char *fun = strtok(f1, ":");
+    char *dif = NULL;
 
     if (isdigit(fun[0])) {
         val->type = VAL_NUM;
@@ -465,12 +474,23 @@ static int get_val(struct sim *sim, char *src, struct val *val)
     val->ops.dep = false;
     val->ops.dif = NULL;
 
-    if ((fun = strtok(0, ";"))) {
+    if ((dif = strtok(0, ":"))) {
         val->ops.dep = true;
 
-        if (strcmp("num", fun))
-            val->ops.dif = dlsym(sim->ops.usr.hdl, fun);
+        if (strcmp("num", dif))
+            val->ops.dif = dlsym(sim->ops.usr.hdl, dif);
     }
+
+    if (f2 == NULL)
+        return 0;
+
+    fun = strtok(f2, ":");
+
+    val->as.hmc.sin = val->as.fun;
+    val->as.hmc.cos = dlsym(sim->ops.usr.hdl, fun);
+
+    if (!val->as.hmc.cos)
+        return -1;
 
     return 0;
 }

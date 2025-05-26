@@ -26,6 +26,7 @@ add_executable(test_pde
   test/test.c
   test/ell/test.c
   test/pbc/test.c
+  test/hmc/test.c
 )
 target_link_libraries(test_pde pde munit)
 add_test(NAME numx/pde COMMAND test_pde WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -50,5 +51,13 @@ add_custom_command(
   OUTPUT pde/docs/fem-pbc.pdf 
   COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-pbc.tex 
   DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-pbc.tex
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(docs-pde-fem-hmc DEPENDS pde/docs/fem-hmc.pdf VERBATIM)
+add_custom_command(
+  OUTPUT pde/docs/fem-hmc.pdf 
+  COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-hmc.tex 
+  DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-hmc.tex
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )

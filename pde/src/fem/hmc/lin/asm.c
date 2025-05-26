@@ -102,10 +102,17 @@ int fem_hmc_lin_asm(struct sim *sim, struct fem_hmc_ctx *ctx)
                 double pij = nlam * sij - frq * frq * nchi * mij;
                 double cij = frq * nsig * mij;
 
-                mtx_inc(&ctx->mtx, gli * 2, glj * 2, pij);
-                mtx_inc(&ctx->mtx, gli * 2 + 1, glj * 2 + 1, pij);
-                mtx_inc(&ctx->mtx, gli * 2, glj * 2 + 1, -cij);
-                mtx_inc(&ctx->mtx, gli * 2 + 1, glj * 2, cij);
+                if (mtx_inc(&ctx->mtx, gli * 2, glj * 2, pij))
+                    return -1;
+
+                if (mtx_inc(&ctx->mtx, gli * 2 + 1, glj * 2 + 1, pij))
+                    return -1;
+
+                if (mtx_inc(&ctx->mtx, gli * 2, glj * 2 + 1, -cij))
+                    return -1;
+
+                if (mtx_inc(&ctx->mtx, gli * 2 + 1, glj * 2, cij))
+                    return -1;
 
                 bis += ssrc[j] * mij;
                 bic += csrc[j] * mij;
@@ -203,8 +210,11 @@ int fem_hmc_lin_asm(struct sim *sim, struct fem_hmc_ctx *ctx)
                         double mij = mx[muj][mui] * mz[nuj][nui];
                         double pij = nbet * mij;
 
-                        mtx_inc(&ctx->mtx, gli * 2, glj * 2, pij);
-                        mtx_inc(&ctx->mtx, gli * 2 + 1, glj * 2 + 1, pij);
+                        if (mtx_inc(&ctx->mtx, gli * 2, glj * 2, pij))
+                            return -1;
+
+                        if (mtx_inc(&ctx->mtx, gli * 2 + 1, glj * 2 + 1, pij))
+                            return -1;
 
                         bis += sext[j] * mij;
                         bic += cext[j] * mij;

@@ -72,6 +72,9 @@ int smtx_inc(struct smtx *m, int i, int j, double v)
         while (m->ja[p] < i)
             ++p;
 
+        if (m->ja[p] != i)
+            return -1;
+
         m->ur[p] += v;
 
         return 0;
@@ -82,6 +85,9 @@ int smtx_inc(struct smtx *m, int i, int j, double v)
 
         while (m->ja[p] < j)
             ++p;
+
+        if (m->ja[p] != j)
+            return -1;
 
         m->lr[p] += v;
 
