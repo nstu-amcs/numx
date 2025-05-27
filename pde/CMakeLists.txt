@@ -24,7 +24,6 @@ target_include_directories(pde PUBLIC include/)
 
 add_executable(test_pde 
   test/test.c
-  test/ell/test.c
   test/pbc/test.c
   test/hmc/test.c
 )
@@ -57,7 +56,7 @@ add_custom_command(
 add_custom_target(docs-pde-fem-hmc DEPENDS pde/docs/fem-hmc.pdf VERBATIM)
 add_custom_command(
   OUTPUT pde/docs/fem-hmc.pdf 
-  COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-hmc.tex 
-  DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/src/fem-hmc.tex
+  COMMAND lualatex ${CMAKE_SOURCE_DIR}/pde/docs/src/hmc/fem-hmc.tex 
+  DEPENDS ${CMAKE_SOURCE_DIR}/pde/docs/src/hmc/fem-hmc.tex
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )

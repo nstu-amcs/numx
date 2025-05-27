@@ -9,7 +9,7 @@ double target(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y * sin(f * t) + z * cos(f * t);
+    return x * x * y * sin(f * t) + z * cos(f * t);
 }
 
 double ssrc(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -20,7 +20,7 @@ double ssrc(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return -2 * f * z;
+    return -f * 2 * z - 2 * y;
 }
 
 double csrc(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -31,7 +31,7 @@ double csrc(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return 2 * f * x * y;
+    return 2 * f * x * x * y;
 }
 
 double sneu1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -42,7 +42,7 @@ double sneu1(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return -y;
+    return -2 * x * y;
 }
 
 double cneu1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -64,7 +64,7 @@ double sneu2(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x;
+    return x * x;
 }
 
 double cneu2(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -108,7 +108,7 @@ double srob1(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y - 0.1 * x;
+    return x * x * y - 0.1 * x * x;
 }
 
 double crob1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -130,7 +130,7 @@ double srob2(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y + 0.1 * y;
+    return x * x * y + 0.2 * x * y;
 }
 
 double crob2(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -152,7 +152,7 @@ double srob3(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y;
+    return x * x * y;
 }
 
 double crob3(struct sim_fun_ctx *ctx, struct vec *vtx)

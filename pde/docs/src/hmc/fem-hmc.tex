@@ -1,0 +1,268 @@
+\documentclass[12pt]{article}
+
+\usepackage[a4paper, margin=2cm]{geometry}
+\usepackage{fontspec}
+\usepackage{setspace}
+\usepackage{tabularx, booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{minted}
+\usepackage{float}
+\usepackage{caption}
+
+\usepackage{polyglossia}
+\setdefaultlanguage{russian}
+\setotherlanguages{english}
+
+\usepackage{fontspec}
+\setmainfont{NewComputerModern10}
+\setsansfont{NewComputerModernSans10}
+\setmonofont[
+  ItalicFont={Monaspace Radon}
+]{Monaspace Neon}
+
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+\begin{document}
+\begin{titlepage}
+\centering
+
+{Министерство науки и высшего образования Российской Федерации}
+\vskip 2mm
+{\large\scshape Новосибирский государственный технический университет}
+\vskip 2mm
+{Кафедра прикладной математики}
+
+\vfill
+\vskip 3cm
+
+{\scshape Практическая работа \textnumero 3}
+\vskip 3mm
+\begin{spacing}{1.7}
+    {\huge\bf Метод конечных элементов для гармонических задач}
+\end{spacing}
+\vskip 5mm
+{\scriptsize ФПМИ, ПМ-24}
+\vskip 2mm
+{\large\it Параскун И., Герасименко В.}
+
+\vfill
+
+{преподаватели}
+\vskip 2mm
+{\scshape Вагин Д. В., д.т.н., доцент}
+\vskip 1mm
+{\scshape Задорожный А. Г., к.т.н., доцент}
+\vskip 1mm
+{\scshape Леонович Д. А., ассистент}
+
+\vfill
+
+{Новосибирск, \the\year}
+
+\end{titlepage}
+
+\setcounter{page}{2}
+
+\section{Постановка задачи}
+
+\noindent Построить МКЭ для нелинейного уравнения гиперболического типа
+
+\begin{align}
+  \label{eq:1} -\nabla(\lambda\nabla u) 
+    + \sigma\frac{\partial u}{\partial t}
+    + \chi\frac{\partial^2u}{\partial t^2} = f,
+\end{align}
+
+\vskip 4mm
+\noindent в котором правая часть $f$ представима в виде
+
+\begin{align}
+  f(x, y, z, t) = f^s(x, y, z)sin(\omega t) + f^c(x, y, z)cos(\omega t),
+\end{align}
+
+\vskip 4mm
+\noindent с учётом следующих краевых условий:
+
+\begin{align}
+  \lambda\frac{\partial u^s}{\partial n} \bigg|_{S_2} = \theta^s,\ \  &
+  \lambda\frac{\partial u^c}{\partial n} \bigg|_{S_2} = \theta^c \\
+  \lambda\frac{\partial u^s}{\partial n} \bigg|_{S_3} + \beta(u^s|_{S_3} - u^s_{\beta}) = 0,\ \  &
+  \lambda\frac{\partial u^c}{\partial n} \bigg|_{S_3} + \beta(u^c|_{S_3} - u^c_{\beta}) = 0.
+\end{align}
+
+\section{Теоретическая часть}
+
+\noindent Решение уравнения \ref{eq:1} может быть представлено в следующем виде:
+
+\begin{align}
+  \label{eq:2} u(x, y, z, t) = u^s(x, y, z)sin(\omega t) + u^c(x, y, z)cos(\omega t).
+\end{align}
+
+\vskip 4mm
+\noindent Подставляя \ref{eq:2} в \ref{eq:1} и группируя по $sin(\omega t)$ и $cos(\omega t)$,
+  получаем систему уравнений
+
+\begin{align}\label{eq:3}
+  \begin{cases}
+    -\nabla(\lambda\nabla u^s) - \omega\sigma u^c - \omega^2\chi u^s = f^s, \\
+    -\nabla(\lambda\nabla u^c) + \omega\sigma u^s - \omega^2\chi u^c = f^c.
+  \end{cases}
+\end{align}
+
+\vskip 4mm
+\noindent Эквивалентная вариационная постановка в форме уравнения Галёркина для
+  системы уравнений \ref{eq:3}:
+
+\begin{align}
+  \begin{cases}
+    \begin{split}
+      \int_{\Omega}(\lambda\nabla u^s \nabla v_0 & - \omega\sigma u^c v_0 - \omega^2\chi u^s v_0) d\Omega +
+      \int_{S_3}\beta u^s v_0 dS \\
+      & = \int_{\Omega}f^s v_0 d\Omega +
+          \int_{S_2}\theta^s v_0 dS +
+          \int_{S_3}\beta u^s_{\beta} v_0 dS,
+    \end{split} \\
+    \begin{split}
+      \int_{\Omega}(\lambda\nabla u^c \nabla v_0 & - \omega\sigma u^s v_0 - \omega^2\chi u^c v_0) d\Omega +
+      \int_{S_3}\beta u^c v_0 dS \\
+      & = \int_{\Omega}f^c v_0 d\Omega +
+          \int_{S_2}\theta^c v_0 dS +
+          \int_{S_3}\beta u^c_{\beta} v_0 dS,
+    \end{split}
+  \end{cases}
+\end{align}
+
+\vskip 5mm
+\noindent Раскладывая функции $u^s$, $u^c$ и $v_0$ по базису, переходим 
+к конечноэлементной системе из $2n$ уравнений c $2n$ неизвестными:
+
+\begin{align}
+  \begin{cases}
+    \begin{split}
+      \sum_{j=1}^{n}\bigg(
+        \int_{\Omega}(\lambda\nabla \psi_j \nabla \psi_i & - \omega^2\chi\psi_j\psi_i)d\Omega +
+        \int_{S_3}\beta\psi_j\psi_i dS\bigg
+      )q^s_j - \omega\sum_{j=1}^{n}\bigg(\int_{\Omega}\sigma\psi_j\psi_i d\Omega\bigg)q^c_j \\
+      & = \int_{\Omega}f^s \psi_i d\Omega +
+          \int_{S_2}\theta^s \psi_i dS +
+          \int_{S_3}\beta u^s_{\beta} \psi_i dS,\ \ i=1..n
+    \end{split} \\
+    \begin{split}
+      \sum_{j=1}^{n}\bigg(
+        \int_{\Omega}(\lambda\nabla \psi_j \nabla \psi_i & - \omega^2\chi\psi_j\psi_i)d\Omega +
+        \int_{S_3}\beta\psi_j\psi_i dS\bigg
+      )q^c_j - \omega\sum_{j=1}^{n}\bigg(\int_{\Omega}\sigma\psi_j\psi_i d\Omega\bigg)q^s_j \\
+      & = \int_{\Omega}f^c \psi_i d\Omega +
+          \int_{S_2}\theta^c \psi_i dS +
+          \int_{S_3}\beta u^c_{\beta} \psi_i dS\ \ i=1..n
+    \end{split}
+  \end{cases}
+\end{align}
+
+\vskip 5mm
+\noindent Вид трилинейных базисных функций:
+
+\begin{align*}
+  & X_1(x) = \frac{x_{p+1}-x}{h_x}, & &X_2(x) = \frac{x - x_{p}}{h_x}, & &h_x = x_{p+1} - x_p, \\
+  & Y_1(y) = \frac{y_{s+1}-y}{h_y}, & &Y_2(y) = \frac{y - y_{s}}{h_y}, & &h_y = y_{s+1} - y_s, \\
+  & Z_1(z) = \frac{z_{r+1}-z}{h_z}, & &Z_2(z) = \frac{z - z_{r}}{h_z}, & &h_z = z_{r+1} - z_r.
+\end{align*}
+
+\begin{align}
+  \psi_i = X_{\mu(i)}Y_{\nu(i)}Z_{\vartheta(i)}.
+\end{align}
+
+\section{Описание тестирования программы}
+
+\begin{figure}[H]
+  \centering
+  \vspace{5mm}
+  \includegraphics[scale=1]{pde/test/msh/m1/geo*.png}
+  \vspace{5mm}
+  \caption{Засчётная область}
+\end{figure}
+
+\subsection{Сходимость по пространству}
+
+\begin{table}[H]
+  \begin{tabularx}{\textwidth}{lYYYY}
+  \toprule
+    $j$ & \multicolumn{4}{c}{$E(|u - u^*|)$}                            \\
+  \cmidrule{2-5}
+        & 1             & 8             & 512           & 4096          \\
+  \cmidrule{1-5}
+    10	& 4.0576985E+01	& 1.0144246E+01	& 6.3401538E-01	& 1.5850385E-01 \\
+    11	& 3.7887393E+01	& 9.4718482E+00	& 5.9199051E-01	& 1.4799763E-01 \\
+    12	& 3.3687350E+01	& 8.4218375E+00	& 5.2636485E-01	& 1.3159121E-01 \\
+    13	& 2.8144299E+01	& 7.0360748E+00	& 4.3975467E-01	& 1.0993867E-01 \\
+    14	& 2.1479224E+01	& 5.3698060E+00	& 3.3561287E-01	& 8.3903218E-02 \\
+    15	& 1.3957840E+01	& 3.4894599E+00	& 2.1809124E-01	& 5.4522811E-02 \\
+  \bottomrule
+  \end{tabularx}
+  \caption{Сходимость по пространству для функции $u = x^2ysin(\omega t) + zcos(\omega t)$}
+\end{table}
+
+\begin{table}[H]
+  \begin{tabularx}{\textwidth}{lYYYY}
+  \toprule
+    $j$ & \multicolumn{4}{c}{$E(|u - u^*|)$}                            \\
+  \cmidrule{2-5}
+        & 1             & 8             & 512           & 4096          \\
+  \cmidrule{1-5}
+    10	& 4.0863998E+03	& 1.6734571E+03	& 1.4834158E+02	& 3.7241988E+01 \\
+    11	& 3.8086475E+03	& 1.5997733E+03	& 1.3937143E+02	& 3.5285550E+01 \\
+    12	& 3.4192178E+03	& 1.4979800E+03	& 1.2570095E+02	& 3.2181796E+01 \\
+    13	& 2.9254489E+03	& 1.3422111E+03	& 1.0884979E+02	& 2.7902891E+01 \\
+    14	& 2.3624655E+03	& 1.1329324E+03	& 8.7662530E+01	& 2.2511778E+01 \\
+    15	& 1.7052980E+03	& 8.7848724E+02	& 6.2997284E+01	& 1.6223191E+01 \\
+    16	& 1.1349167E+03	& 5.8936116E+02	& 4.4129266E+01	& 1.1020596E+01 \\
+    17	& 1.4934257E+03	& 6.8033462E+02	& 5.4344345E+01	& 1.4249712E+01 \\
+    18	& 2.0312950E+03	& 9.3009093E+02	& 7.7813133E+01	& 2.0141262E+01 \\
+    19	& 2.5029231E+03	& 1.1553165E+03	& 9.8254924E+01	& 2.5234910E+01 \\
+    20	& 2.9625875E+03	& 1.3726951E+03	& 1.1583692E+02	& 2.9390432E+01 \\
+  \bottomrule
+  \end{tabularx}
+  \caption{Сходимость по пространству для функции $u = e^xsin(\omega t)$}
+\end{table}
+
+\subsection{Сходимость по времени}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.7]{pde/test/hmc/c1/05.png}
+  \caption{Значение функции $u = xysin(\omega t) + zcos(\omega t)$ в точке $(5, 5, 5)$, $\Delta t = 0.5$}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.7]{pde/test/hmc/c1/025.png}
+  \caption{Значение функции $u = xysin(\omega t) + zcos(\omega t)$ в точке $(5, 5, 5)$, $\Delta t = 0.25$}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.7]{pde/test/hmc/c1/0125.png}
+  \caption{Значение функции $u = xysin(\omega t) + zcos(\omega t)$ в точке $(5, 5, 5)$, $\Delta t = 0.125$}
+\end{figure}
+
+\section*{Вывод}
+
+\begin{itemize}
+  \item В отношении сходимости по пространству, метод решения параболических задач с выделением 
+    гармонической составляющей по времени, как и следовало ожидать, обладает схожими свойствами c 
+    соответствующим МКЭ для эллиптических задач. При этом, естественно, метод дает точное решение по времени.
+  \item Среди методов решения параболических задач, основанных на аппроксимации решения по времени
+    с помощью базисных полиномов Лагранжа, наибольшим соответствием точному решению, естественно, обладает
+    четырехслойная неявная схема, которая может быть использована в качестве альтернативы исследуемому методу.
+\end{itemize}
+
+\section*{Приложение}
+ 
+\fontsize{10}{10}\selectfont
+\selectlanguage{english}
+\inputminted{c}{pde/src/fem/hmc/fem.c}
+\inputminted{c}{pde/src/fem/hmc/lin/slv.c}
+\inputminted{c}{pde/src/fem/hmc/lin/asm.c}
+
+\end{document}

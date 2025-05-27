@@ -9,7 +9,7 @@ double target(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y * sin(f * t) + z * cos(f * t);
+    return pow(M_E, x) * sin(f * t);
 }
 
 double ssrc(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -20,7 +20,7 @@ double ssrc(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return -2 * f * z;
+    return -pow(M_E, x);
 }
 
 double csrc(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -31,7 +31,7 @@ double csrc(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return 2 * f * x * y;
+    return 2 * f * pow(M_E, x);
 }
 
 double sneu1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -42,7 +42,7 @@ double sneu1(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return -y;
+    return -pow(M_E, x);
 }
 
 double cneu1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -64,7 +64,7 @@ double sneu2(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x;
+    return 0;
 }
 
 double cneu2(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -97,7 +97,7 @@ double cneu3(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return 1;
+    return 0;
 }
 
 double srob1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -108,7 +108,7 @@ double srob1(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y - 0.1 * x;
+    return pow(M_E, x);
 }
 
 double crob1(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -119,7 +119,7 @@ double crob1(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return z;
+    return 0;
 }
 
 double srob2(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -130,7 +130,7 @@ double srob2(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y + 0.1 * y;
+    return pow(M_E, x) + 0.1 * pow(M_E, x);
 }
 
 double crob2(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -141,7 +141,7 @@ double crob2(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return z;
+    return 0;
 }
 
 double srob3(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -152,7 +152,7 @@ double srob3(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return x * y;
+    return pow(M_E, x);
 }
 
 double crob3(struct sim_fun_ctx *ctx, struct vec *vtx)
@@ -163,5 +163,5 @@ double crob3(struct sim_fun_ctx *ctx, struct vec *vtx)
     [[maybe_unused]] double y = vtx->dat[1];
     [[maybe_unused]] double z = vtx->dat[2];
 
-    return z - 0.1;
+    return 0;
 }

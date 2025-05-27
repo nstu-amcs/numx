@@ -14,6 +14,7 @@ struct ctx
 {
     mfun  tgt;
     FILE *out;
+    FILE *pnt;
 };
 
 void export(void *und, struct sim *sim)
@@ -23,6 +24,7 @@ void export(void *und, struct sim *sim)
 
     double err = 0;
     int    num = 0;
+    bool   set = false;
 
     struct apx_fun_ctx apx_ctx = {
         .sim = sim,
@@ -62,19 +64,29 @@ void export(void *und, struct sim *sim)
         double zs = (z1 - z0) / 2;
 
         apx_ctx.hxd = h;
-
         v.dat[0] = x0;
-        v.dat[1] = y0;
-        v.dat[2] = z0;
 
         for (int i = 0; i <= 2; ++i) {
+            v.dat[1] = y0;
+
             for (int j = 0; j <= 2; ++j) {
+                v.dat[2] = z0;
+
                 for (int k = 0; k <= 2; ++k) {
                     double tgt = ctx->tgt(&fun_ctx, &v);
                     double apx = sim->slv->apx(&apx_ctx, &v);
 
                     err += fabs(tgt - apx);
                     num += 1;
+
+                    if ((fabs(v.dat[0] - 5) < 1e-5) &&
+                        (fabs(v.dat[1] - 5) < 1e-5) &&
+                        (fabs(v.dat[2] - 5) < 1e-5) &&
+                        !set) {
+                        fprintf(
+                            ctx->pnt, "%.2lf & %.7e\n", sim->slv->run.tv, apx);
+                        set = true;
+                    }
 
                     v.dat[2] += zs;
                 }
@@ -186,6 +198,10 @@ MunitResult test(const MunitParameter pps[], void *dir)
         .out = fopen(path, "w+"),
     };
 
+    sprintf(path, "%s/res/%s.%s.b%s.pnt", (char *)dir, frq, usr, bdf);
+
+    ctx.pnt = fopen(path, "w+");
+
     sim.slv->itr.ctx = &ctx;
     sim.slv->itr.run = export;
     sim.slv->ops.tdd = atoi(bdf);
@@ -195,6 +211,7 @@ MunitResult test(const MunitParameter pps[], void *dir)
         return MUNIT_FAIL;
 
     fclose(ctx.out);
+    fclose(ctx.pnt);
     sim_cls(&sim);
 
     return MUNIT_OK;
@@ -203,7 +220,6 @@ MunitResult test(const MunitParameter pps[], void *dir)
 int main(int argc, char **argv)
 {
     MunitSuite suites[] = {
-        unit_pde_ell_suite(),
         unit_pde_pbc_suite(),
         unit_pde_hmc_suite(),
     };

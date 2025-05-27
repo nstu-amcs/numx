@@ -1,8 +1,7 @@
 Simulation
-  Timestep intervals(1) = 25
-  Timestep Sizes(2) = 0 0.03125
+  Timestep intervals(1) = 100
+  Timestep Sizes(2) = 0 0.125
   Timestepping Method = BDF
-  BDF Order = 2
 End
 
 Body 1
@@ -21,7 +20,7 @@ Solver 1
   Nonlinear System Max Iterations = 20
   Linear System Iterative Method = BiCGStab
   Linear System Max Iterations = 500
-  Linear System Convergence Tolerance = 1.0e-10
+  Linear System Convergence Tolerance = 1.0e-14
 End
 
 Material 1

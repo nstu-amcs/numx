@@ -136,7 +136,7 @@ static int pbc_slv(struct sim *sim, struct fem_std_ctx *ctx)
     for (int i = 0; i <= num; ++i) {
         sim->slv->run.ti = i;
 
-        if (i < sim->ops.tdd.num) {
+        if (i < sim->ops.tdd.ini) {
             pbc_i1s_slv(sim, ctx);
         } else {
             sys_slv(sim, ctx);
