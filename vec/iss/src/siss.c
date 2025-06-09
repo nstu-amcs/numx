@@ -3,7 +3,8 @@
 
 #include <numx/vec/iss.h>
 
-static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
+static int siss_bcg_unc_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     int n = m->pps.n;
     int c = 0;
@@ -164,7 +165,8 @@ static int siss_con_uslv(struct smtx *m, struct vec *x, struct vec *f)
     return 0;
 }
 
-static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
+static int siss_bcg_con_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     int n = m->pps.n;
     int c = 0;
@@ -280,12 +282,99 @@ end:
     return c;
 }
 
-int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
+int siss_bcg_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     if (!m || !x || !f) {
         errno = EINVAL;
         return -1;
     }
 
-    return o->con.sm ? siss_bcg_con_slv(m, x, f, o) : siss_bcg_unc_slv(m, x, f, o);
+    return o->con.sm ? siss_bcg_con_slv(m, x, f, o)
+                     : siss_bcg_unc_slv(m, x, f, o);
+}
+
+int siss_gmr_slv(
+    struct smtx *m, struct vec *x, struct vec *f, struct iss_gmr_ops *ops)
+{
+    assert(m);
+    assert(x);
+    assert(f);
+    assert(ops);
+
+    double max = ops->ops.max;
+    double n = f->n;
+    double b = 0;
+
+    struct imtx v;
+    struct imtx h;
+    struct imtx q;
+
+    v.pps.n = n;
+    v.pps.m = 1;
+    v.dat = malloc(sizeof(double *) * max);
+    v.dat[0] = malloc(sizeof(double) * n);
+
+    h.pps.n = 1;
+    h.pps.m = 0;
+    h.dat = malloc(sizeof(double *) * max);
+
+    q.pps.n = 0;
+    q.pps.m = 0;
+    q.dat = malloc(sizeof(double *) * max);
+
+    memset(v.dat, 0, sizeof(double *) * n);
+    memset(h.dat, 0, sizeof(double *) * n);
+
+    struct vec r0;
+    struct vec om;
+
+    vec_new(&r0, n);
+    vec_new(&om, n);
+
+    mtx_vmul(m, x, &r0);
+    vec_cmb(f, &r0, &r0, -1);
+    vec_nrm(&r0, &b);
+
+    for (int i = 0; i < n; ++i) {
+        v.dat[0][i] = r0.dat[i] / b;
+        q.dat = malloc(sizeof(double) * n);
+
+        memset(q.dat, 0, sizeof(double) * n);
+    }
+
+    for (int j = 0; j < max; ++j) {
+        v.pps.m += 1;
+        h.pps.n += 1;
+        h.pps.m += 1;
+
+        struct vec vj = {.n = n, .dat = v.dat[j]};
+        struct vec vi = {.n = n};
+        struct vec vn;
+        struct vec hj;
+
+        vec_new(&vn, n);
+        vec_new(&hj, j + 2);
+
+        v.dat[j + 1] = vn.dat;
+        h.dat[j] = hj.dat;
+
+        mtx_vmul(m, &vj, &om);
+
+        for (int i = 0; i <= j; ++i) {
+            vi.dat = v.dat[i];
+
+            vec_dot(&om, &vi, &hj.dat[i]);
+            vec_cmb(&om, &vi, &om, -hj.dat[i]);
+        }
+
+        vec_nrm(&om, &hj.dat[j + 1]);
+
+        if (h.dat[j][j + 1] == 0)
+            break;
+
+        vec_mul(&om, &vn, 1.0 / hj.dat[j + 1]);
+    }
+
+    return 0;
 }

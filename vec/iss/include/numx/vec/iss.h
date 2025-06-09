@@ -9,6 +9,7 @@ typedef enum iss_mod
 {
     ISS_JAC,
     ISS_RLX,
+    ISS_GMR,
     ISS_BCG,
 } iss_mod;
 
