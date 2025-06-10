@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <string.h>
 
 #include <numx/vec/iss.h>
@@ -294,87 +295,234 @@ int siss_bcg_slv(
                      : siss_bcg_unc_slv(m, x, f, o);
 }
 
+static void rot_inc(
+    struct imtx *q, struct imtx *x, struct vec *b, double c, double s);
+
+static void rot_mul_mtx(struct imtx *q, struct imtx *h, struct imtx *r);
+static void rot_mul_vec(struct imtx *q, double b, struct vec *g);
+
+static void red_slv(struct imtx *r, struct vec *y, struct vec *g);
+
 int siss_gmr_slv(
-    struct smtx *m, struct vec *x, struct vec *f, struct iss_gmr_ops *ops)
+    struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr_ops *ops)
 {
-    assert(m);
-    assert(x);
-    assert(f);
+    assert(sm);
+    assert(vx);
+    assert(vf);
     assert(ops);
 
-    double max = ops->ops.max;
-    double n = f->n;
+    int m = ops->ops.max;
+    int j = 0;
+
+    double e = ops->ops.err;
+    double n = vf->n;
     double b = 0;
 
-    struct imtx v;
-    struct imtx h;
-    struct imtx q;
+    struct imtx v = {
+        .pps = {.n = n, .m = 0},
+        .dat = malloc(sizeof(double *) * m),
+    };
+    struct imtx h = {
+        .pps = {.n = 1, .m = 0},
+        .dat = malloc(sizeof(double *) * m),
+    };
+    struct imtx q = {
+        .pps = {.n = 1, .m = 1},
+        .dat = malloc(sizeof(double *) * (m + 1)),
+    };
+    struct imtx r = {
+        .pps = {.n = 0, .m = 0},
+        .dat = malloc(sizeof(double *) * m),
+    };
+    struct imtx x = {
+        .pps = {.n = 1, .m = 1},
+        .dat = malloc(sizeof(double *) * (m + 2)),
+    };
 
-    v.pps.n = n;
-    v.pps.m = 1;
-    v.dat = malloc(sizeof(double *) * max);
-    v.dat[0] = malloc(sizeof(double) * n);
+    struct vec o;
+    struct vec g;
+    struct vec y;
+    struct vec t;
 
-    h.pps.n = 1;
-    h.pps.m = 0;
-    h.dat = malloc(sizeof(double *) * max);
+    vec_new(&o, n);
+    vec_new(&g, m);
+    vec_new(&y, m);
+    vec_new(&t, m + 1);
 
-    q.pps.n = 0;
-    q.pps.m = 0;
-    q.dat = malloc(sizeof(double *) * max);
+    mtx_vmul(sm, vx, &o);
+    vec_cmb(vf, &o, &o, -1);
+    vec_nrm(&o, &b);
 
-    memset(v.dat, 0, sizeof(double *) * n);
-    memset(h.dat, 0, sizeof(double *) * n);
+    g.n = 1;
+    y.n = 0;
 
-    struct vec r0;
-    struct vec om;
+    v.dat[0] = calloc(n, sizeof(double));
+    q.dat[0] = calloc(m + 1, sizeof(double));
+    x.dat[0] = calloc(m + 1, sizeof(double));
 
-    vec_new(&r0, n);
-    vec_new(&om, n);
+    for (int i = 0; i < n; ++i)
+        v.dat[0][i] = o.dat[i] / b;
 
-    mtx_vmul(m, x, &r0);
-    vec_cmb(f, &r0, &r0, -1);
-    vec_nrm(&r0, &b);
+    for (j = 0; j < m; ++j) {
+        h.dat[j] = calloc(j + 2, sizeof(double));
+        r.dat[j] = calloc(j + 1, sizeof(double));
+        q.dat[j + 1] = calloc(m + 1, sizeof(double));
+        x.dat[j + 1] = calloc(m + 1, sizeof(double));
 
-    for (int i = 0; i < n; ++i) {
-        v.dat[0][i] = r0.dat[i] / b;
-        q.dat = malloc(sizeof(double) * n);
-
-        memset(q.dat, 0, sizeof(double) * n);
-    }
-
-    for (int j = 0; j < max; ++j) {
         v.pps.m += 1;
         h.pps.n += 1;
         h.pps.m += 1;
+        q.pps.n += 1;
+        q.pps.m += 1;
+        x.pps.n += 1;
+        x.pps.m += 1;
+        r.pps.n += 1;
+        r.pps.m += 1;
+
+        g.n += 1;
+        y.n += 1;
 
         struct vec vj = {.n = n, .dat = v.dat[j]};
         struct vec vi = {.n = n};
-        struct vec vn;
-        struct vec hj;
+        struct vec hj = {.n = j + 2, .dat = h.dat[j]};
 
-        vec_new(&vn, n);
-        vec_new(&hj, j + 2);
-
-        v.dat[j + 1] = vn.dat;
-        h.dat[j] = hj.dat;
-
-        mtx_vmul(m, &vj, &om);
+        mtx_vmul(sm, &vj, &o);
 
         for (int i = 0; i <= j; ++i) {
             vi.dat = v.dat[i];
 
-            vec_dot(&om, &vi, &hj.dat[i]);
-            vec_cmb(&om, &vi, &om, -hj.dat[i]);
+            vec_dot(&o, &vi, &hj.dat[i]);
+            vec_cmb(&o, &vi, &o, -hj.dat[i]);
         }
 
-        vec_nrm(&om, &hj.dat[j + 1]);
+        vec_nrm(&o, &hj.dat[j + 1]);
 
-        if (h.dat[j][j + 1] == 0)
+        double hjj = hj.dat[j];
+        double hjn = hj.dat[j + 1];
+        double div = sqrt(hjj * hjj + hjn * hjn);
+
+        double c = hjj / div;
+        double s = hjn / div;
+
+        rot_inc(&q, &x, &t, c, s);
+        rot_mul_mtx(&q, &h, &r);
+        rot_mul_vec(&q, b, &g);
+
+        if (fabs(g.dat[j + 1]) < e)
             break;
 
-        vec_mul(&om, &vn, 1.0 / hj.dat[j + 1]);
+        if (h.dat[j][j + 1] == 0 || j == m - 1)
+            break;
+
+        v.dat[j + 1] = calloc(n, sizeof(double));
+
+        struct vec vn = {.n = n, .dat = v.dat[j + 1]};
+
+        vec_mul(&o, &vn, 1.0 / hj.dat[j + 1]);
     }
 
+    if (j == m)
+        return 0;
+
+    red_slv(&r, &y, &g);
+
+    for (int i = 0; i < n; ++i)
+        for (int p = 0; p < j; ++p)
+            vx->dat[i] += v.dat[p][i] * y.dat[p];
+
+    for (int i = 0; i < j; ++i) {
+        free(v.dat[i]);
+        free(h.dat[i]);
+        free(q.dat[i]);
+        free(r.dat[i]);
+        free(x.dat[i]);
+    }
+
+    free(x.dat[j]);
+    free(q.dat[j]);
+    free(v.dat);
+    free(h.dat);
+    free(q.dat);
+    free(r.dat);
+
+    vec_cls(&o);
+    vec_cls(&g);
+    vec_cls(&y);
+    vec_cls(&t);
+
     return 0;
+}
+
+static void rot_inc(
+    struct imtx *q, struct imtx *x, struct vec *b, double c, double s)
+{
+    int n = q->pps.n;
+
+    if (n == 2) {
+        q->dat[0][0] = c;
+        q->dat[0][1] = -s;
+        q->dat[1][0] = s;
+        q->dat[1][1] = c;
+
+        return;
+    }
+
+    q->dat[n - 1][n - 1] = 1;
+
+    x->dat[n - 2][n - 2] = c;
+    x->dat[n - 1][n - 1] = c;
+    x->dat[n - 1][n - 2] = -s;
+    x->dat[n - 2][n - 1] = s;
+    x->dat[n - 3][n - 2] = 0;
+    x->dat[n - 2][n - 3] = 0;
+    x->dat[n - 3][n - 3] = 1;
+
+    struct vec ri = {.n = n};
+    struct vec cj = {.n = n};
+
+    for (int j = 0; j < n; ++j) {
+        cj.dat = q->dat[j];
+
+        for (int i = 0; i < n; ++i) {
+            ri.dat = x->dat[i];
+            vec_dot(&ri, &cj, &b->dat[i]);
+        }
+
+        vec_dup(b, &cj);
+    }
+}
+
+static void rot_mul_mtx(struct imtx *q, struct imtx *h, struct imtx *r)
+{
+    int n = r->pps.n;
+
+    for (int i = 0; i < n; ++i)
+        for (int j = i; j < n; ++j) {
+            double s = 0;
+
+            for (int e = 0; e < n; ++e)
+                s += q->dat[e][i] * h->dat[j][e];
+
+            r->dat[j][i] = s;
+        }
+}
+
+static void rot_mul_vec(struct imtx *q, double b, struct vec *g)
+{
+    struct vec v = {.n = g->n, .dat = q->dat[0]};
+    vec_mul(&v, g, b);
+}
+
+static void red_slv(struct imtx *r, struct vec *y, struct vec *g)
+{
+    int n = r->pps.n;
+
+    for (int i = n - 1; i >= 0; --i) {
+        double s = g->dat[i];
+
+        for (int j = i + 1; j < n; ++j)
+            s -= y->dat[j] * r->dat[j][i];
+
+        y->dat[i] = s / r->dat[i][i];
+    }
 }
