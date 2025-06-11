@@ -295,12 +295,6 @@ int siss_bcg_slv(
                      : siss_bcg_unc_slv(m, x, f, o);
 }
 
-static void rot_inc(
-    struct imtx *q, struct imtx *x, struct vec *b, double c, double s);
-
-static void rot_mul_mtx(struct imtx *q, struct imtx *h, struct imtx *r);
-static void rot_mul_vec(struct imtx *q, double b, struct vec *g);
-
 static void red_slv(struct imtx *r, struct vec *y, struct vec *g);
 
 int siss_gmr_slv(
@@ -322,65 +316,38 @@ int siss_gmr_slv(
         .pps = {.n = n, .m = 0},
         .dat = malloc(sizeof(double *) * m),
     };
+
     struct imtx h = {
         .pps = {.n = 1, .m = 0},
         .dat = malloc(sizeof(double *) * m),
     };
-    struct imtx q = {
-        .pps = {.n = 1, .m = 1},
-        .dat = malloc(sizeof(double *) * (m + 1)),
-    };
-    struct imtx r = {
-        .pps = {.n = 0, .m = 0},
-        .dat = malloc(sizeof(double *) * m),
-    };
-    struct imtx x = {
-        .pps = {.n = 1, .m = 1},
-        .dat = malloc(sizeof(double *) * (m + 2)),
-    };
 
-    struct vec o;
-    struct vec g;
-    struct vec y;
-    struct vec t;
+    struct vec o; // omega
+    struct vec g; // right-hand side
+    struct vec t; // buffer
+    struct vec c; // rotation coefficients
 
     vec_new(&o, n);
     vec_new(&g, m);
-    vec_new(&y, m);
     vec_new(&t, m + 1);
+    vec_new(&c, m * 2);
 
     mtx_vmul(sm, vx, &o);
     vec_cmb(vf, &o, &o, -1);
     vec_nrm(&o, &b);
 
     g.n = 1;
-    y.n = 0;
-
     v.dat[0] = calloc(n, sizeof(double));
-    q.dat[0] = calloc(m + 1, sizeof(double));
-    x.dat[0] = calloc(m + 1, sizeof(double));
+    g.dat[0] = b;
 
     for (int i = 0; i < n; ++i)
         v.dat[0][i] = o.dat[i] / b;
 
     for (j = 0; j < m; ++j) {
         h.dat[j] = calloc(j + 2, sizeof(double));
-        r.dat[j] = calloc(j + 1, sizeof(double));
-        q.dat[j + 1] = calloc(m + 1, sizeof(double));
-        x.dat[j + 1] = calloc(m + 1, sizeof(double));
-
-        v.pps.m += 1;
         h.pps.n += 1;
         h.pps.m += 1;
-        q.pps.n += 1;
-        q.pps.m += 1;
-        x.pps.n += 1;
-        x.pps.m += 1;
-        r.pps.n += 1;
-        r.pps.m += 1;
-
         g.n += 1;
-        y.n += 1;
 
         struct vec vj = {.n = n, .dat = v.dat[j]};
         struct vec vi = {.n = n};
@@ -397,120 +364,68 @@ int siss_gmr_slv(
 
         vec_nrm(&o, &hj.dat[j + 1]);
 
+        double hsv = h.dat[j][j + 1];
+
+        for (int i = 0; i < j; ++i) {
+            hj.n = i + 2;
+            t.n = i + 2;
+
+            vec_rot(&hj, &t, i, c.dat[i * 2], c.dat[i * 2 + 1]);
+            vec_dup(&t, &hj);
+        }
+
         double hjj = hj.dat[j];
         double hjn = hj.dat[j + 1];
         double div = sqrt(hjj * hjj + hjn * hjn);
 
-        double c = hjj / div;
-        double s = hjn / div;
+        c.dat[j * 2] = hjj / div;
+        c.dat[j * 2 + 1] = hjn / div;
 
-        rot_inc(&q, &x, &t, c, s);
-        rot_mul_mtx(&q, &h, &r);
-        rot_mul_vec(&q, b, &g);
+        hj.n = j + 2;
+        t.n = j + 2;
 
-        if (fabs(g.dat[j + 1]) < e)
+        vec_rot(&hj, &t, j, c.dat[j * 2], c.dat[j * 2 + 1]);
+        vec_dup(&t, &hj);
+
+        vec_rot(&g, &t, j, c.dat[j * 2], c.dat[j * 2 + 1]);
+        vec_dup(&t, &g);
+
+        if (hsv == 0 || fabs(g.dat[j + 1]) < e)
             break;
 
-        if (h.dat[j][j + 1] == 0 || j == m - 1)
-            break;
+        if (j < m - 1) {
+            v.dat[j + 1] = calloc(n, sizeof(double));
+            v.pps.m += 1;
 
-        v.dat[j + 1] = calloc(n, sizeof(double));
-
-        struct vec vn = {.n = n, .dat = v.dat[j + 1]};
-
-        vec_mul(&o, &vn, 1.0 / hj.dat[j + 1]);
+            struct vec vn = {.n = n, .dat = v.dat[j + 1]};
+            vec_mul(&o, &vn, 1.0 / hsv);
+        }
     }
 
-    if (j == m)
-        return 0;
+    h.pps.n = j + 1;
+    h.pps.m = j + 1;
+    o.n = j + 1;
+    g.n = j + 1;
 
-    red_slv(&r, &y, &g);
+    red_slv(&h, &o, &g);
 
     for (int i = 0; i < n; ++i)
-        for (int p = 0; p < j; ++p)
-            vx->dat[i] += v.dat[p][i] * y.dat[p];
+        for (int p = 0; p <= j; ++p)
+            vx->dat[i] += v.dat[p][i] * o.dat[p];
 
     for (int i = 0; i < j; ++i) {
         free(v.dat[i]);
         free(h.dat[i]);
-        free(q.dat[i]);
-        free(r.dat[i]);
-        free(x.dat[i]);
     }
 
-    free(x.dat[j]);
-    free(q.dat[j]);
     free(v.dat);
     free(h.dat);
-    free(q.dat);
-    free(r.dat);
 
     vec_cls(&o);
     vec_cls(&g);
-    vec_cls(&y);
     vec_cls(&t);
 
     return 0;
-}
-
-static void rot_inc(
-    struct imtx *q, struct imtx *x, struct vec *b, double c, double s)
-{
-    int n = q->pps.n;
-
-    if (n == 2) {
-        q->dat[0][0] = c;
-        q->dat[0][1] = -s;
-        q->dat[1][0] = s;
-        q->dat[1][1] = c;
-
-        return;
-    }
-
-    q->dat[n - 1][n - 1] = 1;
-
-    x->dat[n - 2][n - 2] = c;
-    x->dat[n - 1][n - 1] = c;
-    x->dat[n - 1][n - 2] = -s;
-    x->dat[n - 2][n - 1] = s;
-    x->dat[n - 3][n - 2] = 0;
-    x->dat[n - 2][n - 3] = 0;
-    x->dat[n - 3][n - 3] = 1;
-
-    struct vec ri = {.n = n};
-    struct vec cj = {.n = n};
-
-    for (int j = 0; j < n; ++j) {
-        cj.dat = q->dat[j];
-
-        for (int i = 0; i < n; ++i) {
-            ri.dat = x->dat[i];
-            vec_dot(&ri, &cj, &b->dat[i]);
-        }
-
-        vec_dup(b, &cj);
-    }
-}
-
-static void rot_mul_mtx(struct imtx *q, struct imtx *h, struct imtx *r)
-{
-    int n = r->pps.n;
-
-    for (int i = 0; i < n; ++i)
-        for (int j = i; j < n; ++j) {
-            double s = 0;
-
-            for (int e = 0; e < n; ++e)
-                s += q->dat[e][i] * h->dat[j][e];
-
-            r->dat[j][i] = s;
-        }
-}
-
-static void rot_mul_vec(struct imtx *q, double b, struct vec *g)
-{
-    struct vec v = {.n = g->n, .dat = q->dat[0]};
-    vec_mul(&v, g, b);
 }
 
 static void red_slv(struct imtx *r, struct vec *y, struct vec *g)

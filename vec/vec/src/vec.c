@@ -123,6 +123,28 @@ int vec_mul(struct vec *v, struct vec *r, double m)
     return 0;
 }
 
+int vec_rot(
+    struct vec *restrict v, struct vec *restrict r, int o, double c, double s)
+{
+    assert(v);
+    assert(r);
+
+    int n = v->n;
+    int i = 0;
+
+    for (i = 0; i < o; ++i)
+        r->dat[i] = v->dat[i];
+
+    r->dat[i] = v->dat[i] * c + v->dat[i + 1] * s;
+    i += 1;
+    r->dat[i] = -v->dat[i - 1] * s + v->dat[i] * c;
+
+    for (i = i + 1; i < n; ++i)
+        r->dat[i] = v->dat[i];
+
+    return 0;
+}
+
 int vec_dup(struct vec *s, struct vec *d)
 {
     assert(s);

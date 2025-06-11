@@ -23,6 +23,8 @@ int vec_crs(struct vec *a, struct vec *b, struct vec *r);
 int vec_dot(struct vec *a, struct vec *b, double *r);
 int vec_nrm(struct vec *v, double *r);
 int vec_mul(struct vec *v, struct vec *r, double m);
+int vec_rot(
+    struct vec *restrict v, struct vec *restrict r, int o, double c, double s);
 
 int vec_dup(struct vec *s, struct vec *d);
 int vec_swp(struct vec *a, struct vec *b);
