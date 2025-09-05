@@ -33,10 +33,6 @@ add_test(NAME numx/pde COMMAND test_pde WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 install(DIRECTORY include/numx DESTINATION /usr/share/include)
 install(DIRECTORY include/numx DESTINATION /usr/include)
 
-install(FILES cfg/ell.xml DESTINATION /usr/local/share/ElmerGUI/edf)
-install(FILES cfg/pbc.xml DESTINATION /usr/local/share/ElmerGUI/edf)
-install(FILES cfg/hyp.xml DESTINATION /usr/local/share/ElmerGUI/edf)
-
 add_custom_target(docs-pde-fem-non DEPENDS pde/docs/fem-non.pdf VERBATIM)
 add_custom_command(
   OUTPUT pde/docs/fem-non.pdf 
