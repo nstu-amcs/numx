@@ -18,6 +18,7 @@ typedef struct vec
 int vec_new_ini(struct vec *v, int n, ...);
 int vec_cls(struct vec *v);
 
+int vec_dst(struct vec *a, struct vec *b, double *r);
 int vec_cmb(struct vec *a, struct vec *b, struct vec *r, double k);
 int vec_crs(struct vec *a, struct vec *b, struct vec *r);
 int vec_dot(struct vec *a, struct vec *b, double *r);

@@ -48,6 +48,33 @@ int vec_cls(struct vec *v)
     return 0;
 }
 
+int vec_dst(struct vec *a, struct vec *b, double *r)
+{
+    assert(a);
+    assert(b);
+    assert(r);
+
+    double s = 0;
+    double p = 0;
+
+    int n = a->n;
+
+    double *ad = a->dat;
+    double *bd = b->dat;
+
+#ifdef OMP
+    [[omp::directive(parallel for reduction(+:s))]]
+#endif
+    for (int i = 0; i < n; ++i) {
+        p = bd[i] - ad[i];
+        s += p * p;
+    }
+
+    *r = sqrt(s);
+
+    return 0;
+}
+
 int vec_cmb(struct vec *a, struct vec *b, struct vec *r, double k)
 {
     assert(a);

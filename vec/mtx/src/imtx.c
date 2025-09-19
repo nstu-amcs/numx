@@ -94,3 +94,14 @@ int imtx_mmul(struct imtx *a, struct imtx *b, struct imtx *r)
 
     return 0;
 }
+
+int imtx_vdup(struct imtx *s, struct imtx *d)
+{
+    for (int i = 0; i < s->pps.m; ++i) {
+        for (int j = 0; j < s->pps.n; ++j) {
+            d->dat[i][j] = s->dat[i][j];
+        }
+    }
+
+    return 0;
+}
