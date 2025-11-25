@@ -41,11 +41,13 @@ struct lin
     struct vec *g2;
 };
 
+// Источник
 struct sup
 {
     struct lin l;
 };
 
+// Приемник
 struct rec
 {
     struct lin l;
@@ -75,6 +77,7 @@ struct rec mn3 = {
 struct sup *sup[] = {&ab1, &ab2, &ab3};
 struct rec *rec[] = {&mn1, &mn2, &mn3};
 
+// Расчет коэффициента установки
 double k(struct lin *s, struct lin *r)
 {
     double rbm = 0;
@@ -82,25 +85,25 @@ double k(struct lin *s, struct lin *r)
     double rbn = 0;
     double ran = 0;
 
+    // vec_dst - расстояние между векторами
+
     vec_dst(s->g2, r->g1, &rbm);
     vec_dst(s->g1, r->g1, &ram);
     vec_dst(s->g2, r->g2, &rbn);
     vec_dst(s->g1, r->g2, &ran);
 
-    return 1 / rbm - 
-           1 / ram - 
-           1 / rbn + 
-           1 / ran;
+    return 1 / rbm - 1 / ram - 1 / rbn + 1 / ran;
 }
 
+// Вычисление разности потенциалов на приемнике
 double rec_dif(struct rec *r, struct vec *i)
 {
     double d = 0;
 
     for (int s = 0; s < r->k.n; ++s) {
-        d += r->k.dat[s] * 
-             i->dat[s] / 
-            (2 * M_PI * COND);
+        d += r->k.dat[s] *
+             i->dat[s] /
+             (2 * M_PI * COND);
     }
 
     return d;
@@ -114,29 +117,22 @@ int main(int argc, char **argv)
     int sn = sizeof(sup) / sizeof(void *);
     int rn = sizeof(rec) / sizeof(void *);
 
+    // Расчет коэффициентов
+
     for (int i = 0; i < rn; ++i) {
         if (vec_new(&rec[i]->k, sn)) {
             return -1;
         }
 
         for (int j = 0; j < sn; ++j) {
-            rec[i]->k.dat[j] = k(
-                &rec[i]->l, 
-                &sup[j]->l
-            );
-
-            printf("k(%d, %d) = %.7e\n", 
-                i, 
-                j, 
-                rec[i]->k.dat[j]
-            );
+            rec[i]->k.dat[j] =
+                k(&rec[i]->l, &sup[j]->l);
         }
     }
 
-    struct vec in;
-    struct vec id;
-    struct vec ia;
-    struct vec dc;
+    struct vec in; // вектор сил токов
+    struct vec id; // вектор приращения
+    struct vec dc; // вектор измерений
 
     if (vec_new(&in, sn)) {
         return -1;
@@ -146,48 +142,35 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (vec_new(&ia, sn)) {
-        return -1;
-    }
-
     if (vec_new(&dc, rn)) {
         return -1;
     }
 
-    in.dat[0] = 1;
+    in.dat[0] = 1.0;
     in.dat[1] = 1.2;
     in.dat[2] = 1.4;
 
-    ia.dat[0] = 1.2;
-    ia.dat[1] = 1.4;
-    ia.dat[2] = 1.6;
+    // Расчет синтетических данных (прямая задача)
 
     for (int i = 0; i < rn; ++i) {
         dc.dat[i] = rec_dif(rec[i], &in);
     }
 
-    printf("d1 = %.7e\nd2 = %.7e\nd3 = %.7e\n", 
-        dc.dat[0], 
-        dc.dat[1], 
-        dc.dat[2]
-    );
+    printf("d1 = %.7e\nd2 = %.7e\nd3 = %.7e\n",
+        dc.dat[0], dc.dat[1], dc.dat[2]);
 
-    struct imtx a;
+    struct imtx a; // матрица А
     struct imtx at;
-    struct vec  b;
+    struct vec  b; // вектор правой части b
     struct vec  bt;
 
     if (mtx_new(&a, ((struct imtx_pps){
-            .n = sn, 
-            .m = sn
-    }))) {
+                        .n = sn, .m = sn}))) {
         return -1;
     }
 
     if (mtx_new(&at, ((struct imtx_pps){
-            .n = sn, 
-            .m = sn
-    }))) {
+                         .n = sn, .m = sn}))) {
         return -1;
     }
 
@@ -199,11 +182,15 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    // Начальный вектор
+
     in.dat[0] = 0;
     in.dat[1] = 0;
     in.dat[2] = 0;
 
     for (int n = 0; n < 20; ++n) {
+        // Вычисление функционала
+
         double f = 0;
 
         for (int k = 0; k < rn; ++k) {
@@ -214,10 +201,10 @@ int main(int argc, char **argv)
             f += om * om * ek * ek;
         }
 
-        printf(
-            "n = %d\nf = %.7e\ni1 = %.7e\n"
-            "i2 = %.7e\ni3 = %.7e\n", 
-            n, f, in.dat[0], in.dat[1], in.dat[2]);
+        printf("n = %d\nf = %.7e\ni1 = %.7e\n"
+               "i2 = %.7e\ni3 = %.7e\n",
+            n, f, in.dat[0], in.dat[1],
+            in.dat[2]);
 
         if (f < 1e-17) {
             break;
@@ -232,11 +219,17 @@ int main(int argc, char **argv)
                     double kj = rec[k]->k.dat[j];
                     double om = 1 / dc.dat[k];
 
-                    aij += om * om * ki * kj / 
-                           (4 * M_PI * M_PI * COND * COND);
+                    aij += om *
+                           om *
+                           ki *
+                           kj /
+                           (4 *
+                               M_PI *
+                               M_PI *
+                               COND *
+                               COND);
                 }
 
-                printf("a(%d, %d) = %.7e\n", i, j, aij);
                 a.dat[i][j] = aij;
             }
 
@@ -248,11 +241,13 @@ int main(int argc, char **argv)
                 double ek = dk - dc.dat[k];
                 double om = 1 / dc.dat[k];
 
-                bi += om * om * ek * ki / 
-                  (2 * M_PI * COND);
+                bi += om *
+                      om *
+                      ek *
+                      ki /
+                      (2 * M_PI * COND);
             }
 
-            printf("b(%d) = %.7e\n", i, -bi);
             b.dat[i] = -bi;
         }
 
@@ -260,21 +255,21 @@ int main(int argc, char **argv)
         vec_dup(&b, &bt);
 
         if (dss_red_slv(&a, &id, &b)) {
-            perror("dss_red_slv");
+            // Вырожденная матрица
+            // Регуляризация
 
             double reg = 1e-10;
 
             for (int i = 0; i < sn; ++i) {
                 at.dat[i][i] += reg;
-                bt.dat[i] -= reg * 
-                  (in.dat[i] - ia.dat[i]);
             }
 
             if (dss_red_slv(&at, &id, &bt)) {
-                perror("dss_red_slv");
                 goto end;
             }
         }
+
+        // vec_cmb - комбинирование векторов
 
         vec_cmb(&in, &id, &in, 1);
     }
