@@ -7,7 +7,6 @@ int fem_new(struct fem *fem)
 {
     fem->slv.ops.tdd = TDD_I2S;
     fem->slv.ops.non.mod = NON_FPI;
-    fem->slv.ops.non.map = 0;
     fem->slv.ops.non.ops.max = 200;
     fem->slv.ops.non.ops.err = 1e-10;
     fem->slv.ops.non.ops.rlx = false;
@@ -36,7 +35,7 @@ int fem_new(struct fem *fem)
     fem->slv.run.bs = 1;
     fem->slv.run.ti = 0;
     fem->slv.run.tv = 0;
-    fem->ops.bss = FEM_BSS_LIN;
+    fem->ops.bfs = FEM_BFS_LIN;
 
     return 0;
 }

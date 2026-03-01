@@ -3,22 +3,39 @@
 
 #include <numx/pde/slv.h>
 
-/** Finite Element Method simulation solver. */
+/**
+ * @brief Finite Element Method simulation solver.
+ */
 struct fem
 {
+    /**
+     * @brief Base solver properties.
+     */
     struct slv slv;
 
+    /**
+     * @brief Implementation specific properties.
+     */
     struct fem_ops
     {
-        /** Basis functions. */
+        /**
+         * @brief Basis functional space.
+         */
         enum
         {
-            FEM_BSS_LIN, // triliniear
-        } bss;
+            FEM_BFS_LIN, // liniear
+        } bfs;
     } ops;
 };
 
+/**
+ * @brief Initialize the solver with defaults.
+ */
 int fem_new(struct fem *fem);
+
+/**
+ * @brief Execute the solver (implemetation entrypoint).
+ */
 int fem_exe(struct sim *sim);
 
 #endif // NUMX_PDE_FEM_H

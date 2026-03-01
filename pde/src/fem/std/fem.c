@@ -1,7 +1,9 @@
+#include <stdlib.h>
+
 #include <numx/com/cmp.h>
 #include <numx/com/log.h>
 
-#include "lin/fem.h"
+#include "lin/3d/fem.h"
 
 static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx);
 static int ctx_cls(struct sim *sim, struct fem_std_ctx *ctx);
@@ -15,8 +17,8 @@ int fem_std_exe(struct sim *sim)
 
     struct fem *fem = (struct fem *)sim->slv;
 
-    switch (fem->ops.bss) {
-        case FEM_BSS_LIN:
+    switch (fem->ops.bfs) {
+        case FEM_BFS_LIN:
             return fem_std_lin_slv(sim, &ctx);
     }
 
@@ -26,21 +28,14 @@ int fem_std_exe(struct sim *sim)
     return 0;
 }
 
-static void mtx_prep(struct smtx *mtx)
+static inline void mtx_prep(struct smtx *mtx)
 {
-    mtx->dr = NULL;
-    mtx->lr = NULL;
-    mtx->ur = NULL;
-    mtx->ia = NULL;
-    mtx->ja = NULL;
-    mtx->pps.n = 0;
-    mtx->pps.z = 0;
+    memset(mtx, 0, sizeof(struct smtx));
 }
 
-static void vec_prep(struct vec *vec)
+static inline void vec_prep(struct vec *vec)
 {
-    vec->n = 0;
-    vec->dat = NULL;
+    memset(vec, 0, sizeof(struct vec));
 }
 
 static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
@@ -54,7 +49,7 @@ static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
     vec_prep(&ctx->w2);
     vec_prep(&ctx->w3);
 
-    int n = sim->msh->vtx.len;
+    int n = sim->msh->vtx.v2d.len;
     int z = 0;
     int r = 0;
 
@@ -74,13 +69,29 @@ static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
         map[i].cmp.run = iasc;
     }
 
-    for (int i = 0; i < sim->msh->hxd.len; ++i) {
-        int *vtx = sim->msh->hxd.dat[i].vtx;
+    switch (sim->msh->type) {
+        case MSH_C2D:
+            for (int i = 0; i < sim->msh->qud.len; ++i) {
+                int *vtx = sim->msh->qud.dat[i].vtx;
 
-        for (int j = 0; j < 8; ++j)
-            for (int k = 0; k < 8; ++k)
-                if (vtx[k] < vtx[j] && !log_add(&map[vtx[j]], vtx[k]))
-                    z += 1;
+                for (int j = 0; j < 4; ++j)
+                    for (int k = 0; k < 4; ++k)
+                        if (vtx[k] < vtx[j] && !log_add(&map[vtx[j]], vtx[k]))
+                            z += 1;
+            }
+
+            break;
+        case MSH_C3D:
+            for (int i = 0; i < sim->msh->hxd.len; ++i) {
+                int *vtx = sim->msh->hxd.dat[i].vtx;
+
+                for (int j = 0; j < 8; ++j)
+                    for (int k = 0; k < 8; ++k)
+                        if (vtx[k] < vtx[j] && !log_add(&map[vtx[j]], vtx[k]))
+                            z += 1;
+            }
+
+            break;
     }
 
     if ((r = mtx_new(&ctx->mtx, ((struct smtx_pps){n, z}))))
@@ -107,14 +118,14 @@ static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
 
             mtx_sdup(&ctx->mtx, &ctx->chi);
 
-            [[fallthrough]];
+            __attribute__((fallthrough));
         case SIM_PBC:
             if ((r = mtx_new(&ctx->sig, ctx->mtx.pps)))
                 goto end;
 
             mtx_sdup(&ctx->mtx, &ctx->sig);
 
-            [[fallthrough]];
+            __attribute__((fallthrough));
         case SIM_ELL:
             break;
     }
@@ -137,11 +148,11 @@ static int ctx_cls(struct sim *sim, struct fem_std_ctx *ctx)
         case SIM_HYP:
             mtx_cls(&ctx->chi);
 
-            [[fallthrough]];
+            __attribute__((fallthrough));
         case SIM_PBC:
             mtx_cls(&ctx->sig);
 
-            [[fallthrough]];
+            __attribute__((fallthrough));
         case SIM_ELL:
             break;
     }

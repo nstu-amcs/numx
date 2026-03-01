@@ -26,7 +26,7 @@ static int qud_dim(struct sim *sim, struct qud *qud, double *hxi, double *hzt);
 
 int fem_hmc_lin_asm(struct sim *sim, struct fem_hmc_ctx *ctx)
 {
-    struct vec *vtx = sim->msh->vtx.dat;
+    struct v3d *vtx = sim->msh->vtx.v3d.dat;
     double      frq = sim->ops.hmc.frq;
 
     struct sim_fun_ctx fun_ctx = {
@@ -51,8 +51,11 @@ int fem_hmc_lin_asm(struct sim *sim, struct fem_hmc_ctx *ctx)
         for (int i = 0; i < 8; ++i) {
             fun_ctx.vtx = hxd->vtx[i];
             fun_ctx.hxd = hi;
-            ssrc[i] = src->as.hmc.sin(&fun_ctx, &vtx[fun_ctx.vtx]);
-            csrc[i] = src->as.hmc.cos(&fun_ctx, &vtx[fun_ctx.vtx]);
+
+            struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
+
+            ssrc[i] = src->as.hmc.sin(&fun_ctx, &vw);
+            csrc[i] = src->as.hmc.cos(&fun_ctx, &vw);
         }
 
         int v0 = hxd->vtx[0];
@@ -150,8 +153,11 @@ int fem_hmc_lin_asm(struct sim *sim, struct fem_hmc_ctx *ctx)
                     fun_ctx.vtx = qud->vtx[i];
                     fun_ctx.qud = qi;
                     fun_ctx.hxd = qud->hxd;
-                    stta[i] = tta->as.hmc.sin(&fun_ctx, &vtx[fun_ctx.vtx]);
-                    ctta[i] = tta->as.hmc.cos(&fun_ctx, &vtx[fun_ctx.vtx]);
+
+                    struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
+
+                    stta[i] = tta->as.hmc.sin(&fun_ctx, &vw);
+                    ctta[i] = tta->as.hmc.cos(&fun_ctx, &vw);
                 }
 
                 for (int i = 0; i < 4; ++i) {
@@ -190,8 +196,11 @@ int fem_hmc_lin_asm(struct sim *sim, struct fem_hmc_ctx *ctx)
                     fun_ctx.vtx = qud->vtx[i];
                     fun_ctx.qud = qi;
                     fun_ctx.hxd = qud->hxd;
-                    sext[i] = ext->as.hmc.sin(&fun_ctx, &vtx[fun_ctx.vtx]);
-                    cext[i] = ext->as.hmc.cos(&fun_ctx, &vtx[fun_ctx.vtx]);
+
+                    struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
+
+                    sext[i] = ext->as.hmc.sin(&fun_ctx, &vw);
+                    cext[i] = ext->as.hmc.cos(&fun_ctx, &vw);
                 }
 
                 for (int i = 0; i < 4; ++i) {
@@ -244,10 +253,10 @@ static int qud_dim(struct sim *sim, struct qud *qud, double *hxi, double *hzt)
         .dat = dat,
     };
 
-    if (msh_qud_nrm(sim->msh, qud, &nrm))
+    if (umsh_qud_nrm(sim->msh, qud, &nrm))
         return -1;
 
-    struct vec *vtx = sim->msh->vtx.dat;
+    struct v3d *vtx = sim->msh->vtx.v3d.dat;
 
     int v0 = qud->vtx[0];
     int v3 = qud->vtx[3];

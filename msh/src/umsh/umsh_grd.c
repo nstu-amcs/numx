@@ -1,18 +1,19 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include <numx/pde/msh.h>
+#include <numx/msh/umsh.h>
 
-static int get_vtx(struct msh *msh, FILE *f);
+static int get_vtx(struct umsh *msh, FILE *f);
 
-static int get_hxd_ems(struct msh *msh, FILE *f);
-static int get_qud_bnd(struct msh *msh, FILE *f);
+static int get_hxd_ems(struct umsh *msh, FILE *f);
+static int get_qud_bnd(struct umsh *msh, FILE *f);
 
-int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
+int umsh_imp_grd(struct umsh *msh, const char *dir, const char *pfx)
 {
     assert(msh);
     assert(dir);
     assert(pfx);
+    assert(msh->type == MSH_C3D);
 
     int r = 0;
     int n = 0;
@@ -59,7 +60,7 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
         goto end;
     }
 
-    if ((r = vec_cut_dev(&msh->vtx, n)))
+    if ((r = v3d_cut_dev(&msh->vtx.v3d, n)))
         goto end;
 
     if ((r = hxd_cut_dev(&msh->hxd, e)))
@@ -77,7 +78,7 @@ int msh_imp_grd(struct msh *msh, const char *dir, const char *pfx)
     if ((r = get_hxd_ems(msh, ems)))
         goto end;
 
-    vec_cut_shr(&msh->vtx);
+    v3d_cut_shr(&msh->vtx.v3d);
     seg_cut_shr(&msh->seg);
     qud_cut_shr(&msh->qud);
     hxd_cut_shr(&msh->hxd);
@@ -91,7 +92,7 @@ end:
     return r;
 }
 
-int msh_exp_grd(struct msh *msh, const char *dir, const char *pfx)
+int umsh_exp_grd(struct msh *msh, const char *dir, const char *pfx)
 {
     assert(msh);
     assert(dir);
@@ -104,13 +105,10 @@ int msh_exp_grd(struct msh *msh, const char *dir, const char *pfx)
 
 // clang-format off
 
-static int get_vtx(struct msh *msh, FILE *f)
+static int get_vtx(struct umsh *msh, FILE *f)
 {
-    for (int i = 0, j; i < msh->vtx.len; ++i) {
-        struct vec *vtx = &msh->vtx.dat[i];
-
-        if (vec_new(vtx, 3))
-            return -1;
+    for (int i = 0, j; i < msh->vtx.v3d.len; ++i) {
+        struct v3d *vtx = &msh->vtx.v3d.dat[i];
 
         if (fscanf(f, "%d %d %lf %lf %lf", &j, &j, 
               &vtx->dat[0], 
@@ -122,7 +120,7 @@ static int get_vtx(struct msh *msh, FILE *f)
     return 0;
 }
 
-static int get_hxd_ems(struct msh *msh, FILE *f)
+static int get_hxd_ems(struct umsh *msh, FILE *f)
 {
     struct hxd *hxd = msh->hxd.dat;
 
@@ -152,9 +150,9 @@ static int get_hxd_ems(struct msh *msh, FILE *f)
     return 0;
 }
 
-static int qud_srt(struct msh* msh, struct qud* qud);
+static int qud_srt(struct umsh* msh, struct qud* qud);
 
-static int get_qud_bnd(struct msh *msh, FILE *f)
+static int get_qud_bnd(struct umsh *msh, FILE *f)
 {
     struct qud *qud = msh->qud.dat;
 
@@ -179,10 +177,10 @@ static int get_qud_bnd(struct msh *msh, FILE *f)
     return 0;
 }
 
-static inline int cmp(struct msh* msh, int a, int b)
+static inline int cmp(struct umsh* msh, int a, int b)
 {
-    double av = msh->vtx.dat[a].dat[2];
-    double bv = msh->vtx.dat[b].dat[2];
+    double av = msh->vtx.v3d.dat[a].dat[2];
+    double bv = msh->vtx.v3d.dat[b].dat[2];
 
     if (av < bv)
       return 0;
@@ -190,8 +188,8 @@ static inline int cmp(struct msh* msh, int a, int b)
     if (bv < av)
       return 1;
 
-    av = msh->vtx.dat[a].dat[1];
-    bv = msh->vtx.dat[b].dat[1];
+    av = msh->vtx.v3d.dat[a].dat[1];
+    bv = msh->vtx.v3d.dat[b].dat[1];
 
     if (av < bv)
       return 0;
@@ -199,8 +197,8 @@ static inline int cmp(struct msh* msh, int a, int b)
     if (bv < av)
       return 1;
 
-    av = msh->vtx.dat[a].dat[0];
-    bv = msh->vtx.dat[b].dat[0];
+    av = msh->vtx.v3d.dat[a].dat[0];
+    bv = msh->vtx.v3d.dat[b].dat[0];
 
     if (av < bv)
       return 0;
@@ -208,7 +206,7 @@ static inline int cmp(struct msh* msh, int a, int b)
     return 1;
 }
 
-static int qud_srt(struct msh* msh, struct qud* qud)
+static int qud_srt(struct umsh* msh, struct qud* qud)
 {
     int t;
     int *v = qud->vtx;

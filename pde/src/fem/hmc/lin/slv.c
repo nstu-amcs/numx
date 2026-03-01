@@ -1,12 +1,11 @@
 #include "fem.h"
 #include <math.h>
 
-double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
+double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
 {
     assert(ctx);
-    assert(vtx);
 
-    struct vec *v = ctx->sim->msh->vtx.dat;
+    struct v3d *v = ctx->sim->msh->vtx.v3d.dat;
     struct hxd *h = &ctx->sim->msh->hxd.dat[ctx->hxd];
 
     double *w = ctx->wgt->dat;
@@ -23,9 +22,9 @@ double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
 
     double hm = (x2 - x1) * (y2 - y1) * (z2 - z1);
 
-    double x = vtx->dat[0];
-    double y = vtx->dat[1];
-    double z = vtx->dat[2];
+    double x = vtx.v3d->dat[0];
+    double y = vtx.v3d->dat[1];
+    double z = vtx.v3d->dat[2];
 
     double b1 = (x2 - x) * (y2 - y) * (z2 - z) / hm;
     double b2 = (x - x1) * (y2 - y) * (z2 - z) / hm;

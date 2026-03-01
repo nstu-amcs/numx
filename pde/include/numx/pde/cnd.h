@@ -3,11 +3,13 @@
 
 #include <numx/com/cut.h>
 #include <numx/non/fun.h>
-#include <numx/pde/msh.h>
 #include <numx/vec/vec.h>
 
 typedef struct sim sim;
 
+/**
+ * @brief Context passed to boundary functions.
+ */
 struct sim_fun_ctx
 {
     struct sim *sim; // simulation
@@ -17,6 +19,9 @@ struct sim_fun_ctx
     int hxd; // hinted hexahedron
 };
 
+/**
+ * @brief Generic property value.
+ */
 typedef struct val
 {
     enum

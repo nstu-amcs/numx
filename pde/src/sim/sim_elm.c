@@ -146,7 +146,7 @@ static int get_sim(FILE *f, struct sim *sim)
 
         if (!strcmp("Basis", key)) {
             if (!strcmp("Linear", val))
-                fem->bss = FEM_BSS_LIN;
+                fem->bfs = FEM_BFS_LIN;
 
             continue;
         }
@@ -243,18 +243,12 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->lam))
                 return -1;
 
-            if (mat->lam.ops.dep)
-                NON_LAM_SET(sim->slv->ops.non.map);
-
             continue;
         }
 
         if (!strcmp("Gamma Coefficient", key)) {
             if (get_val(sim, val, &mat->gam))
                 return -1;
-
-            if (mat->gam.ops.dep)
-                NON_GAM_SET(sim->slv->ops.non.map);
 
             continue;
         }
@@ -263,18 +257,12 @@ static int get_mat(FILE *f, struct sim *sim)
             if (get_val(sim, val, &mat->sig))
                 return -1;
 
-            if (mat->sig.ops.dep)
-                NON_SIG_SET(sim->slv->ops.non.map);
-
             continue;
         }
 
         if (!strcmp("Chi Coefficient", key)) {
             if (get_val(sim, val, &mat->chi))
                 return -1;
-
-            if (mat->chi.ops.dep)
-                NON_CHI_SET(sim->slv->ops.non.map);
 
             continue;
         }
@@ -307,9 +295,6 @@ static int get_src(FILE *f, struct sim *sim)
         if (!strcmp("Field Source", key)) {
             if (get_val(sim, val, src))
                 return -1;
-
-            if (src->ops.dep)
-                NON_SRC_SET(sim->slv->ops.non.map);
         }
     }
 
@@ -386,9 +371,6 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.neu.tta))
                 return -1;
 
-            if (bnd->pps.neu.tta.ops.dep)
-                NON_TTA_SET(sim->slv->ops.non.map);
-
             continue;
         } else if (!strcmp("Robin Coefficient (beta)", key)) {
             bnd->type = CND_BND_ROB;
@@ -396,18 +378,12 @@ static int get_bnd(FILE *f, struct sim *sim)
             if (get_val(sim, val, &bnd->pps.rob.bet))
                 return -1;
 
-            if (bnd->pps.rob.bet.ops.dep)
-                NON_BET_SET(sim->slv->ops.non.map);
-
             continue;
         } else if (!strcmp("External Field", key)) {
             bnd->type = CND_BND_ROB;
 
             if (get_val(sim, val, &bnd->pps.rob.ext))
                 return -1;
-
-            if (bnd->pps.rob.ext.ops.dep)
-                NON_EXT_SET(sim->slv->ops.non.map);
 
             continue;
         }

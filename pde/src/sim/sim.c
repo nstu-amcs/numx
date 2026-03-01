@@ -67,11 +67,6 @@ int sim_cls(struct sim *sim)
 {
     assert(sim);
 
-    msh_cls(sim->msh);
-
-    free(sim->msh);
-    free(sim->slv);
-
     mat_cut_cls(&sim->mat);
     val_cut_cls(&sim->src);
     obj_cut_cls(&sim->obj);
@@ -80,7 +75,9 @@ int sim_cls(struct sim *sim)
     cnd_ini_cut_cls(&sim->cnd_ini);
     cnd_bnd_cut_cls(&sim->cnd_bnd);
 
-    dlclose(sim->ops.usr.hdl);
+    if (sim->ops.usr.hdl) {
+        dlclose(sim->ops.usr.hdl);
+    }
 
     return 0;
 }

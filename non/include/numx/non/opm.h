@@ -6,6 +6,9 @@
 
 #define NUMX_NON_OPM_EPS 0.001
 
+/**
+ * @brief General optimization options.
+ */
 typedef struct opm_ops
 {
     struct vec *vtx; // fixed variables
@@ -16,7 +19,7 @@ typedef struct opm_ops
     double end; // range end
 
     /**
-     *  Tweak function.
+     *  @brief Tweak function.
      *
      *  Must replace respected variable with given value.
      *  Can be used to optimize with respect to context.
@@ -25,7 +28,7 @@ typedef struct opm_ops
 } opm_ops;
 
 /**
- *  Bisection univariable local optimization.
+ *  @brief Bisection univariable local optimization.
  */
 double opm_loc_bis(void *ctx, mfun fun, struct opm_ops *ops);
 

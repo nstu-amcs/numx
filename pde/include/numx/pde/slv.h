@@ -1,36 +1,17 @@
 #ifndef NUMX_PDE_SLV_H
 #define NUMX_PDE_SLV_H
 
-#include <numx/pde/msh.h>
+#include <numx/msh/umsh.h>
 #include <numx/vec/iss.h>
 #include <numx/vec/vec.h>
 
 #include <stdint.h>
 
-#define NON_LAM(N) (N & (0b10000000))
-#define NON_GAM(N) (N & (0b01000000))
-#define NON_BET(N) (N & (0b00100000))
-#define NON_SIG(N) (N & (0b00010000))
-#define NON_CHI(N) (N & (0b00001000))
-#define NON_SRC(N) (N & (0b00000100))
-#define NON_TTA(N) (N & (0b00000010))
-#define NON_EXT(N) (N & (0b00000001))
-
-#define NON_ELL_MTX(N) ((N) & 0b11100000)
-#define NON_ELL_VEC(N) ((N) & 0b00100111)
-#define NON_ELL_ALL(N) (((N) & 0b11100000) && ((N) & 0b00100111))
-
-#define NON_LAM_SET(N) (N |= (0b10000000))
-#define NON_GAM_SET(N) (N |= (0b01000000))
-#define NON_BET_SET(N) (N |= (0b00100000))
-#define NON_SIG_SET(N) (N |= (0b00010000))
-#define NON_CHI_SET(N) (N |= (0b00001000))
-#define NON_SRC_SET(N) (N |= (0b00000100))
-#define NON_TTA_SET(N) (N |= (0b00000010))
-#define NON_EXT_SET(N) (N |= (0b00000001))
-
 struct sim;
 
+/**
+ * @brief Context passed to solution approximation function.
+ */
 struct apx_fun_ctx
 {
     struct sim *sim; // simulation
@@ -41,7 +22,11 @@ struct apx_fun_ctx
     int hxd; // hinted hexahedron
 };
 
-/** Simulation solver. */
+/**
+ * @brief Simulation solver.
+ *
+ * Each specific solver (such as FEM) will inherit general solver properties.
+ */
 typedef struct slv
 {
     struct slv_ops
@@ -54,16 +39,19 @@ typedef struct slv
             TDD_I4S = 4, // implicit 4-layered
         } tdd;
 
-        /** Options for nonlinear system solver. */
+        /**
+         * @brief Options for nonlinear system solver.
+         */
         struct
         {
+            /**
+             * @brief Nonlinear solution method.
+             */
             enum non_mod
             {
                 NON_FPI, // fixed-point iteration
                 NON_NEW, // Newton's linearization
             } mod;
-
-            uint8_t map;
 
             struct non_ops
             {
@@ -72,7 +60,7 @@ typedef struct slv
                 bool   rlx; // enable relaxation
 
                 /**
-                 *  Nonlinear iteration callback (user defined).
+                 *  @brief Nonlinear iteration callback (user defined).
                  *
                  *  Called for each nonlinear iteration.
                  */
@@ -98,7 +86,9 @@ typedef struct slv
             } ops;
         } non;
 
-        /** Options for linear system solver. */
+        /**
+         * @brief Options for linear system solver.
+         */
         struct
         {
             enum iss_mod mod;
@@ -113,27 +103,23 @@ typedef struct slv
     } ops;
 
     /**
-     *  Execute solver (implementation defined).
-     *
-     *  @param sim - simulation
+     *  @brief Execute the solver (implementation defined).
      */
     int (*exe)(struct sim *sim);
 
     /**
-     *  Approximate solution at given point (implementation defined).
+     *  @brief Approximate the solution at the given point (implementation defined).
      *
      *  @param ctx - context
      *  @param vtx - target point
      */
-    double (*apx)(struct apx_fun_ctx *ctx, struct vec *vtx);
+    double (*apx)(struct apx_fun_ctx *ctx, union vtx_ptr vtx);
 
     /**
-     *  Solution callback (user defined).
+     *  @brief Solution callback (user defined).
      *
      *  Called for each time layer. Called once
      *  for elliptic equations.
-     *
-     *  @param sim - simulation
      */
     struct
     {
@@ -142,7 +128,7 @@ typedef struct slv
     } itr;
 
     /**
-     *  Runtime data made available by solver.
+     *  @brief Runtime data made available by the solver.
      *
      *  Updated on each time layer and not
      *  available after solver exits.

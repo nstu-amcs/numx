@@ -44,10 +44,14 @@ cut_def(mat_cut, mat);
 cut_def(obj_cut, obj);
 cut_def(bnd_cut, bnd);
 
-/** Simulation. */
+/**
+ * @brief Simulation.
+ */
 typedef struct sim
 {
-    /** Equation type. */
+    /**
+     * @brief Equation type.
+     */
     enum
     {
         SIM_ELL, // elliptic
@@ -55,16 +59,23 @@ typedef struct sim
         SIM_HYP, // hyperbolic
     } eqn;
 
-    /** Solution mode. */
+    /**
+     * @brief Solution mode.
+     */
     enum
     {
         SIM_STD, // standard
         SIM_HMC, // harmonic
     } mod;
 
+    /**
+     * @brief Simulation options.
+     */
     struct sim_ops
     {
-        /** User-defined functions. */
+        /**
+         * @brief User-defined functions.
+         */
         struct
         {
             char dir[128]; // usr directory
@@ -79,7 +90,9 @@ typedef struct sim
             char pfx[64];  // mesh prefix
         } msh;
 
-        /** Export options. */
+        /**
+         * @brief Export options.
+         */
         struct
         {
             enum
@@ -91,21 +104,23 @@ typedef struct sim
             char pfx[64];  // export prefix
 
             /**
-             *  Export commons (simulation defined).
+             *  @brief Export commons (simulation defined).
              *
              *  @param sim - simulation
              */
             int (*ini)(struct sim *sim);
 
             /**
-             *  Export runtime solution (simulation defined).
+             *  @brief Export runtime solution (simulation defined).
              *
              *  @param sim - simulation
              */
             int (*put)(struct sim *sim);
         } exp;
 
-        /** Time discretization options. */
+        /**
+         * @brief Time discretization options.
+         */
         struct
         {
             int num; // number of time intervals
@@ -115,15 +130,17 @@ typedef struct sim
             double hop; // time interval length
         } tdd;
 
-        /** Harmonic options. */
+        /**
+         * @brief Harmonic options.
+         */
         struct
         {
             double frq; // frequency
         } hmc;
     } ops;
 
-    struct msh *msh; // active mesh
-    struct slv *slv; // active solver
+    struct umsh *msh; // active mesh
+    struct slv  *slv; // active solver
 
     struct mat_cut mat; // materials
     struct val_cut src; // sources
@@ -134,22 +151,46 @@ typedef struct sim
     struct cnd_bnd_cut cnd_bnd; // boundary conditions
 } sim;
 
+/**
+ * @brief Initialize simulation with defaults.
+ *
+ * Must be called before any other method.
+ */
 int sim_new(struct sim *sim);
+
+/**
+ * @brief Finish simulation and free memory.
+ */
 int sim_cls(struct sim *sim);
 
-/** Import simulation from CGNS file. */
+/**
+ * @brief Import simulation from the CGNS file.
+ */
 int sim_imp_gns(struct sim *sim, const char *gns);
 
-/** Import simulation from Elmer file. */
+/**
+ * @brief Import simulation from the Elmer file.
+ */
 int sim_imp_elm(struct sim *sim, const char *sif);
 
-/** Export commons in CGNS format. */
+/**
+ * @brief Import simulation from the Telma file.
+ */
+int sim_imp_tel(struct sim *sim, const char *tel);
+
+/**
+ * @brief Export commons in CGNS format.
+ */
 int sim_exp_gns_ini(struct sim *sim);
 
-/** Export solution in CGNS format. */
+/**
+ * @brief Export solution in CGNS format.
+ */
 int sim_exp_gns_put(struct sim *sim);
 
-/** Start simulation. */
+/**
+ * @brief Start the simulation.
+ */
 int sim_run(struct sim *sim);
 
 #endif // NUMX_PDE_SIM_H

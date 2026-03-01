@@ -3,12 +3,19 @@
 
 #include "fem.h"
 
-double fem_std_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
+double fem_std_lin_apx_c2d(struct apx_fun_ctx *ctx, vtx_ptr vtx)
 {
     assert(ctx);
-    assert(vtx);
+    (void)vtx;
 
-    struct vec *v = ctx->sim->msh->vtx.dat;
+    return 0;
+}
+
+double fem_std_lin_apx_c3d(struct apx_fun_ctx *ctx, vtx_ptr vtx)
+{
+    assert(ctx);
+
+    struct v3d *v = ctx->sim->msh->vtx.v3d.dat;
     struct hxd *h = &ctx->sim->msh->hxd.dat[ctx->hxd];
 
     double *w = ctx->wgt->dat;
@@ -25,9 +32,9 @@ double fem_std_lin_apx(struct apx_fun_ctx *ctx, struct vec *vtx)
 
     double hm = (x2 - x1) * (y2 - y1) * (z2 - z1);
 
-    double x = vtx->dat[0];
-    double y = vtx->dat[1];
-    double z = vtx->dat[2];
+    double x = vtx.v3d->dat[0];
+    double y = vtx.v3d->dat[1];
+    double z = vtx.v3d->dat[2];
     double r = 0;
 
     r += w[h->vtx[0]] * (x2 - x) * (y2 - y) * (z2 - z) / hm;
@@ -50,7 +57,14 @@ int fem_std_lin_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     assert(sim);
 
-    sim->slv->apx = fem_std_lin_apx;
+    switch (sim->msh->type) {
+        case MSH_C2D:
+            sim->slv->apx = fem_std_lin_apx_c2d;
+            break;
+        case MSH_C3D:
+            sim->slv->apx = fem_std_lin_apx_c3d;
+            break;
+    }
 
     switch (sim->eqn) {
         case SIM_ELL:
@@ -181,8 +195,8 @@ static int pbc_i1s_slv(struct sim *sim, struct fem_std_ctx *ctx)
 
             for (int k = 0; k < 8; ++k) {
                 fctx.vtx = hxd->vtx[k];
-                ctx->w0.dat[hxd->vtx[k]] =
-                    ini->tgt.as.fun(&fctx, &sim->msh->vtx.dat[hxd->vtx[k]]);
+                struct vec vw = {.dat = sim->msh->vtx.v3d.dat[hxd->vtx[k]].dat, .n = 3};
+                ctx->w0.dat[hxd->vtx[k]] = ini->tgt.as.fun(&fctx, &vw);
             }
         } else {
             for (int k = 0; k < 8; ++k)
@@ -224,8 +238,8 @@ static int sys_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     struct slv_ops *ops = &sim->slv->ops;
 
-    if (ops->non.map)
-        return slv_non(sim, ctx);
+    // if (ops->non.map)
+    //     return slv_non(sim, ctx);
 
     if (fem_std_lin_asm(sim, ctx))
         return -1;
@@ -287,6 +301,7 @@ void est_twk_rlx(void *ctx, double val, struct opm_ops *)
     ((struct est_ctx *)ctx)->rlx = val;
 }
 
+__attribute__((unused))
 static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
 {
     int r = 0;
@@ -329,8 +344,8 @@ static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
         .vtx = &ctx->w0,
     };
 
-    for (int i = 0; i < sim->msh->vtx.len; ++i) {
-        struct vec *v = &sim->msh->vtx.dat[i];
+    for (int i = 0; i < sim->msh->vtx.v3d.len; ++i) {
+        struct v3d *v = &sim->msh->vtx.v3d.dat[i];
 
         double x = v->dat[0];
         double y = v->dat[1];
@@ -365,8 +380,7 @@ static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
 
         switch (sim->slv->ops.iss.mod) {
             case ISS_BCG:
-                if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec,
-                         &sim->slv->ops.iss.ops.bcg)))
+                if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &sim->slv->ops.iss.ops.bcg)))
                     goto end;
 
                 break;
@@ -377,8 +391,7 @@ static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
         }
 
         if (ops->rlx) {
-            double opm = opm_loc_bis(
-                &est_ctx, (double (*)(void *, struct vec *))est, &opm_ops);
+            double opm = opm_loc_bis(&est_ctx, (double (*)(void *, struct vec *))est, &opm_ops);
 
             vec_mul(&ctx->w0, &upd, opm);
             vec_cmb(&upd, &prv, &upd, 1 - opm);

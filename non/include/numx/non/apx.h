@@ -4,6 +4,9 @@
 #include <numx/com/cut.h>
 #include <numx/vec/mtx.h>
 
-int apx_cub(struct vec* x, struct imtx* k);
+/**
+ * @brief Cubic Hermite spline.
+ */
+int apx_cub(struct vec *x, struct imtx *k);
 
-#endif  // NUMX_NON_APX_H
+#endif // NUMX_NON_APX_H

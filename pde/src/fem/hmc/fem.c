@@ -15,8 +15,8 @@ int fem_hmc_exe(struct sim *sim)
 
     struct fem *fem = (struct fem *)sim->slv;
 
-    switch (fem->ops.bss) {
-        case FEM_BSS_LIN:
+    switch (fem->ops.bfs) {
+        case FEM_BFS_LIN:
             return fem_hmc_lin_slv(sim, &ctx);
     }
 
@@ -49,7 +49,7 @@ static int ctx_new(struct sim *sim, struct fem_hmc_ctx *ctx)
     vec_prep(&ctx->vec);
     vec_prep(&ctx->wgt);
 
-    int n = sim->msh->vtx.len;
+    int n = sim->msh->vtx.v3d.len;
     int z = 0;
     int r = 0;
 

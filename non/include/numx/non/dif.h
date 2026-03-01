@@ -6,6 +6,9 @@
 
 #define NUMX_NON_DIF_HOP 0.001
 
+/**
+ * @brief Partial differentiation options.
+ */
 typedef struct dif_ops
 {
     struct vec *vtx; // fixed variables

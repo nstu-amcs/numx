@@ -1,4 +1,4 @@
-ColumnLimit: 50
+ColumnLimit: 100
 IndentWidth: 4
 
 DerivePointerAlignment: false
