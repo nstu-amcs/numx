@@ -1,14 +1,15 @@
 add_library(pde
   src/sim/sim.c
   src/sim/sim_elm.c
-  src/sim/sim_gns.c
+  src/sim/sim_cgns.c
   src/sim/sim_tel.c
 
   src/fem/fem.c
-  src/fem/std/fem.c
-  src/fem/std/lin/3d/slv.c
-  src/fem/std/lin/3d/asm.c
-  src/fem/hmc/fem.c
+  src/fem/std/std.c
+  src/fem/std/lin/lin.c
+  src/fem/std/lin/c2d/asm.c
+  src/fem/std/lin/c3d/asm.c
+  src/fem/hmc/hmc.c
   src/fem/hmc/lin/slv.c
   src/fem/hmc/lin/asm.c
 )

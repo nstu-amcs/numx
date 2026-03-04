@@ -4,12 +4,12 @@
 
 #include <numx/pde/sim.h>
 
-int sim_exp_gns_ini(struct sim *sim)
+int sim_exp_cgns_ini(struct sim *sim)
 {
     if (sim->mod == SIM_HMC)
         return 0;
 
-    if (umsh_exp_gns(sim->msh, sim->ops.exp.dir, sim->ops.exp.pfx))
+    if (umsh_exp_cgns(sim->msh, sim->ops.exp.dir, sim->ops.exp.pfx))
         return -1;
 
     if (sim->eqn == SIM_ELL)
@@ -59,7 +59,7 @@ int sim_exp_gns_ini(struct sim *sim)
     return 0;
 }
 
-int sim_exp_gns_put(struct sim *sim)
+int sim_exp_cgns_put(struct sim *sim)
 {
     if (sim->mod == SIM_HMC)
         return 0;

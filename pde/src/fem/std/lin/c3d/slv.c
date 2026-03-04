@@ -93,8 +93,8 @@ static int ell_slv(struct sim *sim, struct fem_std_ctx *ctx)
     if ((r = sys_slv(sim, ctx)))
         goto end;
 
-    if (sim->slv->itr.run)
-        sim->slv->itr.run(sim->slv->itr.ctx, sim);
+    if (sim->slv->itr_cbk.run)
+        sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
 
     if (sim->ops.exp.put)
         sim->ops.exp.put(sim);
@@ -156,8 +156,8 @@ static int pbc_slv(struct sim *sim, struct fem_std_ctx *ctx)
             sys_slv(sim, ctx);
         }
 
-        if (sim->slv->itr.run)
-            sim->slv->itr.run(sim->slv->itr.ctx, sim);
+        if (sim->slv->itr_cbk.run)
+            sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
 
         if (sim->ops.exp.put)
             sim->ops.exp.put(sim);
@@ -363,8 +363,8 @@ static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
     cur = cur / nrm;
     ops->run.err = cur;
 
-    if (ops->itr.run)
-        ops->itr.run(ops->itr.ctx, ops);
+    if (ops->itr_cbk.run)
+        ops->itr_cbk.run(ops->itr_cbk.ctx, ops);
 
     for (int i = 1; i <= ops->max && cur > ops->err; ++i) {
         ops->run.itr = i;
@@ -404,8 +404,8 @@ static int slv_non(struct sim *sim, struct fem_std_ctx *ctx)
         cur = est(&est_ctx, &ctx->w0) / nrm;
         ops->run.err = cur;
 
-        if (ops->itr.run)
-            ops->itr.run(ops->itr.ctx, ops);
+        if (ops->itr_cbk.run)
+            ops->itr_cbk.run(ops->itr_cbk.ctx, ops);
     }
 
 end:

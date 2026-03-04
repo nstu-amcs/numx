@@ -5,10 +5,10 @@
 
 #include <numx/msh/umsh.h>
 
-static int umsh_exp_gns_c2d(struct umsh *msh, const char* fname);
-static int umsh_exp_gns_c3d(struct umsh *msh, const char* fname);
+static int umsh_exp_cgns_c2d(struct umsh *msh, const char* fname);
+static int umsh_exp_cgns_c3d(struct umsh *msh, const char* fname);
 
-int umsh_exp_gns(struct umsh *msh, const char *dir, const char *pfx)
+int umsh_exp_cgns(struct umsh *msh, const char *dir, const char *pfx)
 {
     assert(msh);
     assert(dir);
@@ -19,15 +19,15 @@ int umsh_exp_gns(struct umsh *msh, const char *dir, const char *pfx)
 
     switch (msh->type) {
         case MSH_C2D:
-            return umsh_exp_gns_c2d(msh, fname);
+            return umsh_exp_cgns_c2d(msh, fname);
         case MSH_C3D:
-            return umsh_exp_gns_c3d(msh, fname);
+            return umsh_exp_cgns_c3d(msh, fname);
         default:
             return -1;
     }
 }
 
-static int umsh_exp_gns_c2d(struct umsh *msh, const char *fname)
+static int umsh_exp_cgns_c2d(struct umsh *msh, const char *fname)
 {
     int fi;
     int bi;
@@ -74,7 +74,7 @@ static int umsh_exp_gns_c2d(struct umsh *msh, const char *fname)
     return 0;
 }
 
-static int umsh_exp_gns_c3d(struct umsh *msh, const char *fname)
+static int umsh_exp_cgns_c3d(struct umsh *msh, const char *fname)
 {
     int fi;
     int bi;

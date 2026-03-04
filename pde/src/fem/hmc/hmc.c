@@ -1,7 +1,7 @@
 #include <numx/com/cmp.h>
 #include <numx/com/log.h>
 
-#include "lin/fem.h"
+#include "hmc.h"
 
 static int ctx_new(struct sim *sim, struct fem_hmc_ctx *ctx);
 static int ctx_cls(struct sim *sim, struct fem_hmc_ctx *ctx);

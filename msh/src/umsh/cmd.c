@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     *(t - 1) = 0;
 
     if (!strcmp(t, "cgns")) {
-        if (umsh_exp_gns(&msh, d, p)) {
+        if (umsh_exp_cgns(&msh, d, p)) {
             fprintf(stderr, "failed to export mesh\n");
             return 1;
         }

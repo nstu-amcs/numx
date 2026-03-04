@@ -23,7 +23,7 @@ int sim_new(struct sim *sim)
     sim->ops.usr.dir[0] = 0;
     sim->ops.usr.pfx[0] = 0;
 
-    sim->ops.exp.mod = SIM_EXP_GNS;
+    sim->ops.exp.mod = SIM_EXP_CGNS;
     sim->ops.exp.dir[0] = 0;
     sim->ops.exp.pfx[0] = 0;
     sim->ops.exp.ini = NULL;
@@ -85,5 +85,13 @@ int sim_cls(struct sim *sim)
 int sim_run(struct sim *sim)
 {
     assert(sim);
+
+    switch (sim->ops.exp.mod) {
+        case SIM_EXP_CGNS:
+            sim->ops.exp.ini = sim_exp_cgns_ini;
+            sim->ops.exp.put = sim_exp_cgns_put;
+            break;
+    }
+
     return sim->slv->exe(sim);
 }

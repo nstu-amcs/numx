@@ -84,12 +84,6 @@ typedef struct sim
             void *hdl; // dynamic-library handler
         } usr;
 
-        struct
-        {
-            char dir[128]; // mesh directory
-            char pfx[64];  // mesh prefix
-        } msh;
-
         /**
          * @brief Export options.
          */
@@ -97,7 +91,7 @@ typedef struct sim
         {
             enum
             {
-                SIM_EXP_GNS, // CGNS
+                SIM_EXP_CGNS, // CGNS
             } mod;
 
             char dir[128]; // export directory
@@ -166,7 +160,7 @@ int sim_cls(struct sim *sim);
 /**
  * @brief Import simulation from the CGNS file.
  */
-int sim_imp_gns(struct sim *sim, const char *gns);
+int sim_imp_cgns(struct sim *sim, const char *gns);
 
 /**
  * @brief Import simulation from the Elmer file.
@@ -181,12 +175,12 @@ int sim_imp_tel(struct sim *sim, const char *tel);
 /**
  * @brief Export commons in CGNS format.
  */
-int sim_exp_gns_ini(struct sim *sim);
+int sim_exp_cgns_ini(struct sim *sim);
 
 /**
  * @brief Export solution in CGNS format.
  */
-int sim_exp_gns_put(struct sim *sim);
+int sim_exp_cgns_put(struct sim *sim);
 
 /**
  * @brief Start the simulation.

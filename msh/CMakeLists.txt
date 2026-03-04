@@ -1,7 +1,7 @@
 add_library(msh
   src/umsh/umsh.c
   src/umsh/umsh_grd.c
-  src/umsh/umsh_gns.c
+  src/umsh/umsh_cgns.c
   src/umsh/umsh_tel.c
 )
 

@@ -3,27 +3,28 @@
 #include <numx/com/cmp.h>
 #include <numx/com/log.h>
 
-#include "lin/3d/fem.h"
+#include "std.h"
 
-static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx);
-static int ctx_cls(struct sim *sim, struct fem_std_ctx *ctx);
+static int fem_ctx_new(struct sim *sim, struct fem_std_ctx *ctx);
+static int fem_ctx_cls(struct sim *sim, struct fem_std_ctx *ctx);
+static int fem_slv(struct sim *sim, struct fem_std_ctx *ctx);
 
 int fem_std_exe(struct sim *sim)
 {
     struct fem_std_ctx ctx;
 
-    if (ctx_new(sim, &ctx))
+    if (fem_ctx_new(sim, &ctx)) {
         return -1;
-
-    struct fem *fem = (struct fem *)sim->slv;
-
-    switch (fem->ops.bfs) {
-        case FEM_BFS_LIN:
-            return fem_std_lin_slv(sim, &ctx);
     }
 
-    if (ctx_cls(sim, &ctx))
+    if (fem_slv(sim, &ctx)) {
+        fem_ctx_cls(sim, &ctx);
         return -1;
+    }
+
+    if (fem_ctx_cls(sim, &ctx)) {
+        return -1;
+    }
 
     return 0;
 }
@@ -38,7 +39,7 @@ static inline void vec_prep(struct vec *vec)
     memset(vec, 0, sizeof(struct vec));
 }
 
-static int ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
+static int fem_ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
 {
     mtx_prep(&ctx->mtx);
     mtx_prep(&ctx->sig);
@@ -139,7 +140,7 @@ end:
     return r;
 }
 
-static int ctx_cls(struct sim *sim, struct fem_std_ctx *ctx)
+static int fem_ctx_cls(struct sim *sim, struct fem_std_ctx *ctx)
 {
     mtx_cls(&ctx->mtx);
     vec_cls(&ctx->vec);
@@ -155,6 +156,106 @@ static int ctx_cls(struct sim *sim, struct fem_std_ctx *ctx)
             __attribute__((fallthrough));
         case SIM_ELL:
             break;
+    }
+
+    return 0;
+}
+
+static apx_fun _apx[] = {
+    [FEM_BFS_LIN] = fem_std_lin_apx,
+};
+
+static fem_asm_fun _asm[] = {
+    [FEM_BFS_LIN] = fem_std_lin_asm,
+};
+
+static int fem_ell_slv(struct sim *sim, struct fem_std_ctx *ctx);
+static int fem_pbc_slv(struct sim *sim, struct fem_std_ctx *ctx);
+static int fem_hyp_slv(struct sim *sim, struct fem_std_ctx *ctx);
+
+static int fem_slv(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    int r = 0;
+
+    if ((r = sim->ops.exp.ini(sim))) {
+        return r;
+    }
+
+    struct fem *fem = (struct fem *)sim->slv;
+
+    sim->slv->apx = _apx[fem->ops.bfs];
+
+    switch (sim->eqn) {
+        case SIM_ELL:
+            return fem_ell_slv(sim, ctx);
+        case SIM_PBC:
+            return fem_pbc_slv(sim, ctx);
+        case SIM_HYP:
+            return fem_hyp_slv(sim, ctx);
+    }
+
+    return -1;
+}
+
+static int fem_sys_slv(struct sim *sim, struct fem_std_ctx *ctx);
+
+static int fem_ell_slv(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    int r = 0;
+
+    if ((r = vec_new(&ctx->w0, ctx->vec.n)))
+        goto fem_ell_slv_end;
+
+    sim->slv->run.bs = 1;
+    sim->slv->run.wgt[0] = &ctx->w0;
+
+    if ((r = fem_sys_slv(sim, ctx)))
+        goto fem_ell_slv_end;
+
+    if (sim->slv->itr_cbk.run)
+        sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
+
+    if (sim->ops.exp.put)
+        sim->ops.exp.put(sim);
+
+fem_ell_slv_end:
+    vec_cls(&ctx->w0);
+    return r;
+}
+
+static int fem_pbc_slv(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    return -1;
+}
+
+static int fem_hyp_slv(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    return -1;
+}
+
+static int fem_sys_slv(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    struct fem     *fem = (struct fem *)sim->slv;
+    struct slv_ops *ops = &sim->slv->ops;
+
+    // if (ops->non.map)
+    //     return slv_non(sim, ctx);
+
+    if (_asm[fem->ops.bfs](sim, ctx)) {
+        return -1;
+    }
+
+    vec_rst(&ctx->w0);
+
+    switch (ops->iss.mod) {
+        case ISS_BCG:
+            if (iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &ops->iss.ops.bcg))
+                return -1;
+
+            break;
+        default:
+            errno = ENOTSUP;
+            return -1;
     }
 
     return 0;

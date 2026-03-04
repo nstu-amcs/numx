@@ -1,4 +1,4 @@
-#include "fem.h"
+#include "../hmc.h"
 #include <math.h>
 
 double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
@@ -93,8 +93,8 @@ int fem_hmc_lin_slv(struct sim *sim, struct fem_hmc_ctx *ctx)
         num = 1;
 
     for (int i = 1; i <= num; ++i) {
-        if (sim->slv->itr.run)
-            sim->slv->itr.run(sim->slv->itr.ctx, sim);
+        if (sim->slv->itr_cbk.run)
+            sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
 
         if (sim->ops.exp.put)
             sim->ops.exp.put(sim);

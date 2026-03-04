@@ -1,6 +1,7 @@
 #ifndef NUMX_COM_CMP_H
 #define NUMX_COM_CMP_H
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
 #define fabs(f) (((f) < 0) ? -(f) : (f))
 #define isclose(a, b, tol) (fabs((a) - (b)) < (tol))
 

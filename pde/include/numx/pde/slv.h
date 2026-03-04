@@ -23,6 +23,11 @@ struct apx_fun_ctx
 };
 
 /**
+ * @brief Solution approximation function.
+ */
+typedef double (*apx_fun)(struct apx_fun_ctx *ctx, union vtx_ptr vtx);
+
+/**
  * @brief Simulation solver.
  *
  * Each specific solver (such as FEM) will inherit general solver properties.
@@ -31,7 +36,7 @@ typedef struct slv
 {
     struct slv_ops
     {
-        /** Time discretization strategy. */
+        /** Time-domain discretization strategy. */
         enum tdd_mod
         {
             TDD_I2S = 2, // implicit 2-layered
@@ -44,6 +49,8 @@ typedef struct slv
          */
         struct
         {
+            bool enable;
+
             /**
              * @brief Nonlinear solution method.
              */
@@ -68,7 +75,7 @@ typedef struct slv
                 {
                     void *ctx;
                     void (*run)(void *ctx, struct non_ops *ops);
-                } itr;
+                } itr_cbk;
 
                 enum
                 {
@@ -125,7 +132,7 @@ typedef struct slv
     {
         void *ctx;
         void (*run)(void *ctx, struct sim *sim);
-    } itr;
+    } itr_cbk;
 
     /**
      *  @brief Runtime data made available by the solver.

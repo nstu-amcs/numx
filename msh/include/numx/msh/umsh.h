@@ -69,7 +69,7 @@ cut_def(hxd_cut, hxd);
  */
 typedef struct umsh
 {
-    enum
+    enum umsh_type
     {
         MSH_C2D = 2, // cartesian 2D
         MSH_C3D = 3, // cartesian 3D
@@ -109,7 +109,7 @@ int umsh_imp_tel(struct umsh *msh, const char *dir, const char *pfx);
 /**
  * @brief Export mesh into CGNS.
  */
-int umsh_exp_gns(struct umsh *msh, const char *dir, const char *pfx);
+int umsh_exp_cgns(struct umsh *msh, const char *dir, const char *pfx);
 
 /**
  * @brief Calculate quadrangle's normal vector.

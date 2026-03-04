@@ -84,12 +84,25 @@ int main(int argc, char **argv)
     int r = 0;
 
     struct umsh msh;
+    struct fem  slv;
     struct sim  sim;
 
     if (umsh_new(&msh)) {
         r = 1;
         goto end;
     }
+
+    if (fem_new(&slv)) {
+        r = 1;
+        goto end;
+    }
+
+    if (sim_new(&sim)) {
+        r = 1;
+        goto end;
+    }
+
+    sim.msh = &msh;
 
     if (umsh_imp_tel(&msh, "pde/example/emf/msh", "msh")) {
         r = 1;
@@ -100,20 +113,12 @@ int main(int argc, char **argv)
     umsh_seg_srh(&msh, bnd_l, 0);
     umsh_seg_srh(&msh, bnd_r, 0);
     umsh_seg_srh(&msh, bnd_b, 1);
-
     seg_cut_shr(&msh.seg);
-
-    if (sim_new(&sim)) {
-        r = 1;
-        goto end;
-    }
 
     if (sim_imp_tel(&sim, "pde/example/emf/msh/msh.tel")) {
         r = 1;
         goto end;
     }
-
-    sim.msh = &msh;
 
     bnd_cut_dev(&sim.bnd, 2);
     sim.bnd.dat[0].cnd = 0;
@@ -129,17 +134,10 @@ int main(int argc, char **argv)
     sim.cnd_bnd.dat[1].pps.dir.tgt.type = VAL_NUM;
     sim.cnd_bnd.dat[1].pps.dir.tgt.as.num = 0;
 
-    struct fem slv;
-
-    if (fem_new(&slv)) {
-        r = 1;
-        goto end;
-    }
-
     sim.slv = &slv.slv;
+    sim.ops.exp.mod = SIM_EXP_CGNS;
     strcpy(sim.ops.exp.dir, "pde/example/emf/out");
     strcpy(sim.ops.exp.pfx, "emf");
-    sim.ops.exp.mod = SIM_EXP_GNS;
 
     if (sim_run(&sim)) {
         r = 1;

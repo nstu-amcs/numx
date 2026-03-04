@@ -1,61 +1,52 @@
-#include <assert.h>
-
-#include <numx/com/cmp.h>
 #include <numx/com/log.h>
+#include <numx/com/cmp.h>
 #include <numx/non/dif.h>
-#include <numx/pde/sim.h>
 
-#include "fem.h"
+#include "../lin.h"
 
-#define min(a, b) (((a) < (b)) ? (a) : (b))
+double fem_std_lin_c3d_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
+{
+    assert(ctx);
 
-static const double C = 10e10;
+    struct v3d *v = ctx->sim->msh->vtx.v3d.dat;
+    struct hxd *h = &ctx->sim->msh->hxd.dat[ctx->hxd];
 
-static const int MU[8] = {0, 1, 0, 1, 0, 1, 0, 1};
-static const int NU[8] = {0, 0, 1, 1, 0, 0, 1, 1};
-static const int TT[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+    double *w = ctx->wgt->dat;
 
-static const double G[2][2] = {
-    {1.0,  -1.0},
-    {-1.0, 1.0 }
-};
+    int v0 = h->vtx[0];
+    int v7 = h->vtx[7];
 
-static const double M[2][2] = {
-    {2.0 / 6.0, 1.0 / 6.0},
-    {1.0 / 6.0, 2.0 / 6.0}
-};
+    double x1 = v[v0].dat[0];
+    double x2 = v[v7].dat[0];
+    double y1 = v[v0].dat[1];
+    double y2 = v[v7].dat[1];
+    double z1 = v[v0].dat[2];
+    double z2 = v[v7].dat[2];
 
-static const double GN[2][2] = {
-    {1.0 / 2.0,  -1.0 / 2.0},
-    {-1.0 / 2.0, 1.0 / 2.0 }
-};
+    double hm = (x2 - x1) * (y2 - y1) * (z2 - z1);
 
-static const double MN[2][2][2] = {
-    {{1.0 / 4.0, 1.0 / 12.0},  {1.0 / 12.0, 1.0 / 12.0}},
-    {{1.0 / 12.0, 1.0 / 12.0}, {1.0 / 12.0, 1.0 / 4.0} }
-};
+    double x = vtx.v3d->dat[0];
+    double y = vtx.v3d->dat[1];
+    double z = vtx.v3d->dat[2];
+    double r = 0;
 
-static double gx[2][2];
-static double gy[2][2];
-static double gz[2][2];
+    r += w[h->vtx[0]] * (x2 - x) * (y2 - y) * (z2 - z) / hm;
+    r += w[h->vtx[1]] * (x - x1) * (y2 - y) * (z2 - z) / hm;
+    r += w[h->vtx[2]] * (x2 - x) * (y - y1) * (z2 - z) / hm;
+    r += w[h->vtx[3]] * (x - x1) * (y - y1) * (z2 - z) / hm;
+    r += w[h->vtx[4]] * (x2 - x) * (y2 - y) * (z - z1) / hm;
+    r += w[h->vtx[5]] * (x - x1) * (y2 - y) * (z - z1) / hm;
+    r += w[h->vtx[6]] * (x2 - x) * (y - y1) * (z - z1) / hm;
+    r += w[h->vtx[7]] * (x - x1) * (y - y1) * (z - z1) / hm;
 
-static double mx[2][2];
-static double my[2][2];
-static double mz[2][2];
-
-static double gnx[2][2];
-static double gny[2][2];
-static double gnz[2][2];
-
-static double mnx[2][2][2];
-static double mny[2][2][2];
-static double mnz[2][2][2];
+    return r;
+}
 
 static int ell_asm(struct sim *sim, struct fem_std_ctx *ctx);
 static int pbc_asm(struct sim *sim, struct fem_std_ctx *ctx);
 static int hyp_asm(struct sim *sim, struct fem_std_ctx *ctx);
 
-int fem_std_lin_asm(struct sim *sim, struct fem_std_ctx *ctx)
+int fem_std_lin_c3d_asm(struct sim *sim, struct fem_std_ctx *ctx)
 {
     assert(sim);
     assert(ctx);
@@ -148,7 +139,6 @@ static int pbc_asm(struct sim *sim, struct fem_std_ctx *ctx)
 
 static int pbc_asm_i2s(struct sim *sim, struct fem_std_ctx *ctx)
 {
-    // int itr = sim->slv->run.ti;
     double hop = sim->ops.tdd.hop;
 
     mtx_cmb(&ctx->mtx, &ctx->sig, &ctx->mtx, 1.0 / hop);
@@ -174,7 +164,6 @@ static int pbc_asm_i2s(struct sim *sim, struct fem_std_ctx *ctx)
 
 static int pbc_asm_i3s(struct sim *sim, struct fem_std_ctx *ctx)
 {
-    // int itr = sim->slv->run.ti;
     double hop = sim->ops.tdd.hop;
 
     mtx_cmb(&ctx->mtx, &ctx->sig, &ctx->mtx, 3.0 / (2 * hop));
@@ -209,7 +198,6 @@ static int pbc_asm_i3s(struct sim *sim, struct fem_std_ctx *ctx)
 
 static int pbc_asm_i4s(struct sim *sim, struct fem_std_ctx *ctx)
 {
-    // int itr = sim->slv->run.ti;
     double hop = sim->ops.tdd.hop;
 
     mtx_cmb(&ctx->mtx, &ctx->sig, &ctx->mtx, 11.0 / (6 * hop));
@@ -250,7 +238,7 @@ static int pbc_asm_i4s(struct sim *sim, struct fem_std_ctx *ctx)
 
 static int hyp_asm(struct sim *, struct fem_std_ctx *)
 {
-    exit(-1);
+    return -1;
 }
 
 static int asm_qud_dim(struct sim *sim, struct qud *qud, double *hxi, double *hzt)
@@ -283,6 +271,48 @@ static int asm_qud_dim(struct sim *sim, struct qud *qud, double *hxi, double *hz
 
     return 0;
 }
+
+static const double C = 10e10;
+
+static const int MU[8] = {0, 1, 0, 1, 0, 1, 0, 1};
+static const int NU[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+static const int TT[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+
+static const double G[2][2] = {
+    {1.0,  -1.0},
+    {-1.0, 1.0 }
+};
+
+static const double M[2][2] = {
+    {2.0 / 6.0, 1.0 / 6.0},
+    {1.0 / 6.0, 2.0 / 6.0}
+};
+
+static const double GN[2][2] = {
+    {1.0 / 2.0,  -1.0 / 2.0},
+    {-1.0 / 2.0, 1.0 / 2.0 }
+};
+
+static const double MN[2][2][2] = {
+    {{1.0 / 4.0, 1.0 / 12.0},  {1.0 / 12.0, 1.0 / 12.0}},
+    {{1.0 / 12.0, 1.0 / 12.0}, {1.0 / 12.0, 1.0 / 4.0} }
+};
+
+static double gx[2][2];
+static double gy[2][2];
+static double gz[2][2];
+
+static double mx[2][2];
+static double my[2][2];
+static double mz[2][2];
+
+static double gnx[2][2];
+static double gny[2][2];
+static double gnz[2][2];
+
+static double mnx[2][2][2];
+static double mny[2][2][2];
+static double mnz[2][2][2];
 
 static int assemble(struct sim *sim, struct asm_ops ops)
 {

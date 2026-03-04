@@ -10,8 +10,8 @@ int fem_new(struct fem *fem)
     fem->slv.ops.non.ops.max = 200;
     fem->slv.ops.non.ops.err = 1e-10;
     fem->slv.ops.non.ops.rlx = false;
-    fem->slv.ops.non.ops.itr.ctx = NULL;
-    fem->slv.ops.non.ops.itr.run = NULL;
+    fem->slv.ops.non.ops.itr_cbk.ctx = NULL;
+    fem->slv.ops.non.ops.itr_cbk.run = NULL;
     fem->slv.ops.non.ops.dif = DIF_NUM;
     fem->slv.ops.non.ops.run.itr = 0;
     fem->slv.ops.non.ops.run.err = 0;
@@ -26,8 +26,8 @@ int fem_new(struct fem *fem)
     fem->slv.ops.iss.ops.bcg.con.sm = NULL;
     fem->slv.exe = fem_exe;
     fem->slv.apx = NULL;
-    fem->slv.itr.ctx = NULL;
-    fem->slv.itr.run = NULL;
+    fem->slv.itr_cbk.ctx = NULL;
+    fem->slv.itr_cbk.run = NULL;
     fem->slv.run.wgt[0] = NULL;
     fem->slv.run.wgt[1] = NULL;
     fem->slv.run.wgt[2] = NULL;
