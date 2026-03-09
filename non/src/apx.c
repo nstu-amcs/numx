@@ -3,10 +3,6 @@
 #include <numx/non/apx.h>
 #include <numx/vec/dss.h>
 
-// k a0 a1 a2 ... an
-//   b0 b1 b2 ... bn
-//   c0 c1 c2 ... cn
-//   d0 d1 d2 ... dn
 int apx_cub(struct vec *xv, struct imtx *km)
 {
     if (!xv || !km) {
@@ -21,14 +17,17 @@ int apx_cub(struct vec *xv, struct imtx *km)
     struct vec  gv;
     struct vec  hv;
 
-    if ((r = imtx_new(&mm, (struct imtx_pps){n + 1, n + 1})) && r)
+    if ((r = imtx_new(&mm, (struct imtx_pps){n + 1, n + 1}))) {
         goto end;
+    }
 
-    if ((r = vec_new(&gv, n + 1)) && r)
+    if ((r = vec_new(&gv, n + 1))) {
         goto end;
+    }
 
-    if ((r = vec_new(&hv, n)) && r)
+    if ((r = vec_new(&hv, n))) {
         goto end;
+    }
 
     double *g = gv.dat;
     double *h = hv.dat;

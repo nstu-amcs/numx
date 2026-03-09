@@ -15,6 +15,7 @@ struct sim_fun_ctx
     struct sim *sim; // simulation
 
     int vtx; // hinted vertex
+    int seg; // hinted segment
     int qud; // hinted quadrangle
     int hxd; // hinted hexahedron
 };

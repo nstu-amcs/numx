@@ -248,5 +248,25 @@ static int axis_div(struct dlog *axis, int f)
     (void)axis;
     (void)f;
 
+    double a = 0;
+    double b = 0;
+    double s = 0;
+    double x = 0;
+
+    dlog_rst(axis);
+    dlog_adv(axis, &a);
+
+    while (dlog_adv(axis, &b) != -1) {
+        s = (b - a) / f;
+        x = a + s;
+
+        while (less(x, b)) {
+            dlog_ins(axis, x, LOG_L);
+            x += s;
+        }
+
+        a = b;
+    }
+
     return 0;
 }

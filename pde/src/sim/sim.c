@@ -27,7 +27,8 @@ int sim_new(struct sim *sim)
     sim->ops.exp.dir[0] = 0;
     sim->ops.exp.pfx[0] = 0;
     sim->ops.exp.ini = NULL;
-    sim->ops.exp.put = NULL;
+    sim->ops.exp.put_v = NULL;
+    sim->ops.exp.put_c = NULL;
 
     sim->ops.tdd.num = 0;
     sim->ops.tdd.beg = 0;
@@ -89,7 +90,8 @@ int sim_run(struct sim *sim)
     switch (sim->ops.exp.mod) {
         case SIM_EXP_CGNS:
             sim->ops.exp.ini = sim_exp_cgns_ini;
-            sim->ops.exp.put = sim_exp_cgns_put;
+            sim->ops.exp.put_v = sim_exp_cgns_put_v;
+            sim->ops.exp.put_c = sim_exp_cgns_put_c;
             break;
     }
 

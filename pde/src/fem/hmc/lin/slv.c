@@ -76,8 +76,7 @@ int fem_hmc_lin_slv(struct sim *sim, struct fem_hmc_ctx *ctx)
 
     switch (sim->slv->ops.iss.mod) {
         case ISS_BCG:
-            if (iss_bcg_slv(&ctx->mtx, &ctx->wgt, &ctx->vec,
-                    &sim->slv->ops.iss.ops.bcg))
+            if (iss_bcg_slv(&ctx->mtx, &ctx->wgt, &ctx->vec, &sim->slv->ops.iss.ops.bcg))
                 return -1;
 
             break;
@@ -96,8 +95,9 @@ int fem_hmc_lin_slv(struct sim *sim, struct fem_hmc_ctx *ctx)
         if (sim->slv->itr_cbk.run)
             sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
 
-        if (sim->ops.exp.put)
-            sim->ops.exp.put(sim);
+        if (sim->ops.exp.put_v) {
+            sim->ops.exp.put_v(sim, sim->ops.exp.sol, &ctx->wgt);
+        }
 
         sim->slv->run.tv += hop;
         sim->slv->run.ti += 1;

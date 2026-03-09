@@ -1,7 +1,8 @@
 #include <assert.h>
-#include <numx/vec/mtx.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <numx/vec/mtx.h>
 
 int dmtx_new(struct dmtx *m, struct dmtx_pps pps)
 {

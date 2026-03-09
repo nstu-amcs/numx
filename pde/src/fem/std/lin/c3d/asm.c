@@ -60,7 +60,7 @@ int fem_std_lin_c3d_asm(struct sim *sim, struct fem_std_ctx *ctx)
             return hyp_asm(sim, ctx);
     }
 
-    return 0;
+    return -ENOTSUP;
 }
 
 struct asm_ops

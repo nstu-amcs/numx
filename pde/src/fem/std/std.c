@@ -203,20 +203,24 @@ static int fem_ell_slv(struct sim *sim, struct fem_std_ctx *ctx)
 {
     int r = 0;
 
-    if ((r = vec_new(&ctx->w0, ctx->vec.n)))
+    if ((r = vec_new(&ctx->w0, ctx->vec.n))) {
         goto fem_ell_slv_end;
+    }
 
     sim->slv->run.bs = 1;
     sim->slv->run.wgt[0] = &ctx->w0;
 
-    if ((r = fem_sys_slv(sim, ctx)))
+    if ((r = fem_sys_slv(sim, ctx))) {
         goto fem_ell_slv_end;
+    }
 
-    if (sim->slv->itr_cbk.run)
+    if (sim->slv->itr_cbk.run) {
         sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
+    }
 
-    if (sim->ops.exp.put)
-        sim->ops.exp.put(sim);
+    if (sim->ops.exp.put_v) {
+        sim->ops.exp.put_v(sim, sim->ops.exp.sol, sim->slv->run.wgt[0]);
+    }
 
 fem_ell_slv_end:
     vec_cls(&ctx->w0);

@@ -1,5 +1,5 @@
-#include <assert.h>
 #include </usr/include/cgnslib.h>
+#include <assert.h>
 #include <stdio.h>
 
 #include <numx/pde/sim.h>
@@ -37,7 +37,6 @@ int sim_exp_cgns_ini(struct sim *sim)
     int info[2] = {32, nu};
 
     sprintf(fname, "%s/%s.cgns", sim->ops.exp.dir, sim->ops.exp.pfx);
-
     cg_open(fname, CG_MODE_MODIFY, &fi);
 
     cg_biter_write(fi, 1, "TimeIterValues", num + 1);
@@ -59,7 +58,7 @@ int sim_exp_cgns_ini(struct sim *sim)
     return 0;
 }
 
-int sim_exp_cgns_put(struct sim *sim)
+int sim_exp_cgns_put_v(struct sim *sim, const char *name, struct vec *s)
 {
     if (sim->mod == SIM_HMC)
         return 0;
@@ -76,8 +75,30 @@ int sim_exp_cgns_put(struct sim *sim)
 
     cg_open(fname, CG_MODE_MODIFY, &fi);
     cg_sol_write(fi, 1, 1, sname, Vertex, &si);
-    cg_field_write(fi, 1, 1, si, RealDouble, "Temperature",
-        sim->slv->run.wgt[0]->dat, &ii);
+    cg_field_write(fi, 1, 1, si, RealDouble, name, s->dat, &ii);
+    cg_close(fi);
+
+    return 0;
+}
+
+int sim_exp_cgns_put_c(struct sim *sim, const char *name, struct vec *s)
+{
+    if (sim->mod == SIM_HMC)
+        return 0;
+
+    char fname[256];
+    char sname[64];
+
+    int fi;
+    int si;
+    int ii;
+
+    sprintf(fname, "%s/%s.cgns", sim->ops.exp.dir, sim->ops.exp.pfx);
+    sprintf(sname, "FlowSolutionCell-%d", sim->slv->run.ti);
+
+    cg_open(fname, CG_MODE_MODIFY, &fi);
+    cg_sol_write(fi, 1, 1, sname, CellCenter, &si);
+    cg_field_write(fi, 1, 1, si, RealDouble, name, s->dat, &ii);
     cg_close(fi);
 
     return 0;

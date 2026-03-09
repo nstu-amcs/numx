@@ -112,9 +112,19 @@ int umsh_imp_tel(struct umsh *msh, const char *dir, const char *pfx);
 int umsh_exp_cgns(struct umsh *msh, const char *dir, const char *pfx);
 
 /**
- * @brief Calculate quadrangle's normal vector.
+ * @brief Calculate segment's normal vector (for C2D).
+ */
+int umsh_seg_nrm(struct umsh *msh, struct seg *seg, struct vec *nrm);
+
+/**
+ * @brief Calculate quadrangle's normal vector (for C3D).
  */
 int umsh_qud_nrm(struct umsh *msh, struct qud *qud, struct vec *nrm);
+
+/**
+ * @brief Lookup local quadrangle index for given global vertex.
+ */
+int umsh_qud_loc(struct qud *qud, int gv);
 
 /**
  * @brief Search for the segments in the mesh, creating and assigning them to the given physical

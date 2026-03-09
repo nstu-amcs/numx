@@ -94,22 +94,34 @@ typedef struct sim
                 SIM_EXP_CGNS, // CGNS
             } mod;
 
-            char dir[128]; // export directory
-            char pfx[64];  // export prefix
+            char dir[128]; // Export directory.
+            char pfx[64];  // Export prefix.
+            char sol[64];  // Primary solution name.
 
             /**
-             *  @brief Export commons (simulation defined).
+             *  @brief Export commons (defined by `mod`).
              *
              *  @param sim - simulation
              */
             int (*ini)(struct sim *sim);
 
             /**
-             *  @brief Export runtime solution (simulation defined).
+             *  @brief Export vertex-wise solution (defined by `mod`).
              *
-             *  @param sim - simulation
+             *  @param sim simulation
+             *  @param name solution name
+             *  @param s solution data
              */
-            int (*put)(struct sim *sim);
+            int (*put_v)(struct sim *sim, const char *name, struct vec *s);
+
+            /**
+             *  @brief Export cell-wise solution (defined by `mod`).
+             *
+             *  @param sim simulation
+             *  @param name solution name
+             *  @param s solution data
+             */
+            int (*put_c)(struct sim *sim, const char *name, struct vec *s);
         } exp;
 
         /**
@@ -117,11 +129,11 @@ typedef struct sim
          */
         struct
         {
-            int num; // number of time intervals
-            int ini; // number of precomputed layers
+            int num; // Number of time intervals.
+            int ini; // Number of precomputed layers.
 
-            double beg; // initial time
-            double hop; // time interval length
+            double beg; // Initial time.
+            double hop; // Time interval length.
         } tdd;
 
         /**
@@ -129,7 +141,7 @@ typedef struct sim
          */
         struct
         {
-            double frq; // frequency
+            double frq; // Frequency.
         } hmc;
     } ops;
 
@@ -178,9 +190,14 @@ int sim_imp_tel(struct sim *sim, const char *tel);
 int sim_exp_cgns_ini(struct sim *sim);
 
 /**
- * @brief Export solution in CGNS format.
+ * @brief Export vertex-wise solution in CGNS format.
  */
-int sim_exp_cgns_put(struct sim *sim);
+int sim_exp_cgns_put_v(struct sim *sim, const char *name, struct vec *s);
+
+/**
+ * @brief Export cell-wise solution in CGNS format.
+ */
+int sim_exp_cgns_put_c(struct sim *sim, const char *name, struct vec *s);
 
 /**
  * @brief Start the simulation.

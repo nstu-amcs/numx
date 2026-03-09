@@ -53,6 +53,24 @@ int umsh_cls(struct umsh *msh)
     return 0;
 }
 
+int umsh_seg_nrm(struct umsh *msh, struct seg *seg, struct vec *nrm)
+{
+    struct v2d *vtx = msh->vtx.v2d.dat;
+
+    struct v2d *a = &vtx[seg->vtx[0]];
+    struct v2d *b = &vtx[seg->vtx[1]];
+
+    memset(nrm->dat, 0, sizeof(double) * 2);
+
+    if (a->dat[0] == b->dat[0]) {
+        nrm->dat[0] = 1;
+    } else {
+        nrm->dat[1] = 1;
+    }
+
+    return 0;
+}
+
 int umsh_qud_nrm(struct umsh *msh, struct qud *qud, struct vec *nrm)
 {
     struct v3d *vtx = msh->vtx.v3d.dat;
@@ -77,9 +95,22 @@ int umsh_qud_nrm(struct umsh *msh, struct qud *qud, struct vec *nrm)
     return 0;
 }
 
-static int qud_bnd_cmb[2][3] = {
-    {0, 1, 2},
-    {3, 1, 2},
+int umsh_qud_loc(struct qud *qud, int gv)
+{
+    for (int i = 0; i < 4; ++i) {
+        if (qud->vtx[i] == gv) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+static int qud_bnd_cmb[4][2] = {
+    {0, 1},
+    {2, 3},
+    {0, 2},
+    {1, 3},
 };
 
 int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid)
@@ -105,28 +136,20 @@ int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid)
                 break;
         }
 
-        for (int ji = 0; ji < 2; ++ji) {
-            int j = qud_bnd_cmb[ji][0];
+        struct seg s = {
+            .pid = pid,
+            .qud = i,
+        };
 
-            for (int ki = 1; ki < 3; ++ki) {
-                int k = qud_bnd_cmb[ji][ji];
+        for (int j = 0; j < 4; ++j) {
+            int a = qud_bnd_cmb[j][0];
+            int b = qud_bnd_cmb[j][1];
 
-                if ((r = fun(vtx[j], vtx[k])) != 0) {
-                    struct seg s = {
-                        .pid = pid,
-                        .qud = i,
-                    };
+            if ((r = fun(vtx[a], vtx[b])) != 0) {
+                s.vtx[0] = q->vtx[a];
+                s.vtx[1] = q->vtx[b];
 
-                    if (r == 1) {
-                        s.vtx[0] = q->vtx[j];
-                        s.vtx[1] = q->vtx[k];
-                    } else {
-                        s.vtx[0] = q->vtx[k];
-                        s.vtx[1] = q->vtx[j];
-                    }
-
-                    seg_cut_add(&msh->seg, s);
-                }
+                seg_cut_add(&msh->seg, s);
             }
         }
     }
