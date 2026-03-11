@@ -84,14 +84,21 @@ typedef struct umsh
     struct seg_cut seg; // segments
     struct qud_cut qud; // quadrangles
     struct hxd_cut hxd; // hexahedrons
-} msh;
+} umsh;
 
 /**
  * @brief Segment searching function.
  *
- * Given segment vertices, return 1 to apply the segment, -1 to reverse and apply and 0 otherwise.
+ * For given segment, return 1 to apply the segment and 0 otherwise.
  */
-typedef int (*seg_srh_fun)(vtx_ptr a, vtx_ptr b);
+typedef int (*seg_srh_fun)(struct umsh* msh, struct seg *s);
+
+/**
+ * @brief Quadrangle searching function.
+ *
+ * For given quadrangle, return 1 to apply the quadrangle and 0 otherwise.
+ */
+typedef int (*qud_srh_fun)(struct umsh* msh, struct qud *q);
 
 int umsh_new(struct umsh *msh);
 int umsh_cls(struct umsh *msh);
@@ -112,21 +119,6 @@ int umsh_imp_tel(struct umsh *msh, const char *dir, const char *pfx);
 int umsh_exp_cgns(struct umsh *msh, const char *dir, const char *pfx);
 
 /**
- * @brief Calculate segment's normal vector (for C2D).
- */
-int umsh_seg_nrm(struct umsh *msh, struct seg *seg, struct vec *nrm);
-
-/**
- * @brief Calculate quadrangle's normal vector (for C3D).
- */
-int umsh_qud_nrm(struct umsh *msh, struct qud *qud, struct vec *nrm);
-
-/**
- * @brief Lookup local quadrangle index for given global vertex.
- */
-int umsh_qud_loc(struct qud *qud, int gv);
-
-/**
  * @brief Search for the segments in the mesh, creating and assigning them to the given physical
  * group.
  *
@@ -134,5 +126,34 @@ int umsh_qud_loc(struct qud *qud, int gv);
  * behaviour, but for 3D mesh one must create quadrangles before searching for segments.
  */
 int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid);
+
+/**
+ * @brief Calculate segment's normal vector (for C2D).
+ */
+int umsh_seg_nrm(struct umsh *msh, struct seg *seg, struct vec *nrm);
+
+/**
+ * @brief Search for the quadrangles in the mesh, creating and assigning them to the given physical
+ * group.
+ *
+ * It's assumed that the mesh contains hexahedrons as entities. For 3D mesh this is the default
+ * behaviour.
+ */
+int umsh_qud_srh(struct umsh *msh, qud_srh_fun fun, int pid);
+
+/**
+ * @brief Calculate quadrangle's normal vector (for C3D).
+ */
+int umsh_qud_nrm(struct umsh *msh, struct qud *qud, struct vec *nrm);
+
+/**
+ * @brief Get local index in quadrangle for given global vertex.
+ */
+int umsh_qud_vtx_loc(struct qud *qud, int gv);
+
+/**
+ * @brief Lookup for encapsulating quadrangle for the given arbitrary vertex.
+ */
+int umsh_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx);
 
 #endif // NUMX_MSH_UMSH_H

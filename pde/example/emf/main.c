@@ -1,57 +1,104 @@
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 #include <numx/com/cmp.h>
 #include <numx/msh/umsh.h>
 #include <numx/pde/sim.h>
 
-#define TOL 1e-10
-#define LAM_BASE (4 * M_PI * 1e-6)
+#define TOL      1e-10
+#define LAM_BASE (4 * M_PI * 1e-7)
 
-static int bnd_t(vtx_ptr a, vtx_ptr b)
+#define BND_X_L -0.01
+#define BND_X_R 0.08
+#define BND_Y_B 0.00
+#define BND_Y_T 0.06
+
+static int bnd_t(struct umsh *msh, struct seg *s)
 {
-    const double ay = a.v2d->dat[1];
-    const double by = b.v2d->dat[1];
+    struct v2d *a = &msh->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[s->vtx[1]];
 
-    if (isclose(ay, 0.1, TOL) && isclose(by, 0.1, TOL)) {
+    const double ay = a->dat[1];
+    const double by = b->dat[1];
+
+    if (isclose(ay, BND_Y_T, TOL) && isclose(by, BND_Y_T, TOL)) {
         return 1;
     }
 
     return 0;
 }
 
-static int bnd_b(vtx_ptr a, vtx_ptr b)
+static int bnd_b(struct umsh *msh, struct seg *s)
 {
-    const double ay = a.v2d->dat[1];
-    const double by = b.v2d->dat[1];
+    struct v2d *a = &msh->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[s->vtx[1]];
 
-    if (isclose(ay, 0.0, TOL) && isclose(by, 0.0, TOL)) {
+    const double ay = a->dat[1];
+    const double by = b->dat[1];
+
+    if (isclose(ay, BND_Y_B, TOL) && isclose(by, BND_Y_B, TOL)) {
         return 1;
     }
 
     return 0;
 }
 
-static int bnd_l(vtx_ptr a, vtx_ptr b)
+static int bnd_l(struct umsh *msh, struct seg *s)
 {
-    const double ax = a.v2d->dat[0];
-    const double bx = b.v2d->dat[0];
+    struct v2d *a = &msh->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[s->vtx[1]];
 
-    if (isclose(ax, -0.1, TOL) && isclose(bx, -0.1, TOL)) {
+    const double ax = a->dat[0];
+    const double bx = b->dat[0];
+
+    if (isclose(ax, BND_X_L, TOL) && isclose(bx, BND_X_L, TOL)) {
         return 1;
     }
 
     return 0;
 }
 
-static int bnd_r(vtx_ptr a, vtx_ptr b)
+static int bnd_r(struct umsh *msh, struct seg *s)
 {
-    const double ax = a.v2d->dat[0];
-    const double bx = b.v2d->dat[0];
+    struct v2d *a = &msh->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[s->vtx[1]];
 
-    if (isclose(ax, 0.17, TOL) && isclose(bx, 0.17, TOL)) {
+    const double ax = a->dat[0];
+    const double bx = b->dat[0];
+
+    if (isclose(ax, BND_X_R, TOL) && isclose(bx, BND_X_R, TOL)) {
         return 1;
     }
+
+    return 0;
+}
+
+static int cbk(void *, struct sim *sim)
+{
+    struct apx_fun_ctx ctx = {
+        .sim = sim,
+        .vtx = -1,
+        .qud = -1,
+        .hxd = -1,
+        .wgt = NULL,
+    };
+
+    struct v2d points[5] = {
+        {.dat = {2.52e-2, 1.60e-3}},
+        {.dat = {3.35e-2, 2.70e-3}},
+        {.dat = {3.50e-2, 9.00e-4}},
+        {.dat = {3.65e-2, 2.70e-3}},
+        {.dat = {4.29e-2, 3.50e-3}},
+    };
+
+    for (int i = 0; i < 5; ++i) {
+        struct v2d *vtx = &points[i];
+        double      az = sim->slv->apx(&ctx, (union vtx_ptr){.v2d = vtx});
+
+        printf("Az(%.2e, %.2e) = %.7e\n", vtx->dat[0], vtx->dat[1], az);
+    }
+
+    printf("\n");
 
     return 0;
 }
@@ -121,9 +168,17 @@ int main(int argc, char **argv)
     strcpy(sim.ops.exp.pfx, "emf");
     strcpy(sim.ops.exp.sol, "Magnetic Vector Potential");
 
+    sim.slv->ops.iss.ops.bcg.ops.err = 1e-5;
+    sim.slv->ops.iss.ops.bcg.ops.max = 2000;
+
+    sim.slv->itr_cbk.run = cbk;
+
     if ((r = sim_run(&sim))) {
         goto end;
     }
+
+    printf("Error: %.7lf\n", sim.slv->ops.iss.ops.bcg.ops.run.err);
+    printf("Iterations: %d\n", sim.slv->ops.iss.ops.bcg.ops.run.itr);
 
 end:
     umsh_cls(&msh);

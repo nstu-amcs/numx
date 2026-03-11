@@ -37,23 +37,21 @@ int imtx_mmul(struct imtx *a, struct imtx *b, struct imtx *r);
 
 /**
  * @brief Sparse matrix in row-column storage mode with symmetrical profile.
- *
- * See https://www.ibm.com/docs/en/essl/6.2?topic=representation-storage-by-rows
  */
 typedef struct smtx
 {
     struct smtx_pps
     {
-        int n;
-        int z;
+        int n; // Matrix dimensions.
+        int z; // Number of non-zero elements in lower (upper) triangular.
     } pps;
 
     double *dr; // Main diagonal.
     double *lr; // Lower triangular.
     double *ur; // Upper triangular.
 
-    int *ia;
-    int *ja;
+    int *ia; // Row (column) beginning indices.
+    int *ja; // Column (row) indices.
 } smtx;
 
 int smtx_new(struct smtx *m, struct smtx_pps pps);
@@ -68,6 +66,14 @@ int smtx_cls(struct smtx *m);
  * @return 0 on success and negative error code otherwise
  */
 int smtx_inc(struct smtx *m, int i, int j, double v);
+
+/**
+ * @brief Reset the row (fill it with zeros).
+ * @param m target matrix
+ * @param i target row
+ * @return 0 on success and negative error code otherwise
+ */
+int smtx_row_rst(struct smtx *m, int i);
 
 /**
  * @brief Perform linear matrix combination.

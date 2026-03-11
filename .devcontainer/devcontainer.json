@@ -17,8 +17,8 @@
 		"--network=host"
 	],
 
-	"postCreateCommand": "conda env create -f .devcontainer/environment.yaml",
-	"postStartCommand": "conda init && echo 'conda activate nm' >> ~/.bashrc",
+	"postCreateCommand": ".devcontainer/postCreate.sh",
+	"postStartCommand": ".devcontainer/postStart.sh",
 
 	// Configure tool-specific properties.
 	"customizations": {

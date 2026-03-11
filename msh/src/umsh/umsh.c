@@ -1,5 +1,6 @@
 #include <assert.h>
 
+#include <numx/com/cmp.h>
 #include <numx/msh/umsh.h>
 
 cut_gen(v2d_cut, v2d, PUB);
@@ -95,7 +96,7 @@ int umsh_qud_nrm(struct umsh *msh, struct qud *qud, struct vec *nrm)
     return 0;
 }
 
-int umsh_qud_loc(struct qud *qud, int gv)
+int umsh_qud_vtx_loc(struct qud *qud, int gv)
 {
     for (int i = 0; i < 4; ++i) {
         if (qud->vtx[i] == gv) {
@@ -116,7 +117,6 @@ static int qud_bnd_cmb[4][2] = {
 int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid)
 {
     vtx_ptr vtx[4];
-    int     r = 0;
 
     for (int i = 0; i < msh->qud.len; ++i) {
         struct qud *q = &msh->qud.dat[i];
@@ -145,14 +145,66 @@ int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid)
             int a = qud_bnd_cmb[j][0];
             int b = qud_bnd_cmb[j][1];
 
-            if ((r = fun(vtx[a], vtx[b])) != 0) {
-                s.vtx[0] = q->vtx[a];
-                s.vtx[1] = q->vtx[b];
+            s.vtx[0] = q->vtx[a];
+            s.vtx[1] = q->vtx[b];
 
+            if (fun(msh, &s)) {
                 seg_cut_add(&msh->seg, s);
             }
         }
     }
 
     return 0;
+}
+
+static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx);
+static int umsh_c3d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx);
+
+int umsh_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
+{
+    switch (msh->type) {
+        case MSH_C2D:
+            return umsh_c2d_vtx_qud_lup(msh, vtx);
+        case MSH_C3D:
+            return umsh_c3d_vtx_qud_lup(msh, vtx);
+    }
+
+    return -1;
+}
+
+static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
+{
+    static const double tol = 1e-10;
+
+    for (int qi = 0; qi < msh->qud.len; ++qi) {
+        struct qud *qud = &msh->qud.dat[qi];
+        struct v2d *a = &msh->vtx.v2d.dat[qud->vtx[0]];
+        struct v2d *b = &msh->vtx.v2d.dat[qud->vtx[3]];
+        struct v2d *v = vtx.v2d;
+
+        double x0 = a->dat[0];
+        double y0 = a->dat[1];
+        double x1 = b->dat[0];
+        double y1 = b->dat[1];
+
+        double x = v->dat[0];
+        double y = v->dat[1];
+
+        if (less(x, x0, tol) || less(x1, x, tol)) {
+            continue;
+        }
+
+        if (less(y, y0, tol) || less(y1, y, tol)) {
+            continue;
+        }
+
+        return qi;
+    }
+
+    return -1;
+}
+
+static int umsh_c3d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
+{
+    return -1;
 }

@@ -99,6 +99,28 @@ int smtx_inc(struct smtx *m, int i, int j, double v)
     return 0;
 }
 
+int smtx_row_rst(struct smtx *m, int i)
+{
+    assert(m);
+
+    m->dr[i] = 0.0;
+
+    int p = m->ia[i];     // pointer to the first index in the target row
+    int n = m->ia[i + 1]; // pointer to the first index in the next row
+
+    while (p < n) {
+        m->lr[p++] = 0.0;
+    }
+
+    for (int ui = 0; ui < m->pps.z; ++ui) {
+        if (m->ja[ui] == i) {
+            m->ur[ui] = 0.0;
+        }
+    }
+
+    return 0;
+}
+
 int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k)
 {
     assert(a);

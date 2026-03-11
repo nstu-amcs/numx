@@ -4,6 +4,7 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define fabs(f) (((f) < 0) ? -(f) : (f))
 #define isclose(a, b, tol) (fabs((a) - (b)) < (tol))
+#define less(a, b, tol) ((b) - (a) > (tol))
 
 int iasc(void *, int, ...);
 int idsc(void *, int, ...);

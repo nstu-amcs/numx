@@ -7,7 +7,6 @@ _minted/
 **/*.pdf
 **/*.toc
 **/*.cgns
-**/*.tel
 
 **/res/*
 

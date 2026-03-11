@@ -6,7 +6,7 @@
 #include <numx/com/log.h>
 #include <numx/msh/umsh.h>
 
-#define less(a, b) ((b) - (a) > 1e-7)
+#define TOL 1e-10
 
 typedef struct area
 {
@@ -162,22 +162,22 @@ int umsh_imp_tel(struct umsh *msh, const char *dir, const char *pfx)
         dlog_adv(&y, &yv);
         rp = 0;
 
-        while (less(yv, a.y0)) {
+        while (less(yv, a.y0, TOL)) {
             dlog_adv(&y, &yv);
             rp += rs;
         }
 
-        while (less(yv, a.y1)) {
+        while (less(yv, a.y1, TOL)) {
             dlog_rst(&x);
             dlog_adv(&x, &xv);
             i = rp;
 
-            while (less(xv, a.x0)) {
+            while (less(xv, a.x0, TOL)) {
                 dlog_adv(&x, &xv);
                 i += 1;
             }
 
-            while (less(xv, a.x1)) {
+            while (less(xv, a.x1, TOL)) {
                 struct qud qud = {
                     .pid = a.pid,
                 };
@@ -231,7 +231,7 @@ static int axis_fin(struct dlog *axis, struct div_ops *ops)
         s = ops[i].ini;
         x = a + s;
 
-        while (less(x, b)) {
+        while (less(x, b, TOL)) {
             dlog_ins(axis, x, LOG_L);
             x += s;
         }
@@ -260,7 +260,7 @@ static int axis_div(struct dlog *axis, int f)
         s = (b - a) / f;
         x = a + s;
 
-        while (less(x, b)) {
+        while (less(x, b, TOL)) {
             dlog_ins(axis, x, LOG_L);
             x += s;
         }

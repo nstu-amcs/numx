@@ -95,7 +95,7 @@ static int fem_ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
             break;
     }
 
-    if ((r = mtx_new(&ctx->mtx, ((struct smtx_pps){n, z}))))
+    if ((r = smtx_new(&ctx->mtx, (struct smtx_pps){.n = n, .z = z})))
         goto end;
 
     for (int i = 0, e = 0; i < n; ++i) {

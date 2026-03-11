@@ -8,8 +8,22 @@
 double fem_std_lin_c2d_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
 {
     assert(ctx);
+    assert(ctx->sim);
 
     struct v2d *v = ctx->sim->msh->vtx.v2d.dat;
+
+    if (ctx->qud == -1) {
+        ctx->qud = umsh_vtx_qud_lup(ctx->sim->msh, vtx);
+    }
+
+    if (ctx->qud == -1) {
+        return DBL_MAX;
+    }
+
+    if (ctx->wgt == NULL) {
+        ctx->wgt = ctx->sim->slv->run.wgt[0];
+    }
+
     struct qud *q = &ctx->sim->msh->qud.dat[ctx->qud];
 
     double *w = ctx->wgt->dat;
@@ -112,8 +126,6 @@ static int hyp_asm(struct sim *sim, struct fem_std_ctx *ctx)
     return -ENOTSUP;
 }
 
-static const double C = 1e11;
-
 static const int MU[4] = {0, 1, 0, 1};
 static const int NU[4] = {0, 0, 1, 1};
 
@@ -180,7 +192,30 @@ static int asm_seg_dim(struct sim *sim, struct seg *seg, double *hxi)
     return -1;
 }
 
+static int asm_qud(struct sim *sim, struct asm_ops ops);
+static int asm_seg(struct sim *sim, struct asm_ops ops);
+
 static int assemble(struct sim *sim, struct asm_ops ops)
+{
+
+    int r = 0;
+
+    if (ops.mlam || ops.mgam || ops.msig || ops.mchi || ops.vsrc) {
+        if ((r = asm_qud(sim, ops))) {
+            return r;
+        }
+    }
+
+    if (ops.mrob || ops.vneu || ops.vrob || ops.mdir || ops.vdir) {
+        if ((r = asm_seg(sim, ops))) {
+            return r;
+        }
+    }
+
+    return 0;
+}
+
+static int asm_qud(struct sim *sim, struct asm_ops ops)
 {
     struct v2d *vtx = sim->msh->vtx.v2d.dat;
 
@@ -191,400 +226,410 @@ static int assemble(struct sim *sim, struct asm_ops ops)
         .hxd = -1,
     };
 
-    if (ops.mlam || ops.mgam || ops.msig || ops.mchi || ops.vsrc) {
-        for (int qi = 0; qi < sim->msh->qud.len; ++qi) {
-            static double lam[4];
-            static double gam[4];
-            static double sig[4];
-            static double chi[4];
-            static double src[4];
+    for (int qi = 0; qi < sim->msh->qud.len; ++qi) {
+        static double lam[4];
+        static double gam[4];
+        static double sig[4];
+        static double chi[4];
+        static double src[4];
 
-            struct qud *qud = &sim->msh->qud.dat[qi];
-            struct obj *obj = &sim->obj.dat[qud->pid];
-            struct mat *mat = &sim->mat.dat[obj->mat];
-            struct val *val = &sim->src.dat[obj->src];
+        struct qud *qud = &sim->msh->qud.dat[qi];
+        struct obj *obj = &sim->obj.dat[qud->pid];
+        struct mat *mat = &sim->mat.dat[obj->mat];
+        struct val *val = &sim->src.dat[obj->src];
 
-            bool lam_fun = ops.mlam && mat->lam.type == VAL_FUN;
-            bool gam_fun = ops.mgam && mat->gam.type == VAL_FUN;
-            bool sig_fun = ops.msig && mat->sig.type == VAL_FUN;
-            bool chi_fun = ops.mchi && mat->chi.type == VAL_FUN;
-            bool src_fun = ops.vsrc && val->type == VAL_FUN;
+        bool lam_fun = ops.mlam && mat->lam.type == VAL_FUN;
+        bool gam_fun = ops.mgam && mat->gam.type == VAL_FUN;
+        bool sig_fun = ops.msig && mat->sig.type == VAL_FUN;
+        bool chi_fun = ops.mchi && mat->chi.type == VAL_FUN;
+        bool src_fun = ops.vsrc && val->type == VAL_FUN;
 
-            fun_ctx.qud = qi;
+        fun_ctx.qud = qi;
 
-            // decompose parameters
+        // decompose parameters
 
-            for (int k = 0; k < 4; ++k) {
-                fun_ctx.vtx = qud->vtx[k];
+        for (int k = 0; k < 4; ++k) {
+            fun_ctx.vtx = qud->vtx[k];
 
-                struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 2};
+            struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 2};
 
-                if (lam_fun) {
-                    lam[k] = mat->lam.as.fun(&fun_ctx, &vw);
-                } else {
-                    lam[k] = mat->lam.as.num;
+            if (lam_fun) {
+                lam[k] = mat->lam.as.fun(&fun_ctx, &vw);
+            } else {
+                lam[k] = mat->lam.as.num;
+            }
+
+            if (gam_fun) {
+                gam[k] = mat->gam.as.fun(&fun_ctx, &vw);
+            } else {
+                gam[k] = mat->gam.as.num;
+            }
+
+            if (sig_fun) {
+                sig[k] = mat->sig.as.fun(&fun_ctx, &vw);
+            } else {
+                sig[k] = mat->sig.as.num;
+            }
+
+            if (chi_fun) {
+                chi[k] = mat->chi.as.fun(&fun_ctx, &vw);
+            } else {
+                chi[k] = mat->chi.as.num;
+            }
+
+            if (src_fun) {
+                src[k] = val->as.fun(&fun_ctx, &vw);
+            } else {
+                src[k] = val->as.num;
+            }
+        }
+
+        int v0 = qud->vtx[0];
+        int v3 = qud->vtx[3];
+
+        double hx = vtx[v3].dat[0] - vtx[v0].dat[0];
+        double hy = vtx[v3].dat[1] - vtx[v0].dat[1];
+
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                mx[i][j] = M[i][j] * hx;
+                my[i][j] = M[i][j] * hy;
+
+                for (int k = 0; k < 2; ++k) {
+                    gnx[i][j][k] = GN[i][j][k] / hx;
+                    gny[i][j][k] = GN[i][j][k] / hy;
+                    mnx[i][j][k] = MN[i][j][k] * hx;
+                    mny[i][j][k] = MN[i][j][k] * hy;
+                }
+            }
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            int gi = qud->vtx[i]; // global i-index
+
+            int mui = MU[i];
+            int nui = NU[i];
+
+            double bi = 0;
+
+            for (int j = 0; j < 4; ++j) {
+                int gj = qud->vtx[j]; // global j-index
+
+                int muj = MU[j];
+                int nuj = NU[j];
+
+                bi += src[j] * mx[muj][mui] * my[nuj][nui];
+
+                double mij_lam = 0;
+                double mij_gam = 0;
+                double mij_sig = 0;
+                double mij_chi = 0;
+
+                for (int k = 0; k < 4; ++k) {
+                    int muk = MU[k];
+                    int nuk = NU[k];
+
+                    double gln = gnx[muk][muj][mui] *
+                                 mny[nuk][nuj][nui] +
+                                 mnx[muk][muj][mui] *
+                                 gny[nuk][nuj][nui];
+                    double mln = mnx[muk][muj][mui] * mny[nuk][nuj][nui];
+
+                    mij_lam += lam[k] * gln;
+                    mij_gam += gam[k] * mln;
+                    mij_sig += sig[k] * mln;
+                    mij_chi += chi[k] * mln;
                 }
 
-                if (gam_fun) {
-                    gam[k] = mat->gam.as.fun(&fun_ctx, &vw);
-                } else {
-                    gam[k] = mat->gam.as.num;
+                if (ops.mlam) {
+                    mtx_inc(ops.mlam, gi, gj, mij_lam);
                 }
 
-                if (sig_fun) {
-                    sig[k] = mat->sig.as.fun(&fun_ctx, &vw);
-                } else {
-                    sig[k] = mat->sig.as.num;
+                if (ops.mgam) {
+                    mtx_inc(ops.mgam, gi, gj, mij_gam);
                 }
 
-                if (chi_fun) {
-                    chi[k] = mat->chi.as.fun(&fun_ctx, &vw);
-                } else {
-                    chi[k] = mat->chi.as.num;
+                if (ops.msig) {
+                    mtx_inc(ops.msig, gi, gj, mij_sig);
                 }
 
-                if (src_fun) {
-                    src[k] = val->as.fun(&fun_ctx, &vw);
-                } else {
-                    src[k] = val->as.num;
+                if (ops.mchi) {
+                    mtx_inc(ops.mchi, gi, gj, mij_chi);
                 }
             }
 
-            int v0 = qud->vtx[0];
-            int v3 = qud->vtx[3];
-
-            double hx = vtx[v3].dat[0] - vtx[v0].dat[0];
-            double hy = vtx[v3].dat[1] - vtx[v0].dat[1];
-
-            for (int i = 0; i < 2; ++i) {
-                for (int j = 0; j < 2; ++j) {
-                    mx[i][j] = M[i][j] * hx;
-                    my[i][j] = M[i][j] * hy;
-
-                    for (int k = 0; k < 2; ++k) {
-                        gnx[i][j][k] = GN[i][j][k] / hx;
-                        gny[i][j][k] = GN[i][j][k] / hy;
-                        mnx[i][j][k] = MN[i][j][k] * hx;
-                        mny[i][j][k] = MN[i][j][k] * hy;
-                    }
-                }
-            }
-
-            for (int i = 0; i < 4; ++i) {
-                int gi = qud->vtx[i]; // global i-index
-
-                int mui = MU[i];
-                int nui = NU[i];
-
-                double bi = 0;
-
-                for (int j = 0; j < 4; ++j) {
-                    int gj = qud->vtx[j]; // global j-index
-
-                    int muj = MU[j];
-                    int nuj = NU[j];
-
-                    bi += src[j] * mx[muj][mui] * my[nuj][nui];
-
-                    double mij_lam = 0;
-                    double mij_gam = 0;
-                    double mij_sig = 0;
-                    double mij_chi = 0;
-
-                    for (int k = 0; k < 4; ++k) {
-                        int muk = MU[k];
-                        int nuk = NU[k];
-
-                        double gln = gnx[muk][muj][mui] *
-                                     mny[nuk][nuj][nui] +
-                                     mnx[muk][muj][mui] *
-                                     gny[nuk][nuj][nui];
-                        double mln = mnx[muk][muj][mui] * mny[nuk][nuj][nui];
-
-                        mij_lam += lam[k] * gln;
-                        mij_gam += gam[k] * mln;
-                        mij_sig += sig[k] * mln;
-                        mij_chi += chi[k] * mln;
-                    }
-
-                    if (ops.mlam) {
-                        mtx_inc(ops.mlam, gi, gj, mij_lam);
-                    }
-
-                    if (ops.mgam) {
-                        mtx_inc(ops.mgam, gi, gj, mij_gam);
-                    }
-
-                    if (ops.msig) {
-                        mtx_inc(ops.msig, gi, gj, mij_sig);
-                    }
-
-                    if (ops.mchi) {
-                        mtx_inc(ops.mchi, gi, gj, mij_chi);
-                    }
-                }
-
-                if (ops.vsrc) {
-                    ops.vsrc->dat[gi] += bi;
-                }
+            if (ops.vsrc) {
+                ops.vsrc->dat[gi] += bi;
             }
         }
     }
+    return 0;
+}
 
-    if (ops.mrob || ops.vneu || ops.vrob || ops.mdir || ops.vdir) {
-        struct ilog dir;
+static int asm_seg(struct sim *sim, struct asm_ops ops)
+{
+    struct v2d *vtx = sim->msh->vtx.v2d.dat;
 
-        if (log_new(&dir))
-            return -1;
+    struct sim_fun_ctx fun_ctx = {
+        .sim = sim,
+        .vtx = -1,
+        .qud = -1,
+        .hxd = -1,
+    };
 
-        for (int si = 0; si < sim->msh->seg.len; ++si) {
-            struct seg     *seg = &sim->msh->seg.dat[si];
-            struct qud     *qud = &sim->msh->qud.dat[seg->qud];
-            struct bnd     *bnd = &sim->bnd.dat[seg->pid];
-            struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
+    struct ilog dir;
 
-            fun_ctx.seg = si;
-            fun_ctx.qud = seg->qud;
+    if (log_new(&dir))
+        return -1;
 
-            double hxi = 0; // segment length
-            int    nrm = asm_seg_dim(sim, seg, &hxi);
+    for (int si = 0; si < sim->msh->seg.len; ++si) {
+        struct seg     *seg = &sim->msh->seg.dat[si];
+        struct qud     *qud = &sim->msh->qud.dat[seg->qud];
+        struct bnd     *bnd = &sim->bnd.dat[seg->pid];
+        struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
 
-            for (int i = 0; i < 2; ++i) {
-                for (int j = 0; j < 2; ++j) {
-                    mx[i][j] = M[i][j] * hxi;
+        fun_ctx.seg = si;
+        fun_ctx.qud = seg->qud;
 
-                    for (int k = 0; k < 2; ++k) {
-                        mnx[i][j][k] = MN[i][j][k] * hxi;
-                    }
-                }
-            }
+        double hxi = 0; // segment length
+        int    nrm = asm_seg_dim(sim, seg, &hxi);
 
-            switch (cnd->type) {
-                case CND_BND_DIR: {
-                    // dirichlet conditions
-                    if (log_add(&dir, si))
-                        return -1;
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                mx[i][j] = M[i][j] * hxi;
 
-                    break;
-                }
-                case CND_BND_NEU: {
-                    // neumann conditions
-
-                    if (!ops.vneu)
-                        continue;
-
-                    static double tta[2];
-                    struct val   *tta_v = &cnd->pps.neu.tta;
-
-                    // decompose parameters
-
-                    switch (tta_v->type) {
-                        case VAL_NUM:
-                            for (int k = 0; k < 2; ++k) {
-                                tta[k] = tta_v->as.num;
-                            }
-
-                            break;
-                        case VAL_FUN:
-                            for (int k = 0; k < 2; ++k) {
-                                fun_ctx.vtx = seg->vtx[k];
-                                tta[k] = tta_v->as.fun(&fun_ctx, &(struct vec){
-                                                                     .n = 2,
-                                                                     .dat = vtx[fun_ctx.vtx].dat,
-                                                                 });
-                            }
-
-                            break;
-                        default:
-                            return -ENOTSUP;
-                    }
-
-                    for (int i = 0; i < 2; ++i) {
-                        int gi = seg->vtx[i]; // global i-index
-                        int li = umsh_qud_loc(qud, gi);
-
-                        int mui = MU[li];
-                        int nui = NU[li];
-
-                        double bi = 0;
-
-                        for (int k = 0; k < 2; ++k) {
-                            int lk = umsh_qud_loc(qud, seg->vtx[k]);
-                            int muk = MU[lk];
-                            int nuk = NU[lk];
-
-                            double fix = 0;
-                            double a = 0;
-                            double b = 0;
-                            double v = 0;
-
-                            switch (nrm) {
-                                case 1:                          // x-norm, x-fixed, vertical
-                                    v = vtx[seg->vtx[0]].dat[0]; // x
-                                    a = vtx[qud->vtx[0]].dat[0]; // x0
-                                    b = vtx[qud->vtx[1]].dat[0]; // x1
-
-                                    fix = F[muk](a, b, v) * F[mui](a, b, v);
-                                    bi += tta[k] * fix * mx[nuk][nui];
-
-                                    break;
-                                case 2:                          // y-norm, y-fixed, horizontal
-                                    v = vtx[seg->vtx[0]].dat[1]; // y
-                                    a = vtx[qud->vtx[0]].dat[1]; // y0
-                                    b = vtx[qud->vtx[2]].dat[1]; // y1
-
-                                    fix = F[nuk](a, b, v) * F[nui](a, b, v);
-                                    bi += tta[k] * fix * mx[muk][mui];
-
-                                    break;
-                            }
-                        }
-
-                        ops.vneu->dat[gi] += bi;
-                    }
-
-                    break;
-                }
-                case CND_BND_ROB: {
-                    // robin conditions
-
-                    if (ops.vrob == NULL && ops.mrob == NULL)
-                        continue;
-
-                    static double bet[2];
-                    static double ext[2];
-
-                    struct val *bet_v = &cnd->pps.rob.bet;
-                    struct val *ext_v = &cnd->pps.rob.ext;
-
-                    // decompose parameters
-
-                    switch (bet_v->type) {
-                        case VAL_NUM:
-                            for (int k = 0; k < 2; ++k) {
-                                bet[k] = bet_v->as.num;
-                            }
-
-                            break;
-                        case VAL_FUN:
-                            for (int k = 0; k < 2; ++k) {
-                                fun_ctx.vtx = seg->vtx[k];
-                                bet[k] = bet_v->as.fun(&fun_ctx, &(struct vec){
-                                                                     .n = 2,
-                                                                     .dat = vtx[fun_ctx.vtx].dat,
-                                                                 });
-                            }
-
-                            break;
-                        default:
-                            return -ENOTSUP;
-                    }
-
-                    switch (ext_v->type) {
-                        case VAL_NUM:
-                            for (int k = 0; k < 2; ++k) {
-                                ext[k] = ext_v->as.num;
-                            }
-
-                            break;
-                        case VAL_FUN:
-                            for (int k = 0; k < 2; ++k) {
-                                fun_ctx.vtx = seg->vtx[k];
-                                ext[k] = ext_v->as.fun(&fun_ctx, &(struct vec){
-                                                                     .n = 2,
-                                                                     .dat = vtx[fun_ctx.vtx].dat,
-                                                                 });
-                            }
-
-                            break;
-                        default:
-                            return -ENOTSUP;
-                    }
-
-                    for (int i = 0; i < 2; ++i) {
-                        int gi = seg->vtx[i]; // global i-index
-
-                        int mui = MU[i];
-                        int nui = NU[i];
-
-                        double bi = 0;
-
-                        for (int j = 0; j < 2; ++j) {
-                            int gj = seg->vtx[j]; // global j-index
-
-                            int muj = MU[j];
-                            int nuj = NU[j];
-
-                            double mij = 0;
-                            double bj = 0;
-
-                            for (int k = 0; k < 2; ++k) {
-                                int muk = MU[k];
-                                int nuk = NU[k];
-
-                                mij += bet[k] * mnx[muk][muj][mui];
-                                bj += ext[k] * mnx[muk][muj][mui];
-                            }
-
-                            if (ops.mrob) {
-                                mtx_inc(ops.mrob, gi, gj, mij);
-                            }
-
-                            bi += bet[j] * bj;
-                        }
-
-                        if (ops.vrob) {
-                            ops.vrob->dat[gi] += bi;
-                        }
-                    }
-
-                    break;
+                for (int k = 0; k < 2; ++k) {
+                    mnx[i][j][k] = MN[i][j][k] * hxi;
                 }
             }
         }
 
-        // apply dirichlet conditions
-        if (ops.vdir || ops.mdir) {
-            log_rst(&dir);
+        switch (cnd->type) {
+            case CND_BND_DIR: {
+                // dirichlet conditions
+                if (log_add(&dir, si))
+                    return -1;
 
-            for (int si = 0; !log_adv(&dir, &si);) {
-                struct seg     *seg = &sim->msh->seg.dat[si];
-                struct bnd     *bnd = &sim->bnd.dat[seg->pid];
-                struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
-                struct val     *tgt_val = &cnd->pps.dir.tgt;
+                break;
+            }
+            case CND_BND_NEU: {
+                // neumann conditions
 
-                fun_ctx.seg = si;
-                fun_ctx.qud = seg->qud;
+                if (!ops.vneu)
+                    continue;
 
-                double tgt_n = tgt_val->as.num;
+                static double tta[2];
+                struct val   *tta_v = &cnd->pps.neu.tta;
+
+                // decompose parameters
+
+                switch (tta_v->type) {
+                    case VAL_NUM:
+                        for (int k = 0; k < 2; ++k) {
+                            tta[k] = tta_v->as.num;
+                        }
+
+                        break;
+                    case VAL_FUN:
+                        for (int k = 0; k < 2; ++k) {
+                            fun_ctx.vtx = seg->vtx[k];
+                            tta[k] = tta_v->as.fun(&fun_ctx, &(struct vec){
+                                                                 .n = 2,
+                                                                 .dat = vtx[fun_ctx.vtx].dat,
+                                                             });
+                        }
+
+                        break;
+                    default:
+                        return -ENOTSUP;
+                }
+
+                for (int i = 0; i < 2; ++i) {
+                    int gi = seg->vtx[i]; // global i-index
+                    int li = umsh_qud_vtx_loc(qud, gi);
+
+                    int mui = MU[li];
+                    int nui = NU[li];
+
+                    double bi = 0;
+
+                    for (int k = 0; k < 2; ++k) {
+                        int lk = umsh_qud_vtx_loc(qud, seg->vtx[k]);
+                        int muk = MU[lk];
+                        int nuk = NU[lk];
+
+                        double fix = 0;
+                        double a = 0;
+                        double b = 0;
+                        double v = 0;
+
+                        switch (nrm) {
+                            case 1:                          // x-norm, x-fixed, vertical
+                                v = vtx[seg->vtx[0]].dat[0]; // x
+                                a = vtx[qud->vtx[0]].dat[0]; // x0
+                                b = vtx[qud->vtx[1]].dat[0]; // x1
+
+                                fix = F[muk](a, b, v) * F[mui](a, b, v);
+                                bi += tta[k] * fix * mx[nuk][nui];
+
+                                break;
+                            case 2:                          // y-norm, y-fixed, horizontal
+                                v = vtx[seg->vtx[0]].dat[1]; // y
+                                a = vtx[qud->vtx[0]].dat[1]; // y0
+                                b = vtx[qud->vtx[2]].dat[1]; // y1
+
+                                fix = F[nuk](a, b, v) * F[nui](a, b, v);
+                                bi += tta[k] * fix * mx[muk][mui];
+
+                                break;
+                        }
+                    }
+
+                    ops.vneu->dat[gi] += bi;
+                }
+
+                break;
+            }
+            case CND_BND_ROB: {
+                // robin conditions
+
+                if (ops.vrob == NULL && ops.mrob == NULL)
+                    continue;
+
+                static double bet[2];
+                static double ext[2];
+
+                struct val *bet_v = &cnd->pps.rob.bet;
+                struct val *ext_v = &cnd->pps.rob.ext;
+
+                // decompose parameters
+
+                switch (bet_v->type) {
+                    case VAL_NUM:
+                        for (int k = 0; k < 2; ++k) {
+                            bet[k] = bet_v->as.num;
+                        }
+
+                        break;
+                    case VAL_FUN:
+                        for (int k = 0; k < 2; ++k) {
+                            fun_ctx.vtx = seg->vtx[k];
+                            bet[k] = bet_v->as.fun(&fun_ctx, &(struct vec){
+                                                                 .n = 2,
+                                                                 .dat = vtx[fun_ctx.vtx].dat,
+                                                             });
+                        }
+
+                        break;
+                    default:
+                        return -ENOTSUP;
+                }
+
+                switch (ext_v->type) {
+                    case VAL_NUM:
+                        for (int k = 0; k < 2; ++k) {
+                            ext[k] = ext_v->as.num;
+                        }
+
+                        break;
+                    case VAL_FUN:
+                        for (int k = 0; k < 2; ++k) {
+                            fun_ctx.vtx = seg->vtx[k];
+                            ext[k] = ext_v->as.fun(&fun_ctx, &(struct vec){
+                                                                 .n = 2,
+                                                                 .dat = vtx[fun_ctx.vtx].dat,
+                                                             });
+                        }
+
+                        break;
+                    default:
+                        return -ENOTSUP;
+                }
 
                 for (int i = 0; i < 2; ++i) {
                     int gi = seg->vtx[i]; // global i-index
 
-                    if (ops.mdir)
-                        ops.mdir->dr[gi] = C;
+                    int mui = MU[i];
+                    int nui = NU[i];
 
-                    if (ops.vdir == NULL)
-                        continue;
+                    double bi = 0;
 
+                    for (int j = 0; j < 2; ++j) {
+                        int gj = seg->vtx[j]; // global j-index
+
+                        int muj = MU[j];
+                        int nuj = NU[j];
+
+                        double mij = 0;
+                        double bj = 0;
+
+                        for (int k = 0; k < 2; ++k) {
+                            int muk = MU[k];
+                            int nuk = NU[k];
+
+                            mij += bet[k] * mnx[muk][muj][mui];
+                            bj += ext[k] * mnx[muk][muj][mui];
+                        }
+
+                        if (ops.mrob) {
+                            mtx_inc(ops.mrob, gi, gj, mij);
+                        }
+
+                        bi += bet[j] * bj;
+                    }
+
+                    if (ops.vrob) {
+                        ops.vrob->dat[gi] += bi;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    // apply dirichlet conditions
+    if (ops.vdir || ops.mdir) {
+        log_rst(&dir);
+
+        for (int si = 0; !log_adv(&dir, &si);) {
+            struct seg     *seg = &sim->msh->seg.dat[si];
+            struct bnd     *bnd = &sim->bnd.dat[seg->pid];
+            struct cnd_bnd *cnd = &sim->cnd_bnd.dat[bnd->cnd];
+            struct val     *tgt_val = &cnd->pps.dir.tgt;
+
+            fun_ctx.seg = si;
+            fun_ctx.qud = seg->qud;
+
+            double tgt_n = tgt_val->as.num;
+
+            for (int i = 0; i < 2; ++i) {
+                int gi = seg->vtx[i]; // global i-index
+
+                if (ops.mdir) {
+                    smtx_row_rst(ops.mdir, gi);
+                    ops.mdir->dr[gi] = 1.0;
+                }
+
+                if (ops.vdir) {
                     fun_ctx.vtx = gi;
 
                     if (tgt_val->type == VAL_FUN) {
-                        ops.vdir->dat[gi] = C * tgt_val->as.fun(&fun_ctx, &(struct vec){
-                                                                              .n = 2,
-                                                                              .dat = vtx[gi].dat,
-                                                                          });
+                        ops.vdir->dat[gi] = tgt_val->as.fun(&fun_ctx, &(struct vec){
+                                                                          .n = 2,
+                                                                          .dat = vtx[gi].dat,
+                                                                      });
                     } else {
-                        ops.vdir->dat[gi] = C * tgt_n;
+                        ops.vdir->dat[gi] = tgt_n;
                     }
                 }
             }
-
-            if (errno != ENOENT)
-                return -1;
-
-            errno = 0;
         }
+
+        if (errno != ENOENT)
+            return -1;
+
+        errno = 0;
     }
 
     return 0;

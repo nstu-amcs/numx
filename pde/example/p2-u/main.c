@@ -166,6 +166,9 @@ int main(int argc, char **argv)
         goto end;
     }
 
+    printf("Error: %.7lf\n", sim.slv->ops.iss.ops.bcg.ops.run.err);
+    printf("Iterations: %d\n", sim.slv->ops.iss.ops.bcg.ops.run.itr);
+
 end:
     umsh_cls(&msh);
     sim_cls(&sim);

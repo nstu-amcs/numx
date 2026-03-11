@@ -6,7 +6,7 @@
 
 #define TOL 1e-7
 
-static double tgt(void *, struct vec *v)
+static double u(void *, struct vec *v)
 {
     // const double x = v->dat[0];
     const double y = v->dat[1];
@@ -58,6 +58,24 @@ static int bnd_r(vtx_ptr a, vtx_ptr b)
     if (isclose(ax, 1.0, TOL) && isclose(bx, 1.0, TOL)) {
         return 1;
     }
+
+    return 0;
+}
+
+static int cbk(void *, struct sim *sim)
+{
+    for (int i = 0; i < sim->msh->vtx.v2d.len; ++i) {
+        printf("%.3lf ", sim->slv->run.wgt[0]->dat[i]);
+    }
+
+    printf("\n");
+
+    for (int i = 0; i < sim->msh->vtx.v2d.len; ++i) {
+        struct v2d *vtx = &sim->msh->vtx.v2d.dat[i];
+        printf("%.3lf ", u(NULL, &(struct vec){.n = 2, .dat = vtx->dat}));
+    }
+
+    printf("\n");
 
     return 0;
 }
@@ -115,7 +133,7 @@ int main(int argc, char **argv)
 
     sim.cnd_bnd.dat[1].type = CND_BND_DIR;
     sim.cnd_bnd.dat[1].pps.dir.tgt.type = VAL_FUN;
-    sim.cnd_bnd.dat[1].pps.dir.tgt.as.fun = tgt;
+    sim.cnd_bnd.dat[1].pps.dir.tgt.as.fun = u;
 
     sim.cnd_bnd.dat[2].type = CND_BND_NEU;
     sim.cnd_bnd.dat[2].pps.dir.tgt.type = VAL_NUM;
@@ -126,6 +144,8 @@ int main(int argc, char **argv)
     strcpy(sim.ops.exp.dir, "pde/example/p1/out");
     strcpy(sim.ops.exp.pfx, "temp");
     strcpy(sim.ops.exp.sol, "Temperature");
+
+    sim.slv->itr_cbk.run = cbk;
 
     if ((r = sim_run(&sim))) {
         goto end;
