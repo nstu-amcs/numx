@@ -73,7 +73,7 @@ static int bnd_r(struct umsh *msh, struct seg *s)
     return 0;
 }
 
-static int cbk(void *, struct sim *sim)
+static void cbk(void *, struct sim *sim)
 {
     struct apx_fun_ctx ctx = {
         .sim = sim,
@@ -99,8 +99,6 @@ static int cbk(void *, struct sim *sim)
     }
 
     printf("\n");
-
-    return 0;
 }
 
 int main(int argc, char **argv)
@@ -168,8 +166,15 @@ int main(int argc, char **argv)
     strcpy(sim.ops.exp.pfx, "emf");
     strcpy(sim.ops.exp.sol, "Magnetic Vector Potential");
 
-    sim.slv->ops.iss.ops.bcg.ops.err = 1e-5;
-    sim.slv->ops.iss.ops.bcg.ops.max = 2000;
+
+    sim.slv->ops.iss.mod = ISS_GMR;
+    sim.slv->ops.iss.ops.gmr.ops.err = 1e-7;
+    sim.slv->ops.iss.ops.gmr.ops.itr.ctx = NULL;
+    sim.slv->ops.iss.ops.gmr.ops.itr.run = NULL;
+    sim.slv->ops.iss.ops.gmr.ops.max = 1000;
+
+    // sim.slv->ops.iss.ops.bcg.ops.err = 1e-5;
+    // sim.slv->ops.iss.ops.bcg.ops.max = 2000;
 
     sim.slv->itr_cbk.run = cbk;
 
@@ -177,8 +182,11 @@ int main(int argc, char **argv)
         goto end;
     }
 
-    printf("Error: %.7lf\n", sim.slv->ops.iss.ops.bcg.ops.run.err);
-    printf("Iterations: %d\n", sim.slv->ops.iss.ops.bcg.ops.run.itr);
+    printf("Error: %.7lf\n", sim.slv->ops.iss.ops.gmr.ops.run.err);
+    printf("Iterations: %d\n", sim.slv->ops.iss.ops.gmr.ops.run.itr);
+
+    // printf("Error: %.7lf\n", sim.slv->ops.iss.ops.bcg.ops.run.err);
+    // printf("Iterations: %d\n", sim.slv->ops.iss.ops.bcg.ops.run.itr);
 
 end:
     umsh_cls(&msh);

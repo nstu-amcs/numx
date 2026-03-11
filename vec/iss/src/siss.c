@@ -390,6 +390,12 @@ int siss_gmr_slv(
         vec_rot(&g, &t, j, c.dat[j * 2], c.dat[j * 2 + 1]);
         vec_dup(&t, &g);
 
+        ops->ops.run.itr = j;
+        ops->ops.run.err = fabs(g.dat[j + 1]);
+
+        if (ops->ops.itr.run)
+            ops->ops.itr.run(ops->ops.itr.ctx, &ops->ops);
+
         if (hsv == 0 || fabs(g.dat[j + 1]) < e)
             break;
 

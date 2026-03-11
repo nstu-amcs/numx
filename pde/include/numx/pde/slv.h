@@ -104,6 +104,7 @@ typedef struct slv
             {
                 struct iss_jac_ops jac;
                 struct iss_rlx_ops rlx;
+                struct iss_gmr_ops gmr;
                 struct iss_bcg_ops bcg;
             } ops;
         } iss;

@@ -253,8 +253,15 @@ static int fem_sys_slv(struct sim *sim, struct fem_std_ctx *ctx)
 
     switch (ops->iss.mod) {
         case ISS_BCG:
-            if (iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &ops->iss.ops.bcg))
+            if (iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &ops->iss.ops.bcg)) {
                 return -1;
+            }
+
+            break;
+        case ISS_GMR:
+            if (iss_gmr_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &ops->iss.ops.gmr)) {
+                return -1;
+            }
 
             break;
         default:
