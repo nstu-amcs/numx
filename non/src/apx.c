@@ -1,25 +1,28 @@
 #include <errno.h>
 
 #include <numx/non/apx.h>
-#include <numx/vec/dss.h>
+#include <numx/vec/iss.h>
 
-int apx_cub(struct vec *xv, struct imtx *km)
+int apx_int_cub(struct vec *xv, struct imtx *km)
 {
     if (!xv || !km) {
-        errno = EINVAL;
-        return -1;
+        return -EINVAL;
     }
 
     int n = xv->n - 1;
     int r = 0;
 
-    struct imtx mm;
+    struct dmtx mm;
     struct vec  gv;
     struct vec  hv;
 
-    if ((r = imtx_new(&mm, (struct imtx_pps){n + 1, n + 1}))) {
+    if ((r = dmtx_new(&mm, (struct dmtx_pps){.n = n + 1, .d = 3}))) {
         goto end;
     }
+
+    mm.la[0] = 0;
+    mm.la[1] = -1;
+    mm.la[2] = 1;
 
     if ((r = vec_new(&gv, n + 1))) {
         goto end;
@@ -44,13 +47,16 @@ int apx_cub(struct vec *xv, struct imtx *km)
     for (int i = 1; i < n; ++i)
         g[i] = 3 * (a[i + 1] - a[i]) / h[i] - 3 * (a[i] - a[i - 1]) / h[i - 1];
 
-    mm.dat[0][0] = 1;
-    mm.dat[n][n] = 1;
+    g[0] = 0;
+    g[n] = 0;
+
+    mm.ad[0][0] = 1;
+    mm.ad[n][0] = 1;
 
     for (int i = 1; i < n; ++i) {
-        mm.dat[i][i - 1] = h[i - 1];
-        mm.dat[i][i] = 2 * (h[i - 1] + h[i]);
-        mm.dat[i][i + 1] = h[i];
+        mm.ad[i][0] = 2 * (h[i - 1] + h[i]);
+        mm.ad[i][1] = h[i - 1];
+        mm.ad[i][2] = h[i];
     }
 
     struct vec cv = {
@@ -58,8 +64,18 @@ int apx_cub(struct vec *xv, struct imtx *km)
         .dat = c,
     };
 
-    if ((r = dss_red_slv(&mm, &cv, &gv)) && r)
+    if ((r = diss_jac_slv(&mm, &cv, &gv, (struct iss_jac_ops){
+        .ops = {
+            .err = 1e-10,
+            .max = 1000,
+            .itr = {
+                .ctx = NULL,
+                .run = NULL,
+            },
+        },
+    }))) {
         goto end;
+    }
 
     for (int i = 0; i < n; ++i) {
         b[i] = (a[i + 1] - a[i]) / h[i] - h[i] * (c[i + 1] + 2 * c[i]) / 3;
