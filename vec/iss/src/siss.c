@@ -313,12 +313,12 @@ int siss_gmr_slv(
     double b = 0;
 
     struct imtx v = {
-        .pps = {.n = n, .m = 0},
+        .pps = {.c = n, .r = 0},
         .dat = malloc(sizeof(double *) * m),
     };
 
     struct imtx h = {
-        .pps = {.n = 1, .m = 0},
+        .pps = {.c = 1, .r = 0},
         .dat = malloc(sizeof(double *) * m),
     };
 
@@ -345,8 +345,8 @@ int siss_gmr_slv(
 
     for (j = 0; j < m; ++j) {
         h.dat[j] = calloc(j + 2, sizeof(double));
-        h.pps.n += 1;
-        h.pps.m += 1;
+        h.pps.c += 1;
+        h.pps.r += 1;
         g.n += 1;
 
         struct vec vj = {.n = n, .dat = v.dat[j]};
@@ -401,15 +401,15 @@ int siss_gmr_slv(
 
         if (j < m - 1) {
             v.dat[j + 1] = calloc(n, sizeof(double));
-            v.pps.m += 1;
+            v.pps.r += 1;
 
             struct vec vn = {.n = n, .dat = v.dat[j + 1]};
             vec_mul(&o, &vn, 1.0 / hsv);
         }
     }
 
-    h.pps.n = j + 1;
-    h.pps.m = j + 1;
+    h.pps.c = j + 1;
+    h.pps.r = j + 1;
     o.n = j + 1;
     g.n = j + 1;
 
@@ -436,7 +436,7 @@ int siss_gmr_slv(
 
 static void red_slv(struct imtx *r, struct vec *y, struct vec *g)
 {
-    int n = r->pps.n;
+    int n = r->pps.c;
 
     for (int i = n - 1; i >= 0; --i) {
         double s = g->dat[i];

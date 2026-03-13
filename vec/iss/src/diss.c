@@ -43,17 +43,19 @@ static inline void swap(struct vec *a, struct vec *b)
 
 int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *o)
 {
+    int r = 0;
+
     assert(m);
     assert(x);
     assert(f);
-
     assert(m->pps.n == x->n);
     assert(x->n == f->n);
 
     struct vec t;
 
-    if (vec_new(&t, x->n))
-        return -1;
+    if ((r = vec_new(&t, x->n))) {
+        return r;
+    }
 
     double nf = 0;
     double nt = 0;
@@ -75,6 +77,9 @@ int diss_jac_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_jac_op
         vec_nrm(&t, &nt);
 
         res = nt / nf;
+
+        o->ops.run.itr = k + 1;
+        o->ops.run.err = res;
 
         if (o->ops.itr.run)
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);
@@ -118,6 +123,9 @@ int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_op
         vec_nrm(&t, &nt);
 
         res = nt / nf;
+
+        o->ops.run.itr = k + 1;
+        o->ops.run.err = res;
 
         if (o->ops.itr.run)
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);

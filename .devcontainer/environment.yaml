@@ -2,13 +2,10 @@ name: nm
 channels:
   - conda-forge
 dependencies:
-  - fenics-dolfinx
-  - mpich
   - pyvista
   - numpy
-  - python-gmsh
+  - matplotlib
   - ipykernel
   - ipywidgets
-  - trame
-  - trame-vtk
-  - trame-vuetify
+  - jupyterlab
+

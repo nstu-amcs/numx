@@ -206,5 +206,9 @@ static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
 
 static int umsh_c3d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
 {
+    (void)msh;
+    (void)vtx;
+
     return -1;
 }
+

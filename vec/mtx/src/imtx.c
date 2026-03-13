@@ -8,13 +8,13 @@ int imtx_new(struct imtx *m, struct imtx_pps pps)
     assert(m);
 
     m->pps = pps;
-    m->dat = malloc(sizeof(double *) * pps.m);
+    m->dat = malloc(sizeof(double *) * pps.r);
 
     if (!m->dat)
         return -1;
 
-    for (int i = 0; i < pps.m; ++i) {
-        m->dat[i] = malloc(sizeof(double) * pps.n);
+    for (int i = 0; i < pps.r; ++i) {
+        m->dat[i] = malloc(sizeof(double) * pps.c);
 
         if (!m->dat[i]) {
             for (int j = 0; j < i; ++j)
@@ -25,7 +25,7 @@ int imtx_new(struct imtx *m, struct imtx_pps pps)
             return -1;
         }
 
-        memset(m->dat[i], 0, sizeof(double) * pps.n);
+        memset(m->dat[i], 0, sizeof(double) * pps.c);
     }
 
     return 0;
@@ -35,7 +35,7 @@ int imtx_cls(struct imtx *m)
 {
     assert(m);
 
-    for (int i = 0; i < m->pps.m; ++i)
+    for (int i = 0; i < m->pps.r; ++i)
         free(m->dat[i]);
 
     free(m->dat);
@@ -54,11 +54,11 @@ int imtx_vmul(struct imtx *m, struct vec *v, struct vec *r)
     double  *rd = r->dat;
 
     // [[omp::directive(parallel for)]]
-    for (int i = 0; i < m->pps.m; ++i) {
+    for (int i = 0; i < m->pps.r; ++i) {
         double s = 0;
 
         // [[omp::directive(parallel for reduction(+ : s))]]
-        for (int j = 0; j < m->pps.n; ++j)
+        for (int j = 0; j < m->pps.c; ++j)
             s += md[i][j] * vd[j];
 
         rd[i] = s;
@@ -78,14 +78,14 @@ int imtx_mmul(struct imtx *a, struct imtx *b, struct imtx *r)
     double **rd = r->dat;
 
     // [[omp::directive(parallel for)]]
-    for (int i = 0; i < r->pps.m; ++i) {
+    for (int i = 0; i < r->pps.r; ++i) {
 
         // [[omp::directive(parallel for)]]
-        for (int j = 0; j < r->pps.n; ++j) {
+        for (int j = 0; j < r->pps.c; ++j) {
             double s = 0;
 
             // [[omp::directive(parallel for reduction(+ : s))]]
-            for (int e = 0; e < a->pps.n; ++e)
+            for (int e = 0; e < a->pps.c; ++e)
                 s += ad[i][e] * bd[e][i];
 
             rd[i][j] = s;
@@ -97,8 +97,8 @@ int imtx_mmul(struct imtx *a, struct imtx *b, struct imtx *r)
 
 int imtx_vdup(struct imtx *s, struct imtx *d)
 {
-    for (int i = 0; i < s->pps.m; ++i) {
-        for (int j = 0; j < s->pps.n; ++j) {
+    for (int i = 0; i < s->pps.r; ++i) {
+        for (int j = 0; j < s->pps.c; ++j) {
             d->dat[i][j] = s->dat[i][j];
         }
     }

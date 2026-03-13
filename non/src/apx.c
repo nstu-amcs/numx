@@ -1,4 +1,4 @@
-#include <errno.h>
+#include <stdio.h>
 
 #include <numx/non/apx.h>
 #include <numx/vec/iss.h>
@@ -9,7 +9,7 @@ int apx_int_cub(struct vec *xv, struct imtx *km)
         return -EINVAL;
     }
 
-    int n = xv->n - 1;
+    int n = xv->n - 1; // number of subintervals
     int r = 0;
 
     struct dmtx mm;
@@ -64,18 +64,25 @@ int apx_int_cub(struct vec *xv, struct imtx *km)
         .dat = c,
     };
 
-    if ((r = diss_jac_slv(&mm, &cv, &gv, (struct iss_jac_ops){
-        .ops = {
-            .err = 1e-10,
-            .max = 1000,
-            .itr = {
-                .ctx = NULL,
-                .run = NULL,
-            },
-        },
-    }))) {
+    struct iss_rlx_ops ops = {
+        .ops =
+            {
+                  .err = 1e-10,
+                  .max = 1000,
+                  .itr =
+                    {
+                        .ctx = NULL,
+                        .run = NULL,
+                    }, },
+        .rlx = 1,
+    };
+
+    if ((r = diss_rlx_slv(&mm, &cv, &gv, &ops))) {
         goto end;
     }
+
+    printf("[apx][int-cub]|[iss-rlx] itr: %d\n", ops.ops.run.itr);
+    printf("[apx][int-cub]|[iss-rlx] err: %.3e\n", ops.ops.run.err);
 
     for (int i = 0; i < n; ++i) {
         b[i] = (a[i + 1] - a[i]) / h[i] - h[i] * (c[i + 1] + 2 * c[i]) / 3;

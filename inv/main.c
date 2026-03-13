@@ -101,9 +101,7 @@ double rec_dif(struct rec *r, struct vec *i)
     double d = 0;
 
     for (int s = 0; s < r->k.n; ++s) {
-        d += r->k.dat[s] *
-             i->dat[s] /
-             (2 * M_PI * COND);
+        d += r->k.dat[s] * i->dat[s] / (2 * M_PI * COND);
     }
 
     return d;
@@ -125,8 +123,7 @@ int main(int argc, char **argv)
         }
 
         for (int j = 0; j < sn; ++j) {
-            rec[i]->k.dat[j] =
-                k(&rec[i]->l, &sup[j]->l);
+            rec[i]->k.dat[j] = k(&rec[i]->l, &sup[j]->l);
         }
     }
 
@@ -156,21 +153,18 @@ int main(int argc, char **argv)
         dc.dat[i] = rec_dif(rec[i], &in);
     }
 
-    printf("d1 = %.7e\nd2 = %.7e\nd3 = %.7e\n",
-        dc.dat[0], dc.dat[1], dc.dat[2]);
+    printf("d1 = %.7e\nd2 = %.7e\nd3 = %.7e\n", dc.dat[0], dc.dat[1], dc.dat[2]);
 
     struct imtx a; // матрица А
     struct imtx at;
     struct vec  b; // вектор правой части b
     struct vec  bt;
 
-    if (mtx_new(&a, ((struct imtx_pps){
-                        .n = sn, .m = sn}))) {
+    if (mtx_new(&a, ((struct imtx_pps){.c = sn, .r = sn}))) {
         return -1;
     }
 
-    if (mtx_new(&at, ((struct imtx_pps){
-                         .n = sn, .m = sn}))) {
+    if (mtx_new(&at, ((struct imtx_pps){.c = sn, .r = sn}))) {
         return -1;
     }
 
@@ -203,8 +197,7 @@ int main(int argc, char **argv)
 
         printf("n = %d\nf = %.7e\ni1 = %.7e\n"
                "i2 = %.7e\ni3 = %.7e\n",
-            n, f, in.dat[0], in.dat[1],
-            in.dat[2]);
+            n, f, in.dat[0], in.dat[1], in.dat[2]);
 
         if (f < 1e-17) {
             break;
@@ -219,15 +212,7 @@ int main(int argc, char **argv)
                     double kj = rec[k]->k.dat[j];
                     double om = 1 / dc.dat[k];
 
-                    aij += om *
-                           om *
-                           ki *
-                           kj /
-                           (4 *
-                               M_PI *
-                               M_PI *
-                               COND *
-                               COND);
+                    aij += om * om * ki * kj / (4 * M_PI * M_PI * COND * COND);
                 }
 
                 a.dat[i][j] = aij;
@@ -241,11 +226,7 @@ int main(int argc, char **argv)
                 double ek = dk - dc.dat[k];
                 double om = 1 / dc.dat[k];
 
-                bi += om *
-                      om *
-                      ek *
-                      ki /
-                      (2 * M_PI * COND);
+                bi += om * om * ek * ki / (2 * M_PI * COND);
             }
 
             b.dat[i] = -bi;

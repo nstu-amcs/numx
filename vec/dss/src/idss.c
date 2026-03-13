@@ -9,7 +9,7 @@ int idss_red_slv(struct imtx *m, struct vec *x, struct vec *f)
     assert(x);
     assert(f);
 
-    int  n = m->pps.n;
+    int  n = m->pps.c;
     int *pos = malloc(sizeof(int) * n);
 
     double **md = m->dat;

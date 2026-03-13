@@ -1,10 +1,13 @@
 #include <stdio.h>
-#include <errno.h>
 
-#include <non/apx.h>
+#include <numx/non/apx.h>
 
-int main(int argc, char** argv) {
-    FILE* in = fopen("non/example/apx/int/cub/points.txt", "r");
+int main(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    FILE *in = fopen("non/example/apx/int/cub/points.txt", "r");
 
     if (!in) {
         return EIO;
@@ -18,7 +21,7 @@ int main(int argc, char** argv) {
         return EIO;
     }
 
-    struct vec x;
+    struct vec  x;
     struct imtx k;
 
     if ((r = vec_new(&x, n))) {
@@ -26,7 +29,7 @@ int main(int argc, char** argv) {
         return -r;
     }
 
-    if ((r = imtx_new(&k, (struct imtx_pps){.n = 4, .m = n}))) {
+    if ((r = imtx_new(&k, (struct imtx_pps){.r = 4, .c = n}))) {
         fclose(in);
         return -r;
     }
@@ -37,6 +40,27 @@ int main(int argc, char** argv) {
             return EIO;
         }
     }
+
+    fclose(in);
+
+    if ((r = apx_int_cub(&x, &k))) {
+        return -r;
+    }
+
+    FILE *out = fopen("non/example/apx/int/cub/out/spline.txt", "w+");
+
+    if (!out) {
+        return EIO;
+    }
+
+    for (int i = 0; i < n - 1; ++i) {
+        // xi ai bi ci di
+        fprintf(out, "%lf %lf %lf %lf %lf\n", x.dat[i], k.dat[0][i], k.dat[1][i], k.dat[2][i],
+            k.dat[3][i]);
+    }
+
+    fprintf(out, "%lf %lf\n", x.dat[n - 1], k.dat[0][n - 1]);
+    fclose(out);
 
     return 0;
 }

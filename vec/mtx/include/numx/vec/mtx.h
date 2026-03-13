@@ -11,8 +11,8 @@ typedef struct imtx
 {
     struct imtx_pps
     {
-        int m;
-        int n;
+        int r; // Number of rows.
+        int c; // Number of columns.
     } pps;
 
     double **dat;
