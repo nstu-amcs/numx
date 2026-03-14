@@ -14,10 +14,13 @@ static double u(void *, struct vec *v)
     return y;
 }
 
-static int bnd_t(vtx_ptr a, vtx_ptr b)
+static int bnd_t(struct umsh *m, struct seg *s)
 {
-    const double ay = a.v2d->dat[1];
-    const double by = b.v2d->dat[1];
+    struct v2d *a = &m->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &m->vtx.v2d.dat[s->vtx[0]];
+
+    const double ay = a->dat[1];
+    const double by = b->dat[1];
 
     if (isclose(ay, 1.0, TOL) && isclose(by, 1.0, TOL)) {
         return 1;
@@ -26,10 +29,13 @@ static int bnd_t(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int bnd_b(vtx_ptr a, vtx_ptr b)
+static int bnd_b(struct umsh *m, struct seg *s)
 {
-    const double ay = a.v2d->dat[1];
-    const double by = b.v2d->dat[1];
+    struct v2d *a = &m->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &m->vtx.v2d.dat[s->vtx[0]];
+
+    const double ay = a->dat[1];
+    const double by = b->dat[1];
 
     if (isclose(ay, 0.0, TOL) && isclose(by, 0.0, TOL)) {
         return 1;
@@ -38,10 +44,13 @@ static int bnd_b(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int bnd_l(vtx_ptr a, vtx_ptr b)
+static int bnd_l(struct umsh *m, struct seg *s)
 {
-    const double ax = a.v2d->dat[0];
-    const double bx = b.v2d->dat[0];
+    struct v2d *a = &m->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &m->vtx.v2d.dat[s->vtx[0]];
+
+    const double ax = a->dat[0];
+    const double bx = b->dat[0];
 
     if (isclose(ax, 0.0, TOL) && isclose(bx, 0.0, TOL)) {
         return 1;
@@ -50,10 +59,13 @@ static int bnd_l(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int bnd_r(vtx_ptr a, vtx_ptr b)
+static int bnd_r(struct umsh *m, struct seg *s)
 {
-    const double ax = a.v2d->dat[0];
-    const double bx = b.v2d->dat[0];
+    struct v2d *a = &m->vtx.v2d.dat[s->vtx[0]];
+    struct v2d *b = &m->vtx.v2d.dat[s->vtx[0]];
+
+    const double ax = a->dat[0];
+    const double bx = b->dat[0];
 
     if (isclose(ax, 1.0, TOL) && isclose(bx, 1.0, TOL)) {
         return 1;
@@ -62,7 +74,7 @@ static int bnd_r(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int cbk(void *, struct sim *sim)
+static void cbk(void *, struct sim *sim)
 {
     for (int i = 0; i < sim->msh->vtx.v2d.len; ++i) {
         printf("%.3lf ", sim->slv->run.wgt[0]->dat[i]);
@@ -76,8 +88,6 @@ static int cbk(void *, struct sim *sim)
     }
 
     printf("\n");
-
-    return 0;
 }
 
 int main(int argc, char **argv)
@@ -133,7 +143,7 @@ int main(int argc, char **argv)
 
     sim.cnd_bnd.dat[1].type = CND_BND_DIR;
     sim.cnd_bnd.dat[1].pps.dir.tgt.type = VAL_FUN;
-    sim.cnd_bnd.dat[1].pps.dir.tgt.as.fun = u;
+    sim.cnd_bnd.dat[1].pps.dir.tgt.as.fun.run = u;
 
     sim.cnd_bnd.dat[2].type = CND_BND_NEU;
     sim.cnd_bnd.dat[2].pps.dir.tgt.type = VAL_NUM;

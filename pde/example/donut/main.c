@@ -6,7 +6,7 @@
 
 #define TOL 1e-7
 
-static double tgt(void *, struct vec *v)
+__attribute__((unused)) static double tgt(void *, struct vec *v)
 {
     // const double x = v->dat[0];
     const double y = v->dat[1];
@@ -14,10 +14,13 @@ static double tgt(void *, struct vec *v)
     return y;
 }
 
-static int bnd_t(vtx_ptr a, vtx_ptr b)
+static int bnd_t(struct umsh *msh, struct seg *seg)
 {
-    const double ay = a.v2d->dat[1];
-    const double by = b.v2d->dat[1];
+    struct v2d *a = &msh->vtx.v2d.dat[seg->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[seg->vtx[1]];
+
+    const double ay = a->dat[1];
+    const double by = b->dat[1];
 
     if (isclose(ay, 3.0, TOL) && isclose(by, 3.0, TOL)) {
         return 1;
@@ -26,10 +29,13 @@ static int bnd_t(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int bnd_b(vtx_ptr a, vtx_ptr b)
+static int bnd_b(struct umsh *msh, struct seg *seg)
 {
-    const double ay = a.v2d->dat[1];
-    const double by = b.v2d->dat[1];
+    struct v2d *a = &msh->vtx.v2d.dat[seg->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[seg->vtx[1]];
+
+    const double ay = a->dat[1];
+    const double by = b->dat[1];
 
     if (isclose(ay, 0.0, TOL) && isclose(by, 0.0, TOL)) {
         return 1;
@@ -38,10 +44,13 @@ static int bnd_b(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int bnd_l(vtx_ptr a, vtx_ptr b)
+static int bnd_l(struct umsh *msh, struct seg *seg)
 {
-    const double ax = a.v2d->dat[0];
-    const double bx = b.v2d->dat[0];
+    struct v2d *a = &msh->vtx.v2d.dat[seg->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[seg->vtx[1]];
+
+    const double ax = a->dat[0];
+    const double bx = b->dat[0];
 
     if (isclose(ax, 0.0, TOL) && isclose(bx, 0.0, TOL)) {
         return 1;
@@ -50,10 +59,13 @@ static int bnd_l(vtx_ptr a, vtx_ptr b)
     return 0;
 }
 
-static int bnd_r(vtx_ptr a, vtx_ptr b)
+static int bnd_r(struct umsh *msh, struct seg *seg)
 {
-    const double ax = a.v2d->dat[0];
-    const double bx = b.v2d->dat[0];
+    struct v2d *a = &msh->vtx.v2d.dat[seg->vtx[0]];
+    struct v2d *b = &msh->vtx.v2d.dat[seg->vtx[1]];
+
+    const double ax = a->dat[0];
+    const double bx = b->dat[0];
 
     if (isclose(ax, 3.0, TOL) && isclose(bx, 3.0, TOL)) {
         return 1;

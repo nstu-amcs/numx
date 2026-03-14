@@ -2,6 +2,7 @@
 
 #include <numx/non/apx.h>
 #include <numx/vec/iss.h>
+#include <string.h>
 
 int apx_int_cub(struct vec *xv, struct imtx *km)
 {
@@ -81,18 +82,86 @@ int apx_int_cub(struct vec *xv, struct imtx *km)
         goto end;
     }
 
-    printf("[apx][int-cub]|[iss-rlx] itr: %d\n", ops.ops.run.itr);
-    printf("[apx][int-cub]|[iss-rlx] err: %.3e\n", ops.ops.run.err);
-
     for (int i = 0; i < n; ++i) {
         b[i] = (a[i + 1] - a[i]) / h[i] - h[i] * (c[i + 1] + 2 * c[i]) / 3;
         d[i] = (c[i + 1] - c[i]) / (3 * h[i]);
     }
+
+    printf("[apx][int-cub] ok\n");
 
 end:
     mtx_cls(&mm);
     vec_cls(&gv);
     vec_cls(&hv);
 
+    if (r) {
+        printf("[apx][int-cub] err: %s\n", strerror(-r));
+    }
+
     return r;
+}
+
+double int_cub_fun(void *ctx, struct vec *x)
+{
+    struct int_fun_ctx *int_fun_ctx = (struct int_fun_ctx *)ctx;
+    struct vec         *ip = int_fun_ctx->x;
+    struct imtx        *km = int_fun_ctx->k;
+    double              v = x->dat[0];
+    int                 i = int_fun_ctx->prv;
+    int                 n = int_fun_ctx->x->n;
+
+    if (i == -1) {
+        i = 0;
+    }
+
+    double x0 = ip->dat[i];
+    double x1 = ip->dat[i + 1];
+
+    while (v < x0) {
+        if (i == 0) {
+            // Hit the first interval, perform linear approximation: y = ax + b.
+
+            double y0 = km->dat[0][i];
+            double y1 = km->dat[0][i + 1];
+            double a = (y1 - y0) / (x1 - x0);
+            double b = y0 - a * x0;
+
+            int_fun_ctx->prv = i;
+
+            return a * v + b;
+        }
+
+        i -= 1;
+        x0 = ip->dat[i];
+        x1 = ip->dat[i + 1];
+    }
+
+    while (v > x1) {
+        if (i == n - 2) {
+            // Hit the last interval, perform linear approximation: y = ax + b.
+
+            double y0 = km->dat[0][i];
+            double y1 = km->dat[0][i + 1];
+            double a = (y1 - y0) / (x1 - x0);
+            double b = y0 - a * x0;
+
+            int_fun_ctx->prv = i;
+
+            return a * v + b;
+        }
+
+        i += 1;
+        x0 = ip->dat[i];
+        x1 = ip->dat[i + 1];
+    }
+
+    double a = km->dat[0][i];
+    double b = km->dat[1][i];
+    double c = km->dat[2][i];
+    double d = km->dat[3][i];
+    double r = v - x0;
+
+    int_fun_ctx->prv = i;
+
+    return a + b * r + c * r * r + d * r * r * r;
 }

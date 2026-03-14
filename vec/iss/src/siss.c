@@ -1,11 +1,11 @@
 #include <errno.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <numx/vec/iss.h>
 
-static int siss_bcg_unc_slv(
-    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
+static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     int n = m->pps.n;
     int c = 0;
@@ -166,8 +166,7 @@ static int siss_con_uslv(struct smtx *m, struct vec *x, struct vec *f)
     return 0;
 }
 
-static int siss_bcg_con_slv(
-    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
+static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     int n = m->pps.n;
     int c = 0;
@@ -283,22 +282,24 @@ end:
     return c;
 }
 
-int siss_bcg_slv(
-    struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
+int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
     if (!m || !x || !f) {
         errno = EINVAL;
         return -1;
     }
 
-    return o->con.sm ? siss_bcg_con_slv(m, x, f, o)
-                     : siss_bcg_unc_slv(m, x, f, o);
+    int r = o->con.sm ? siss_bcg_con_slv(m, x, f, o) : siss_bcg_unc_slv(m, x, f, o);
+
+    printf("[iss][bcg] itr: %d\n", o->ops.run.itr);
+    printf("[iss][bcg] err: %.7e\n", o->ops.run.err);
+
+    return r;
 }
 
 static void red_slv(struct imtx *r, struct vec *y, struct vec *g);
 
-int siss_gmr_slv(
-    struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr_ops *ops)
+int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr_ops *ops)
 {
     assert(sm);
     assert(vx);
@@ -406,6 +407,13 @@ int siss_gmr_slv(
             struct vec vn = {.n = n, .dat = v.dat[j + 1]};
             vec_mul(&o, &vn, 1.0 / hsv);
         }
+    }
+
+    printf("[iss][gmr] itr: %d\n", ops->ops.run.itr);
+    printf("[iss][gmr] err: %.7e\n", ops->ops.run.err);
+
+    if (j == m) {
+        j -= 1;
     }
 
     h.pps.c = j + 1;

@@ -62,9 +62,7 @@ int vec_dst(struct vec *a, struct vec *b, double *r)
     double *ad = a->dat;
     double *bd = b->dat;
 
-#ifdef OMP
-    [[omp::directive(parallel for reduction(+:s))]]
-#endif
+#pragma omp parallel for reduction(+ : s)
     for (int i = 0; i < n; ++i) {
         p = bd[i] - ad[i];
         s += p * p;
@@ -90,9 +88,7 @@ int vec_cmb(struct vec *a, struct vec *b, struct vec *r, double k)
     double *bd = b->dat;
     double *rd = r->dat;
 
-#ifdef OMP
-    [[omp::directive(parallel for)]]
-#endif
+#pragma omp parallel for
     for (int i = 0; i < n; ++i)
         rd[i] = ad[i] + k * bd[i];
 
@@ -112,9 +108,7 @@ int vec_dot(struct vec *a, struct vec *b, double *r)
 
     double s = 0;
 
-#ifdef OMP
-    [[omp::directive(parallel for reduction(+:s))]]
-#endif
+#pragma omp parallel for reduction(+ : s)
     for (int i = 0; i < dim; ++i)
         s += ad[i] * bd[i];
 
@@ -141,33 +135,26 @@ int vec_mul(struct vec *v, struct vec *r, double m)
     double *vd = v->dat;
     double *rd = r->dat;
 
-#ifdef OMP
-    [[omp::directive(parallel for)]]
-#endif
+#pragma omp parallel for
     for (int i = 0; i < n; ++i)
         rd[i] = vd[i] * m;
 
     return 0;
 }
 
-int vec_rot(
-    struct vec *restrict v, struct vec *restrict r, int o, double c, double s)
+int vec_rot(struct vec *restrict v, struct vec *restrict r, int o, double c, double s)
 {
     assert(v);
     assert(r);
 
     int n = v->n;
-    int i = 0;
+    int i = o;
 
-    for (i = 0; i < o; ++i)
-        r->dat[i] = v->dat[i];
+    memcpy(r->dat, v->dat, sizeof(double) * n);
 
     r->dat[i] = v->dat[i] * c + v->dat[i + 1] * s;
     i += 1;
     r->dat[i] = -v->dat[i - 1] * s + v->dat[i] * c;
-
-    for (i = i + 1; i < n; ++i)
-        r->dat[i] = v->dat[i];
 
     return 0;
 }

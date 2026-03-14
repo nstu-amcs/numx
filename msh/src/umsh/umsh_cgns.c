@@ -48,7 +48,7 @@ static int umsh_exp_cgns_c2d(struct umsh *msh, const char *fname)
     cg_open(fname, CG_MODE_WRITE, &fi);
 
     cg_base_write(fi, "Base", 2, 2, &bi);
-    cg_zone_write(fi, bi, "Zone 1", dim, Unstructured, &zi);
+    cg_zone_write(fi, bi, "Zone1", dim, Unstructured, &zi);
 
     cg_coord_write(fi, bi, zi, RealDouble, "CoordinateX", x, &ci);
     cg_coord_write(fi, bi, zi, RealDouble, "CoordinateY", y, &ci);
@@ -97,7 +97,7 @@ static int umsh_exp_cgns_c3d(struct umsh *msh, const char *fname)
     cg_open(fname, CG_MODE_WRITE, &fi);
 
     cg_base_write(fi, "Base", 3, 3, &bi);
-    cg_zone_write(fi, bi, "Zone 1", dim, Unstructured, &zi);
+    cg_zone_write(fi, bi, "Zone1", dim, Unstructured, &zi);
 
     cg_coord_write(fi, bi, zi, RealDouble, "CoordinateX", x, &ci);
     cg_coord_write(fi, bi, zi, RealDouble, "CoordinateY", y, &ci);

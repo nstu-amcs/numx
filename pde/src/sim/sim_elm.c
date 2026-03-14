@@ -441,10 +441,11 @@ static int get_val(struct sim *sim, char *src, struct val *val)
         val->as.num = strtod(fun, 0);
     } else {
         val->type = VAL_FUN;
-        val->as.fun = dlsym(sim->ops.usr.hdl, fun);
+        val->as.fun.run = dlsym(sim->ops.usr.hdl, fun);
 
-        if (!val->as.fun)
+        if (!val->as.fun.run) {
             return -1;
+        }
     }
 
     val->ops.dep = false;
@@ -462,7 +463,7 @@ static int get_val(struct sim *sim, char *src, struct val *val)
 
     fun = strtok(f2, ":");
 
-    val->as.hmc.sin = val->as.fun;
+    val->as.hmc.sin = val->as.fun.run;
     val->as.hmc.cos = dlsym(sim->ops.usr.hdl, fun);
 
     if (!val->as.hmc.cos)

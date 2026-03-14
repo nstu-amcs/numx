@@ -1,14 +1,15 @@
 #include "../hmc.h"
 #include <math.h>
 
-double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
+double fem_hmc_lin_apx(void *ctx, struct vec *vtx)
 {
     assert(ctx);
 
-    struct v3d *v = ctx->sim->msh->vtx.v3d.dat;
-    struct hxd *h = &ctx->sim->msh->hxd.dat[ctx->hxd];
+    struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
+    struct v3d         *v = apx_ctx->sim->msh->vtx.v3d.dat;
+    struct hxd         *h = &apx_ctx->sim->msh->hxd.dat[apx_ctx->hxd];
 
-    double *w = ctx->wgt->dat;
+    double *w = apx_ctx->wgt->dat;
 
     int v0 = h->vtx[0];
     int v7 = h->vtx[7];
@@ -22,9 +23,9 @@ double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
 
     double hm = (x2 - x1) * (y2 - y1) * (z2 - z1);
 
-    double x = vtx.v3d->dat[0];
-    double y = vtx.v3d->dat[1];
-    double z = vtx.v3d->dat[2];
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
+    double z = vtx->dat[2];
 
     double b1 = (x2 - x) * (y2 - y) * (z2 - z) / hm;
     double b2 = (x - x1) * (y2 - y) * (z2 - z) / hm;
@@ -53,15 +54,15 @@ double fem_hmc_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
                 (w[h->vtx[6] * 2 + 1] * b7) +
                 (w[h->vtx[7] * 2 + 1] * b8);
 
-    double t = ctx->sim->slv->run.tv;
-    double f = ctx->sim->ops.hmc.frq;
+    double t = apx_ctx->sim->slv->run.tv;
+    double f = apx_ctx->sim->ops.hmc.frq;
 
     return us * sin(f * t) + uc * cos(f * t);
 }
 
 int fem_hmc_lin_slv(struct sim *sim, struct fem_hmc_ctx *ctx)
 {
-    sim->slv->apx = fem_hmc_lin_apx;
+    sim->slv->apx.run = fem_hmc_lin_apx;
 
     if (vec_new(&ctx->wgt, ctx->vec.n))
         return -1;
@@ -96,7 +97,7 @@ int fem_hmc_lin_slv(struct sim *sim, struct fem_hmc_ctx *ctx)
             sim->slv->itr_cbk.run(sim->slv->itr_cbk.ctx, sim);
 
         if (sim->ops.exp.put_v) {
-            sim->ops.exp.put_v(sim, sim->ops.exp.sol, &ctx->wgt);
+            sim->ops.exp.put_v(sim, sim->ops.exp.sol, 0, &ctx->wgt);
         }
 
         sim->slv->run.tv += hop;

@@ -21,7 +21,10 @@ struct fem_std_ctx
 
 typedef int (*fem_asm_fun)(struct sim *, struct fem_std_ctx *);
 
-double fem_std_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx);
-int    fem_std_lin_asm(struct sim *sim, struct fem_std_ctx *ctx);
+double fem_std_lin_apx(void *ctx, struct vec *vtx);
+double fem_std_lin_dif(void *ctx, struct vec *vtx);
+
+int fem_std_lin_asm(struct sim *sim, struct fem_std_ctx *ctx);
+int fem_std_lin_new(struct sim *sim, struct fem_std_ctx *ctx);
 
 #endif // NUMX_PDE_PRV_FEM_STD_H

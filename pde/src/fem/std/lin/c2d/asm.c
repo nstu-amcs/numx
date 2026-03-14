@@ -5,28 +5,29 @@
 /**
  * @brief Approximate solution at an arbitrary point.
  */
-double fem_std_lin_c2d_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
+double fem_std_lin_c2d_apx(void *ctx, struct vec *vtx)
 {
     assert(ctx);
     assert(ctx->sim);
 
-    struct v2d *v = ctx->sim->msh->vtx.v2d.dat;
+    struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
+    struct v2d         *v = apx_ctx->sim->msh->vtx.v2d.dat;
 
-    if (ctx->qud == -1) {
-        ctx->qud = umsh_vtx_qud_lup(ctx->sim->msh, vtx);
+    if (apx_ctx->qud == -1) {
+        apx_ctx->qud = umsh_vtx_qud_lup(apx_ctx->sim->msh, vtx);
     }
 
-    if (ctx->qud == -1) {
+    if (apx_ctx->qud == -1) {
         return DBL_MAX;
     }
 
-    if (ctx->wgt == NULL) {
-        ctx->wgt = ctx->sim->slv->run.wgt[0];
+    if (apx_ctx->wgt == NULL) {
+        apx_ctx->wgt = apx_ctx->sim->slv->run.wgt[0];
     }
 
-    struct qud *q = &ctx->sim->msh->qud.dat[ctx->qud];
+    struct qud *q = &apx_ctx->sim->msh->qud.dat[apx_ctx->qud];
 
-    double *w = ctx->wgt->dat;
+    double *w = apx_ctx->wgt->dat;
 
     int v0 = q->vtx[0];
     int v3 = q->vtx[3];
@@ -38,14 +39,75 @@ double fem_std_lin_c2d_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
 
     double hm = (x2 - x1) * (y2 - y1);
 
-    double x = vtx.v2d->dat[0];
-    double y = vtx.v2d->dat[1];
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
     double r = 0;
 
     r += w[q->vtx[0]] * (x2 - x) * (y2 - y) / hm;
     r += w[q->vtx[1]] * (x - x1) * (y2 - y) / hm;
     r += w[q->vtx[2]] * (x2 - x) * (y - y1) / hm;
     r += w[q->vtx[3]] * (x - x1) * (y - y1) / hm;
+
+    return r;
+}
+
+/**
+ * @brief Approximate solution derivative at an arbitrary point.
+ */
+double fem_std_lin_c2d_dif(void *ctx, struct vec *vtx)
+{
+    assert(ctx);
+    assert(ctx->sim);
+
+    struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
+    struct v2d         *v = apx_ctx->sim->msh->vtx.v2d.dat;
+
+    if (apx_ctx->qud == -1) {
+        apx_ctx->qud = umsh_vtx_qud_lup(apx_ctx->sim->msh, vtx);
+    }
+
+    if (apx_ctx->qud == -1) {
+        return DBL_MAX;
+    }
+
+    if (apx_ctx->wgt == NULL) {
+        apx_ctx->wgt = apx_ctx->sim->slv->run.wgt[0];
+    }
+
+    struct qud *q = &apx_ctx->sim->msh->qud.dat[apx_ctx->qud];
+
+    double *w = apx_ctx->wgt->dat;
+
+    int v0 = q->vtx[0];
+    int v3 = q->vtx[3];
+
+    double x1 = v[v0].dat[0];
+    double x2 = v[v3].dat[0];
+    double y1 = v[v0].dat[1];
+    double y2 = v[v3].dat[1];
+
+    double hm = (x2 - x1) * (y2 - y1);
+
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
+    double r = 0;
+
+    switch (apx_ctx->var) {
+        case 0: // x
+            r += w[q->vtx[0]] * (-1) * (y2 - y) / hm;
+            r += w[q->vtx[1]] * (1) * (y2 - y) / hm;
+            r += w[q->vtx[2]] * (-1) * (y - y1) / hm;
+            r += w[q->vtx[3]] * (1) * (y - y1) / hm;
+            break;
+        case 1: // y
+            r += w[q->vtx[0]] * (x2 - x) * (-1) / hm;
+            r += w[q->vtx[1]] * (x - x1) * (-1) / hm;
+            r += w[q->vtx[2]] * (x2 - x) * (1) / hm;
+            r += w[q->vtx[3]] * (x - x1) * (1) / hm;
+            break;
+        default:
+            return DBL_MAX;
+    }
 
     return r;
 }
@@ -116,13 +178,21 @@ static int ell_asm(struct sim *sim, struct fem_std_ctx *ctx)
                          });
 }
 
+__attribute__((unused));
 static int pbc_asm(struct sim *sim, struct fem_std_ctx *ctx)
 {
+    (void)sim;
+    (void)ctx;
+
     return -ENOTSUP;
 }
 
+__attribute__((unused));
 static int hyp_asm(struct sim *sim, struct fem_std_ctx *ctx)
 {
+    (void)sim;
+    (void)ctx;
+
     return -ENOTSUP;
 }
 
@@ -254,31 +324,36 @@ static int asm_qud(struct sim *sim, struct asm_ops ops)
             struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 2};
 
             if (lam_fun) {
-                lam[k] = mat->lam.as.fun(&fun_ctx, &vw);
+                fun_ctx.ctx = mat->lam.as.fun.ctx;
+                lam[k] = mat->lam.as.fun.run(&fun_ctx, &vw);
             } else {
                 lam[k] = mat->lam.as.num;
             }
 
             if (gam_fun) {
-                gam[k] = mat->gam.as.fun(&fun_ctx, &vw);
+                fun_ctx.ctx = mat->gam.as.fun.ctx;
+                gam[k] = mat->gam.as.fun.run(&fun_ctx, &vw);
             } else {
                 gam[k] = mat->gam.as.num;
             }
 
             if (sig_fun) {
-                sig[k] = mat->sig.as.fun(&fun_ctx, &vw);
+                fun_ctx.ctx = mat->sig.as.fun.ctx;
+                sig[k] = mat->sig.as.fun.run(&fun_ctx, &vw);
             } else {
                 sig[k] = mat->sig.as.num;
             }
 
             if (chi_fun) {
-                chi[k] = mat->chi.as.fun(&fun_ctx, &vw);
+                fun_ctx.ctx = mat->chi.as.fun.ctx;
+                chi[k] = mat->chi.as.fun.run(&fun_ctx, &vw);
             } else {
                 chi[k] = mat->chi.as.num;
             }
 
             if (src_fun) {
-                src[k] = val->as.fun(&fun_ctx, &vw);
+                fun_ctx.ctx = val->as.fun.ctx;
+                src[k] = val->as.fun.run(&fun_ctx, &vw);
             } else {
                 src[k] = val->as.num;
             }
@@ -433,10 +508,11 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
                     case VAL_FUN:
                         for (int k = 0; k < 2; ++k) {
                             fun_ctx.vtx = seg->vtx[k];
-                            tta[k] = tta_v->as.fun(&fun_ctx, &(struct vec){
-                                                                 .n = 2,
-                                                                 .dat = vtx[fun_ctx.vtx].dat,
-                                                             });
+                            fun_ctx.ctx = tta_v->as.fun.ctx;
+                            tta[k] = tta_v->as.fun.run(&fun_ctx, &(struct vec){
+                                                                     .n = 2,
+                                                                     .dat = vtx[fun_ctx.vtx].dat,
+                                                                 });
                         }
 
                         break;
@@ -514,10 +590,11 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
                     case VAL_FUN:
                         for (int k = 0; k < 2; ++k) {
                             fun_ctx.vtx = seg->vtx[k];
-                            bet[k] = bet_v->as.fun(&fun_ctx, &(struct vec){
-                                                                 .n = 2,
-                                                                 .dat = vtx[fun_ctx.vtx].dat,
-                                                             });
+                            fun_ctx.ctx = bet_v->as.fun.ctx;
+                            bet[k] = bet_v->as.fun.run(&fun_ctx, &(struct vec){
+                                                                     .n = 2,
+                                                                     .dat = vtx[fun_ctx.vtx].dat,
+                                                                 });
                         }
 
                         break;
@@ -535,10 +612,11 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
                     case VAL_FUN:
                         for (int k = 0; k < 2; ++k) {
                             fun_ctx.vtx = seg->vtx[k];
-                            ext[k] = ext_v->as.fun(&fun_ctx, &(struct vec){
-                                                                 .n = 2,
-                                                                 .dat = vtx[fun_ctx.vtx].dat,
-                                                             });
+                            fun_ctx.ctx = ext_v->as.fun.ctx;
+                            ext[k] = ext_v->as.fun.run(&fun_ctx, &(struct vec){
+                                                                     .n = 2,
+                                                                     .dat = vtx[fun_ctx.vtx].dat,
+                                                                 });
                         }
 
                         break;
@@ -550,7 +628,7 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
                     int gi = seg->vtx[i]; // global i-index
 
                     int mui = MU[i];
-                    int nui = NU[i];
+                    // int nui = NU[i];
 
                     double bi = 0;
 
@@ -558,14 +636,14 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
                         int gj = seg->vtx[j]; // global j-index
 
                         int muj = MU[j];
-                        int nuj = NU[j];
+                        // int nuj = NU[j];
 
                         double mij = 0;
                         double bj = 0;
 
                         for (int k = 0; k < 2; ++k) {
                             int muk = MU[k];
-                            int nuk = NU[k];
+                            // int nuk = NU[k];
 
                             mij += bet[k] * mnx[muk][muj][mui];
                             bj += ext[k] * mnx[muk][muj][mui];
@@ -615,10 +693,11 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
                     fun_ctx.vtx = gi;
 
                     if (tgt_val->type == VAL_FUN) {
-                        ops.vdir->dat[gi] = tgt_val->as.fun(&fun_ctx, &(struct vec){
-                                                                          .n = 2,
-                                                                          .dat = vtx[gi].dat,
-                                                                      });
+                        fun_ctx.ctx = tgt_val->as.fun.ctx;
+                        ops.vdir->dat[gi] = tgt_val->as.fun.run(&fun_ctx, &(struct vec){
+                                                                              .n = 2,
+                                                                              .dat = vtx[gi].dat,
+                                                                          });
                     } else {
                         ops.vdir->dat[gi] = tgt_n;
                     }

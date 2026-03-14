@@ -116,29 +116,11 @@ static int qud_bnd_cmb[4][2] = {
 
 int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid)
 {
-    vtx_ptr vtx[4];
-
     for (int i = 0; i < msh->qud.len; ++i) {
         struct qud *q = &msh->qud.dat[i];
-
-        switch (msh->type) {
-            case MSH_C2D:
-                vtx[0].v2d = &msh->vtx.v2d.dat[q->vtx[0]];
-                vtx[1].v2d = &msh->vtx.v2d.dat[q->vtx[1]];
-                vtx[2].v2d = &msh->vtx.v2d.dat[q->vtx[2]];
-                vtx[3].v2d = &msh->vtx.v2d.dat[q->vtx[3]];
-                break;
-            case MSH_C3D:
-                vtx[0].v3d = &msh->vtx.v3d.dat[q->vtx[0]];
-                vtx[1].v3d = &msh->vtx.v3d.dat[q->vtx[1]];
-                vtx[2].v3d = &msh->vtx.v3d.dat[q->vtx[2]];
-                vtx[3].v3d = &msh->vtx.v3d.dat[q->vtx[3]];
-                break;
-        }
-
-        struct seg s = {
-            .pid = pid,
-            .qud = i,
+        struct seg  s = {
+             .pid = pid,
+             .qud = i,
         };
 
         for (int j = 0; j < 4; ++j) {
@@ -157,10 +139,10 @@ int umsh_seg_srh(struct umsh *msh, seg_srh_fun fun, int pid)
     return 0;
 }
 
-static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx);
-static int umsh_c3d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx);
+static int umsh_c2d_vtx_qud_lup(struct umsh *msh, struct vec *vtx);
+static int umsh_c3d_vtx_qud_lup(struct umsh *msh, struct vec *vtx);
 
-int umsh_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
+int umsh_vtx_qud_lup(struct umsh *msh, struct vec *vtx)
 {
     switch (msh->type) {
         case MSH_C2D:
@@ -172,7 +154,7 @@ int umsh_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
     return -1;
 }
 
-static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
+static int umsh_c2d_vtx_qud_lup(struct umsh *msh, struct vec *vtx)
 {
     static const double tol = 1e-10;
 
@@ -180,15 +162,14 @@ static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
         struct qud *qud = &msh->qud.dat[qi];
         struct v2d *a = &msh->vtx.v2d.dat[qud->vtx[0]];
         struct v2d *b = &msh->vtx.v2d.dat[qud->vtx[3]];
-        struct v2d *v = vtx.v2d;
 
         double x0 = a->dat[0];
         double y0 = a->dat[1];
         double x1 = b->dat[0];
         double y1 = b->dat[1];
 
-        double x = v->dat[0];
-        double y = v->dat[1];
+        double x = vtx->dat[0];
+        double y = vtx->dat[1];
 
         if (less(x, x0, tol) || less(x1, x, tol)) {
             continue;
@@ -204,11 +185,10 @@ static int umsh_c2d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
     return -1;
 }
 
-static int umsh_c3d_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx)
+static int umsh_c3d_vtx_qud_lup(struct umsh *msh, struct vec *vtx)
 {
     (void)msh;
     (void)vtx;
 
     return -1;
 }
-

@@ -21,15 +21,6 @@ typedef struct v3d
 } v3d;
 
 /**
- * @brief Generic vertex pointer.
- */
-typedef union vtx_ptr
-{
-    struct v2d *v2d;
-    struct v3d *v3d;
-} vtx_ptr;
-
-/**
  * @brief Segment.
  */
 typedef struct seg
@@ -91,14 +82,14 @@ typedef struct umsh
  *
  * For given segment, return 1 to apply the segment and 0 otherwise.
  */
-typedef int (*seg_srh_fun)(struct umsh* msh, struct seg *s);
+typedef int (*seg_srh_fun)(struct umsh *msh, struct seg *s);
 
 /**
  * @brief Quadrangle searching function.
  *
  * For given quadrangle, return 1 to apply the quadrangle and 0 otherwise.
  */
-typedef int (*qud_srh_fun)(struct umsh* msh, struct qud *q);
+typedef int (*qud_srh_fun)(struct umsh *msh, struct qud *q);
 
 int umsh_new(struct umsh *msh);
 int umsh_cls(struct umsh *msh);
@@ -154,6 +145,6 @@ int umsh_qud_vtx_loc(struct qud *qud, int gv);
 /**
  * @brief Lookup for encapsulating quadrangle for the given arbitrary vertex.
  */
-int umsh_vtx_qud_lup(struct umsh *msh, union vtx_ptr vtx);
+int umsh_vtx_qud_lup(struct umsh *msh, struct vec *vtx);
 
 #endif // NUMX_MSH_UMSH_H

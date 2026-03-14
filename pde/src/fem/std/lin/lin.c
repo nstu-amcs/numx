@@ -1,12 +1,24 @@
 #include "lin.h"
 
-double fem_std_lin_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
+double fem_std_lin_apx(void *ctx, struct vec *vtx)
 {
-    switch (ctx->sim->msh->type) {
+    switch (((struct apx_fun_ctx *)ctx)->sim->msh->type) {
         case MSH_C2D:
             return fem_std_lin_c2d_apx(ctx, vtx);
         case MSH_C3D:
             return fem_std_lin_c3d_apx(ctx, vtx);
+    }
+
+    return 0;
+}
+
+double fem_std_lin_dif(void *ctx, struct vec *vtx)
+{
+    switch (((struct apx_fun_ctx *)ctx)->sim->msh->type) {
+        case MSH_C2D:
+            return fem_std_lin_c2d_dif(ctx, vtx);
+        case MSH_C3D:
+            return fem_std_lin_c3d_dif(ctx, vtx);
     }
 
     return 0;

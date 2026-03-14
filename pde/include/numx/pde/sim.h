@@ -110,18 +110,20 @@ typedef struct sim
              *
              *  @param sim simulation
              *  @param name solution name
+             *  @param i solution index (0 for primary)
              *  @param s solution data
              */
-            int (*put_v)(struct sim *sim, const char *name, struct vec *s);
+            int (*put_v)(struct sim *sim, const char *name, int i, struct vec *s);
 
             /**
              *  @brief Export cell-wise solution (defined by `mod`).
              *
              *  @param sim simulation
              *  @param name solution name
+             *  @param i solution index (0 for primary)
              *  @param s solution data
              */
-            int (*put_c)(struct sim *sim, const char *name, struct vec *s);
+            int (*put_c)(struct sim *sim, const char *name, int i, struct vec *s);
         } exp;
 
         /**
@@ -192,12 +194,12 @@ int sim_exp_cgns_ini(struct sim *sim);
 /**
  * @brief Export vertex-wise solution in CGNS format.
  */
-int sim_exp_cgns_put_v(struct sim *sim, const char *name, struct vec *s);
+int sim_exp_cgns_put_v(struct sim *sim, const char *name, int i, struct vec *s);
 
 /**
  * @brief Export cell-wise solution in CGNS format.
  */
-int sim_exp_cgns_put_c(struct sim *sim, const char *name, struct vec *s);
+int sim_exp_cgns_put_c(struct sim *sim, const char *name, int i, struct vec *s);
 
 /**
  * @brief Start the simulation.

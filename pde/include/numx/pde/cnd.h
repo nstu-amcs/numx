@@ -8,16 +8,17 @@
 typedef struct sim sim;
 
 /**
- * @brief Context passed to boundary functions.
+ * @brief Context passed to parameters given as functions.
  */
 struct sim_fun_ctx
 {
-    struct sim *sim; // simulation
+    struct sim *sim;
+    void       *ctx; // User-defined context.
 
-    int vtx; // hinted vertex
-    int seg; // hinted segment
-    int qud; // hinted quadrangle
-    int hxd; // hinted hexahedron
+    int vtx; // Hinted vertex.
+    int seg; // Hinted segment.
+    int qud; // Hinted quadrangle.
+    int hxd; // Hinted hexahedron.
 };
 
 /**
@@ -27,15 +28,24 @@ typedef struct val
 {
     enum
     {
-        VAL_NUM, // constant
-        VAL_FUN, // function
-        VAL_HMC, // harmonic
+        VAL_NUM, // Constant.
+        VAL_FUN, // Function.
+        VAL_HMC, // Harmonic.
     } type;
 
     union
     {
-        double num; // constant value
-        mfun   fun; // function of space, time and field
+        double num; // Constant value.
+
+        struct
+        {
+            void *ctx; // User-defined context.
+
+            // Function of space, time and field.
+            // The `sim_fun_ctx` will be passed as context with
+            // user-defined context inside.
+            mfun run;
+        } fun;
 
         struct
         {

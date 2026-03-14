@@ -1,17 +1,18 @@
-#include <numx/com/log.h>
 #include <numx/com/cmp.h>
+#include <numx/com/log.h>
 #include <numx/non/dif.h>
 
 #include "../lin.h"
 
-double fem_std_lin_c3d_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
+double fem_std_lin_c3d_apx(void *ctx, struct vec *vtx)
 {
     assert(ctx);
 
-    struct v3d *v = ctx->sim->msh->vtx.v3d.dat;
-    struct hxd *h = &ctx->sim->msh->hxd.dat[ctx->hxd];
+    struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
+    struct v3d         *v = apx_ctx->sim->msh->vtx.v3d.dat;
+    struct hxd         *h = &apx_ctx->sim->msh->hxd.dat[apx_ctx->hxd];
 
-    double *w = ctx->wgt->dat;
+    double *w = apx_ctx->wgt->dat;
 
     int v0 = h->vtx[0];
     int v7 = h->vtx[7];
@@ -25,9 +26,48 @@ double fem_std_lin_c3d_apx(struct apx_fun_ctx *ctx, vtx_ptr vtx)
 
     double hm = (x2 - x1) * (y2 - y1) * (z2 - z1);
 
-    double x = vtx.v3d->dat[0];
-    double y = vtx.v3d->dat[1];
-    double z = vtx.v3d->dat[2];
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
+    double z = vtx->dat[2];
+    double r = 0;
+
+    r += w[h->vtx[0]] * (x2 - x) * (y2 - y) * (z2 - z) / hm;
+    r += w[h->vtx[1]] * (x - x1) * (y2 - y) * (z2 - z) / hm;
+    r += w[h->vtx[2]] * (x2 - x) * (y - y1) * (z2 - z) / hm;
+    r += w[h->vtx[3]] * (x - x1) * (y - y1) * (z2 - z) / hm;
+    r += w[h->vtx[4]] * (x2 - x) * (y2 - y) * (z - z1) / hm;
+    r += w[h->vtx[5]] * (x - x1) * (y2 - y) * (z - z1) / hm;
+    r += w[h->vtx[6]] * (x2 - x) * (y - y1) * (z - z1) / hm;
+    r += w[h->vtx[7]] * (x - x1) * (y - y1) * (z - z1) / hm;
+
+    return r;
+}
+
+double fem_std_lin_c3d_dif(void *ctx, struct vec *vtx)
+{
+    assert(ctx);
+
+    struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
+    struct v3d         *v = apx_ctx->sim->msh->vtx.v3d.dat;
+    struct hxd         *h = &apx_ctx->sim->msh->hxd.dat[apx_ctx->hxd];
+
+    double *w = apx_ctx->wgt->dat;
+
+    int v0 = h->vtx[0];
+    int v7 = h->vtx[7];
+
+    double x1 = v[v0].dat[0];
+    double x2 = v[v7].dat[0];
+    double y1 = v[v0].dat[1];
+    double y2 = v[v7].dat[1];
+    double z1 = v[v0].dat[2];
+    double z2 = v[v7].dat[2];
+
+    double hm = (x2 - x1) * (y2 - y1) * (z2 - z1);
+
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
+    double z = vtx->dat[2];
     double r = 0;
 
     r += w[h->vtx[0]] * (x2 - x) * (y2 - y) * (z2 - z) / hm;
@@ -367,19 +407,19 @@ static int assemble(struct sim *sim, struct asm_ops ops)
                     struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
 
                     if (lam_fun)
-                        lam[k] = mat->lam.as.fun(&fun_ctx, &vw);
+                        lam[k] = mat->lam.as.fun.run(&fun_ctx, &vw);
 
                     if (gam_fun)
-                        gam[k] = mat->gam.as.fun(&fun_ctx, &vw);
+                        gam[k] = mat->gam.as.fun.run(&fun_ctx, &vw);
 
                     if (sig_fun)
-                        sig[k] = mat->sig.as.fun(&fun_ctx, &vw);
+                        sig[k] = mat->sig.as.fun.run(&fun_ctx, &vw);
 
                     if (chi_fun)
-                        chi[k] = mat->chi.as.fun(&fun_ctx, &vw);
+                        chi[k] = mat->chi.as.fun.run(&fun_ctx, &vw);
 
                     if (src_fun)
-                        src[k] = val->as.fun(&fun_ctx, &vw);
+                        src[k] = val->as.fun.run(&fun_ctx, &vw);
                 }
 
             int v0 = hxd->vtx[0];
@@ -559,7 +599,7 @@ static int assemble(struct sim *sim, struct asm_ops ops)
 
                             struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
 
-                            tta[k] = tta_val->as.fun(&fun_ctx, &vw);
+                            tta[k] = tta_val->as.fun.run(&fun_ctx, &vw);
                         }
 
                     for (int i = 0; i < 4; ++i) {
@@ -609,10 +649,10 @@ static int assemble(struct sim *sim, struct asm_ops ops)
                             struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
 
                             if (bet_fun)
-                                bet[k] = bet_val->as.fun(&fun_ctx, &vw);
+                                bet[k] = bet_val->as.fun.run(&fun_ctx, &vw);
 
                             if (ext_fun)
-                                ext[k] = ext_val->as.fun(&fun_ctx, &vw);
+                                ext[k] = ext_val->as.fun.run(&fun_ctx, &vw);
                         }
 
                     switch (cnd->pps.rob.bet.type) {
@@ -782,7 +822,7 @@ static int assemble(struct sim *sim, struct asm_ops ops)
 
                     if (tgt_val->type == VAL_FUN) {
                         struct vec vw = {.dat = vtx[gi].dat, .n = 3};
-                        ops.vdir->dat[gi] = C * tgt_val->as.fun(&fun_ctx, &vw);
+                        ops.vdir->dat[gi] = C * tgt_val->as.fun.run(&fun_ctx, &vw);
                     } else
                         ops.vdir->dat[gi] = C * tgt_n;
                 }
@@ -859,7 +899,7 @@ int fem_std_lin_new(struct sim *sim, struct fem_std_ctx *ctx)
                     fun_ctx.hxd = h;
 
                     dlam[k] = dif_tpm(
-                        &fun_ctx, (double (*)(void *, struct vec *))mat->lam.as.fun, &dif_ops);
+                        &fun_ctx, (double (*)(void *, struct vec *))mat->lam.as.fun.run, &dif_ops);
                 }
 
                 break;

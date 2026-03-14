@@ -130,9 +130,11 @@ int smtx_cmb(struct smtx *a, struct smtx *b, struct smtx *r, double k)
     int n = a->pps.n;
     int z = a->pps.z;
 
+#pragma omp parallel for
     for (int i = 0; i < n; ++i)
         r->dr[i] = a->dr[i] + b->dr[i] * k;
 
+#pragma omp parallel for
     for (int i = 0; i < z; ++i) {
         r->lr[i] = a->lr[i] + b->lr[i] * k;
         r->ur[i] = a->ur[i] + b->ur[i] * k;
@@ -276,6 +278,7 @@ int smtx_dgl(struct smtx *m, struct smtx *r)
     double *mdr = m->dr;
     double *rdr = r->dr;
 
+#pragma omp parallel for
     for (int i = 0; i < n; ++i)
         rdr[i] = sqrt(mdr[i]);
 
@@ -300,6 +303,7 @@ int smtx_vmul(struct smtx *m, struct vec *x, struct vec *f)
     double *xv = x->dat;
     double *fv = f->dat;
 
+#pragma omp parallel for
     for (int i = 0; i < n; ++i)
         fv[i] = xv[i] * dr[i];
 

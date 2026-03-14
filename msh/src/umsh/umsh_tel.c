@@ -203,9 +203,9 @@ int umsh_imp_tel(struct umsh *msh, const char *dir, const char *pfx)
         }
     }
 
-    printf("Areas: %d\n", areas.len);
-    printf("Vertices: %d\n", msh->vtx.v2d.len);
-    printf("Elements: %d\n", msh->qud.len);
+    printf("[umsh][tel] zone: %d\n", areas.len);
+    printf("[umsh][tel] vtx: %d\n", msh->vtx.v2d.len);
+    printf("[umsh][tel] qud: %d\n", msh->qud.len);
 
 end:
     dlog_cls(&x);

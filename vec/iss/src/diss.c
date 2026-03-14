@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 
 #include <numx/vec/iss.h>
 #include <numx/vec/vec.h>
@@ -101,8 +102,9 @@ int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_op
 
     struct vec t;
 
-    if (vec_new(&t, x->n))
+    if (vec_new(&t, x->n)) {
         return -1;
+    }
 
     double nf = 0;
     double nt = 0;
@@ -130,6 +132,10 @@ int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_op
         if (o->ops.itr.run)
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);
     }
+
+    printf("[vec]|[iss-rlx] ok\n");
+    printf("[vec]|[iss-rlx] itr: %d\n", o->ops.run.itr);
+    printf("[vec]|[iss-rlx] err: %.3e\n", o->ops.run.err);
 
     vec_cls(&t);
 

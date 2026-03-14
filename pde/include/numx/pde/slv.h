@@ -14,18 +14,23 @@ struct sim;
  */
 struct apx_fun_ctx
 {
-    struct sim *sim; // simulation
-    struct vec *wgt; // solution (null for runtime)
+    struct sim *sim; // Simulation.
+    struct vec *wgt; // Solution (null for runtime).
 
-    int vtx; // hinted vertex
-    int qud; // hinted quadrangle
-    int hxd; // hinted hexahedron
+    int var; // Variable to differentiate.
+    int vtx; // Hinted vertex.
+    int seg; // Hinted segment.
+    int qud; // Hinted quadrangle.
+    int hxd; // Hinted hexahedron.
 };
 
 /**
  * @brief Solution approximation function.
+ *
+ * @param ctx - context (`apx_fun_ctx`)
+ * @param vtx - target point
  */
-typedef double (*apx_fun)(struct apx_fun_ctx *ctx, union vtx_ptr vtx);
+typedef double (*apx_fun)(void *ctx, struct vec *vtx);
 
 /**
  * @brief Simulation solver.
@@ -49,22 +54,27 @@ typedef struct slv
          */
         struct
         {
-            bool enable;
-
-            /**
-             * @brief Nonlinear solution method.
-             */
-            enum non_mod
-            {
-                NON_FPI, // fixed-point iteration
-                NON_NEW, // Newton's linearization
-            } mod;
+            bool enable; // Enable nonlinear mode.
 
             struct non_ops
             {
-                int    max; // maximum number of iterations
-                double err; // convergence tolerance
-                bool   rlx; // enable relaxation
+                int    max; // Maximum number of iterations.
+                double err; // Convergence tolerance.
+
+                bool rlx; // Enable relaxation.
+                bool new; // Enable Newton's linearization tweaks.
+
+                /**
+                 *  @brief Initial field approximation.
+                 *
+                 *  If set, called once during startup.
+                 *  If not set, initial field is set to zero.
+                 */
+                struct
+                {
+                    void *ctx;
+                    void (*run)(void *ctx, struct vec *wgt);
+                } ini_cbk;
 
                 /**
                  *  @brief Nonlinear iteration callback (user defined).
@@ -79,16 +89,16 @@ typedef struct slv
 
                 enum
                 {
-                    DIF_NUM,
-                    DIF_GIV,
-                } dif;
+                    DIF_NUM, // Differentiate numerically.
+                    DIF_GIV, // Differentiate using given functions.
+                } dif;       // Differentiation options.
 
                 /** Runtime data made available by solver. */
                 struct
                 {
-                    int    itr; // current iteration
-                    double err; // current error
-                    double rlx; // optimal relaxation factor
+                    int    itr; // Current nonlinear iteration.
+                    double err; // Current nonlinear error.
+                    double rlx; // Optimal nonlinear relaxation factor.
                 } run;
             } ops;
         } non;
@@ -98,7 +108,7 @@ typedef struct slv
          */
         struct
         {
-            enum iss_mod mod;
+            enum iss_mod mod; // Linear system solver.
 
             union
             {
@@ -106,22 +116,27 @@ typedef struct slv
                 struct iss_rlx_ops rlx;
                 struct iss_gmr_ops gmr;
                 struct iss_bcg_ops bcg;
-            } ops;
+            } ops; // Solver-specific options.
         } iss;
     } ops;
 
     /**
-     *  @brief Execute the solver (implementation defined).
+     * @brief Execute the solver (implementation defined).
      */
     int (*exe)(struct sim *sim);
 
     /**
-     *  @brief Approximate the solution at the given point (implementation defined).
-     *
-     *  @param ctx - context
-     *  @param vtx - target point
+     *  @brief Solution approximation utilities (implementation defined).
      */
-    double (*apx)(struct apx_fun_ctx *ctx, union vtx_ptr vtx);
+    struct
+    {
+        // Approximate the solution at the given point.
+        apx_fun run;
+
+        // Approximate the solution partial derivative at the given point.
+        // Respected variable is passed via context `var` field.
+        apx_fun dif;
+    } apx;
 
     /**
      *  @brief Solution callback (user defined).
