@@ -11,6 +11,8 @@ struct fem_std_ctx
     struct smtx chi;
     struct vec  vec;
 
+    struct smtx con;
+
     struct vec w0;
     struct vec w1;
     struct vec w2;

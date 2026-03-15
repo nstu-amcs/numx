@@ -3,16 +3,15 @@
 
 #include <numx/com/cmp.h>
 #include <numx/msh/umsh.h>
-#include <numx/non/apx.h>
 #include <numx/pde/sim.h>
 
-#define TOL 1e-10
-#define MU0 (4 * M_PI * 1e-7)
+#define TOL      1e-10
+#define LAM_BASE (4 * M_PI * 1e-7)
 
-#define BND_X_L -1
-#define BND_X_R 1.07
+#define BND_X_L -0.01
+#define BND_X_R 0.08
 #define BND_Y_B 0.00
-#define BND_Y_T 1.05
+#define BND_Y_T 0.06
 
 static int bnd_t(struct umsh *msh, struct seg *s)
 {
@@ -74,30 +73,7 @@ static int bnd_r(struct umsh *msh, struct seg *s)
     return 0;
 }
 
-static double lam_iron(void *c, struct vec *v)
-{
-    struct sim_fun_ctx *sim_fun_ctx = (struct sim_fun_ctx *)c;
-    struct int_fun_ctx *int_fun_ctx = (struct int_fun_ctx *)sim_fun_ctx->ctx;
-    struct sim         *sim = sim_fun_ctx->sim;
-
-    struct apx_fun_ctx apx_ctx = {
-        .sim = sim,
-        .vtx = sim_fun_ctx->vtx,
-        .seg = sim_fun_ctx->seg,
-        .qud = sim_fun_ctx->qud,
-        .var = 1,
-    };
-
-    double bx = sim->slv->apx.dif(&apx_ctx, v);
-    apx_ctx.var = 0;
-    double by = -sim->slv->apx.dif(&apx_ctx, v);
-    double b = sqrt(bx * bx + by * by);
-    double mu = int_cub_fun(int_fun_ctx, &(struct vec){.n = 1, .dat = &b});
-
-    return 1.0 / (mu * MU0);
-}
-
-static void itr_cbk(void *, struct sim *sim)
+static void cbk(void *, struct sim *sim)
 {
     struct apx_fun_ctx ctx = {
         .sim = sim,
@@ -115,6 +91,10 @@ static void itr_cbk(void *, struct sim *sim)
         {.dat = {4.29e-2, 3.50e-3}},
     };
 
+    FILE *out = fopen("out/control-points.csv", "w+");
+
+    fprintf(out, "x,y,Az,Bx,By,Bm\n");
+
     for (int i = 0; i < 5; ++i) {
         struct v2d *vtx = &points[i];
 
@@ -123,12 +103,12 @@ static void itr_cbk(void *, struct sim *sim)
         double bx = sim->slv->apx.dif(&ctx, &(struct vec){.n = 2, .dat = vtx->dat});
         ctx.var = 0;
         double by = -sim->slv->apx.dif(&ctx, &(struct vec){.n = 2, .dat = vtx->dat});
+        double bm = sqrt(bx * bx + by * by);
 
-        printf("Az(%.2e, %.2e) = %.7e\n", vtx->dat[0], vtx->dat[1], az);
-        printf("Bx(%.2e, %.2e) = %.7e\n", vtx->dat[0], vtx->dat[1], bx);
-        printf("By(%.2e, %.2e) = %.7e\n", vtx->dat[0], vtx->dat[1], by);
-        printf("|B|(%.2e, %.2e) = %.7e\n", vtx->dat[0], vtx->dat[1], sqrt(bx * bx + by * by));
+        fprintf(out, "%.2e,%.2e,%.7e,%.7e,%.7e,%.7e\n", vtx->dat[0], vtx->dat[1], az, bx, by, bm);
     }
+
+    fclose(out);
 
     struct vec bx;
     struct vec by;
@@ -149,9 +129,9 @@ static void itr_cbk(void *, struct sim *sim)
 
             ctx.vtx = vgi;
             ctx.var = 1;
-            double _bx = sim->slv->apx.dif(&ctx, &(struct vec){.n = 2, .dat = vtx->dat});
+            double _bx = sim->slv->apx.dif(&ctx, &(struct vec){.dat = vtx->dat});
             ctx.var = 0;
-            double _by = -sim->slv->apx.dif(&ctx, &(struct vec){.n = 2, .dat = vtx->dat});
+            double _by = -sim->slv->apx.dif(&ctx, &(struct vec){.dat = vtx->dat});
 
             bx.dat[vgi] = _bx;
             by.dat[vgi] = _by;
@@ -209,57 +189,9 @@ int main(int argc, char **argv)
         goto end;
     }
 
-    // Create spline
-
-    FILE *in = fopen("mu/mu.001", "r");
-    int   n = 0;
-
-    if (!in) {
-        r = EIO;
-        fclose(in);
-        goto end;
-    }
-
-    fscanf(in, "%d", &n);
-
-    struct imtx k;
-    struct vec  x;
-
-    if ((r = imtx_new(&k, (struct imtx_pps){.r = 4, .c = n}))) {
-        fclose(in);
-        goto end;
-    }
-
-    if ((r = vec_new(&x, n))) {
-        fclose(in);
-        goto end;
-    }
-
-    for (int i = 0; i < n; ++i) {
-        fscanf(in, "%lf %lf", &k.dat[0][i], &x.dat[i]);
-    }
-
-    fclose(in);
-
-    if ((r = apx_int_cub(&x, &k))) {
-        goto end;
-    }
-
-    struct int_fun_ctx int_ctx = {
-        .k = &k,
-        .x = &x,
-        .prv = -1,
-    };
-
-    sim.mat.dat[0].lam.type = VAL_FUN;
-    sim.mat.dat[0].lam.as.fun.ctx = &int_ctx;
-    sim.mat.dat[0].lam.as.fun.run = lam_iron;
-
     for (int i = 0; i < sim.mat.len; ++i) {
-        if (sim.mat.dat[i].lam.type == VAL_NUM) {
-            double mu = sim.mat.dat[i].lam.as.num;
-            sim.mat.dat[i].lam.as.num = 1.0 / (mu * MU0);
-        }
+        double lam = sim.mat.dat[i].lam.as.num;
+        sim.mat.dat[i].lam.as.num = 1.0 / (lam * LAM_BASE);
     }
 
     bnd_cut_dev(&sim.bnd, 2);
@@ -288,8 +220,7 @@ int main(int argc, char **argv)
     sim.slv->ops.iss.ops.gmr.ops.itr.run = NULL;
     sim.slv->ops.iss.ops.gmr.ops.max = 3000;
 
-    sim.slv->itr_cbk.run = itr_cbk;
-    sim.slv->ops.non.enable = true;
+    sim.slv->itr_cbk.run = cbk;
 
     if ((r = sim_run(&sim))) {
         goto end;

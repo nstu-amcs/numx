@@ -133,6 +133,21 @@ static int fem_ctx_new(struct sim *sim, struct fem_std_ctx *ctx)
             break;
     }
 
+    if (sim->slv->ops.iss.mod == ISS_BCG) {
+        switch (sim->slv->ops.iss.ops.bcg.ops.con) {
+            case ISS_CON_NON:
+                break;
+            case ISS_CON_ILU:
+                smtx_new(&ctx->con, ctx->mtx.pps);
+                smtx_sdup(&ctx->mtx, &ctx->con);
+                sim->slv->ops.iss.ops.bcg.con.sm = &ctx->con;
+                break;
+            default:
+                r = -ENOTSUP;
+                goto end;
+        }
+    }
+
 end:
     for (int i = 0; i < n; ++i)
         log_cls(&map[i]);
@@ -146,6 +161,10 @@ static int fem_ctx_cls(struct sim *sim, struct fem_std_ctx *ctx)
 {
     mtx_cls(&ctx->mtx);
     vec_cls(&ctx->vec);
+
+    if (sim->slv->ops.iss.mod == ISS_BCG && sim->slv->ops.iss.ops.bcg.ops.con != ISS_CON_NON) {
+        mtx_cls(&ctx->con);
+    }
 
     switch (sim->eqn) {
         case SIM_HYP:
@@ -271,7 +290,6 @@ static int fem_sys_slv(struct sim *sim, struct fem_std_ctx *ctx)
         return -ENOTSUP;
     }
 
-    printf("[fem][sys][asm] ok\n");
     vec_rst(&ctx->w0);
 
     switch (ops->iss.mod) {
@@ -442,6 +460,10 @@ static int fem_sys_slv_non(struct sim *sim, struct fem_std_ctx *ctx)
 
         switch (sim->slv->ops.iss.mod) {
             case ISS_BCG:
+                if (sim->slv->ops.iss.ops.bcg.con.sm) {
+                    mtx_ilu(&ctx->mtx, &ctx->con);
+                }
+
                 if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &sim->slv->ops.iss.ops.bcg))) {
                     goto end;
                 }

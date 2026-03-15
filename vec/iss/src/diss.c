@@ -133,9 +133,8 @@ int diss_rlx_slv(struct dmtx *m, struct vec *x, struct vec *f, struct iss_rlx_op
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);
     }
 
-    printf("[vec]|[iss-rlx] ok\n");
-    printf("[vec]|[iss-rlx] itr: %d\n", o->ops.run.itr);
-    printf("[vec]|[iss-rlx] err: %.3e\n", o->ops.run.err);
+    printf("[vec][iss-rlx] ok\n");
+    printf("[vec][iss-rlx] itr: %d, err: %.7e\n", o->ops.run.itr, o->ops.run.err);
 
     vec_cls(&t);
 

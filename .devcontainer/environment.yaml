@@ -5,6 +5,8 @@ dependencies:
   - pyvista
   - numpy
   - matplotlib
+  - pandas
+  - tabulate
   - ipykernel
   - ipywidgets
   - jupyterlab

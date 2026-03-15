@@ -1,4 +1,5 @@
 #include <numx/com/log.h>
+#include <stdio.h>
 
 #include "../lin.h"
 
@@ -8,7 +9,6 @@
 double fem_std_lin_c2d_apx(void *ctx, struct vec *vtx)
 {
     assert(ctx);
-    assert(ctx->sim);
 
     struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
     struct v2d         *v = apx_ctx->sim->msh->vtx.v2d.dat;
@@ -57,7 +57,6 @@ double fem_std_lin_c2d_apx(void *ctx, struct vec *vtx)
 double fem_std_lin_c2d_dif(void *ctx, struct vec *vtx)
 {
     assert(ctx);
-    assert(ctx->sim);
 
     struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
     struct v2d         *v = apx_ctx->sim->msh->vtx.v2d.dat;
@@ -164,18 +163,24 @@ static int ell_asm(struct sim *sim, struct fem_std_ctx *ctx)
     mtx_rst(&ctx->mtx);
     vec_rst(&ctx->vec);
 
-    return assemble(sim, (struct asm_ops){
-                             .mlam = &ctx->mtx,
-                             .mgam = &ctx->mtx,
-                             .msig = NULL, // not required
-                             .mchi = NULL, // not required
-                             .mdir = &ctx->mtx,
-                             .mrob = &ctx->mtx,
-                             .vsrc = &ctx->vec,
-                             .vdir = &ctx->vec,
-                             .vneu = &ctx->vec,
-                             .vrob = &ctx->vec,
-                         });
+    int r = assemble(sim, (struct asm_ops){
+                              .mlam = &ctx->mtx,
+                              .mgam = &ctx->mtx,
+                              .msig = NULL, // not required
+                              .mchi = NULL, // not required
+                              .mdir = &ctx->mtx,
+                              .mrob = &ctx->mtx,
+                              .vsrc = &ctx->vec,
+                              .vdir = &ctx->vec,
+                              .vneu = &ctx->vec,
+                              .vrob = &ctx->vec,
+                          });
+
+    if (!r) {
+        printf("[fem][std][lin][c2d][asm] ok\n");
+    }
+
+    return r;
 }
 
 __attribute__((unused));

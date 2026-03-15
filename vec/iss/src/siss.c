@@ -77,11 +77,13 @@ static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         o->ops.run.itr = k;
         o->ops.run.err = nrm;
 
-        if (o->ops.itr.run)
+        if (o->ops.itr.run) {
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);
+        }
 
-        if (nrm < o->ops.err)
+        if (nrm < o->ops.err) {
             break;
+        }
 
         vec_dot(&r, &z, &bet);
 
@@ -255,6 +257,9 @@ static int siss_bcg_con_slv(struct smtx *m, struct vec *x, struct vec *f, struct
         vec_cmb(&s, &r, &r, -omg);
         vec_nrm(&r, &nrm);
 
+        o->ops.run.itr = k;
+        o->ops.run.err = nrm;
+
         if (o->ops.itr.run)
             o->ops.itr.run(o->ops.itr.ctx, &o->ops);
 
@@ -291,8 +296,7 @@ int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_op
 
     int r = o->con.sm ? siss_bcg_con_slv(m, x, f, o) : siss_bcg_unc_slv(m, x, f, o);
 
-    printf("[iss][bcg] itr: %d\n", o->ops.run.itr);
-    printf("[iss][bcg] err: %.7e\n", o->ops.run.err);
+    printf("[vec][iss][bcg] itr: %d, err: %.7e\n", o->ops.run.itr, o->ops.run.err);
 
     return r;
 }
@@ -307,14 +311,14 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
     assert(ops);
 
     int m = ops->ops.max;
+    int n = vf->n;
     int j = 0;
 
     double e = ops->ops.err;
-    double n = vf->n;
     double b = 0;
 
     struct imtx v = {
-        .pps = {.c = n, .r = 0},
+        .pps = {.c = n, .r = 1},
         .dat = malloc(sizeof(double *) * m),
     };
 
@@ -329,7 +333,7 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
     struct vec c; // rotation coefficients
 
     vec_new(&o, n);
-    vec_new(&g, m);
+    vec_new(&g, m + 1);
     vec_new(&t, m + 1);
     vec_new(&c, m * 2);
 
@@ -337,15 +341,27 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
     vec_cmb(vf, &o, &o, -1);
     vec_nrm(&o, &b);
 
+    if (b < e) {
+        ops->ops.run.itr = 0;
+        ops->ops.run.err = b;
+
+        if (ops->ops.itr.run) {
+            ops->ops.itr.run(ops->ops.itr.ctx, &ops->ops);
+        }
+
+        goto end;
+    }
+
     g.n = 1;
-    v.dat[0] = calloc(n, sizeof(double));
+    v.dat[0] = malloc(sizeof(double) * n);
     g.dat[0] = b;
 
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < n; ++i) {
         v.dat[0][i] = o.dat[i] / b;
+    }
 
     for (j = 0; j < m; ++j) {
-        h.dat[j] = calloc(j + 2, sizeof(double));
+        h.dat[j] = malloc(sizeof(double) * (j + 2));
         h.pps.c += 1;
         h.pps.r += 1;
         g.n += 1;
@@ -379,6 +395,10 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
         double hjn = hj.dat[j + 1];
         double div = sqrt(hjj * hjj + hjn * hjn);
 
+        if (div == 0.0) {
+            break;
+        }
+
         c.dat[j * 2] = hjj / div;
         c.dat[j * 2 + 1] = hjn / div;
 
@@ -394,14 +414,16 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
         ops->ops.run.itr = j;
         ops->ops.run.err = fabs(g.dat[j + 1]);
 
-        if (ops->ops.itr.run)
+        if (ops->ops.itr.run) {
             ops->ops.itr.run(ops->ops.itr.ctx, &ops->ops);
+        }
 
-        if (hsv == 0 || fabs(g.dat[j + 1]) < e)
+        if (hsv == 0 || fabs(g.dat[j + 1]) < e) {
             break;
+        }
 
         if (j < m - 1) {
-            v.dat[j + 1] = calloc(n, sizeof(double));
+            v.dat[j + 1] = malloc(sizeof(double) * n);
             v.pps.r += 1;
 
             struct vec vn = {.n = n, .dat = v.dat[j + 1]};
@@ -409,15 +431,11 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
         }
     }
 
-    printf("[iss][gmr] itr: %d\n", ops->ops.run.itr);
-    printf("[iss][gmr] err: %.7e\n", ops->ops.run.err);
-
     if (j == m) {
         j -= 1;
     }
 
     h.pps.c = j + 1;
-    h.pps.r = j + 1;
     o.n = j + 1;
     g.n = j + 1;
 
@@ -427,9 +445,15 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
         for (int p = 0; p <= j; ++p)
             vx->dat[i] += v.dat[p][i] * o.dat[p];
 
-    for (int i = 0; i < j; ++i) {
-        free(v.dat[i]);
+end:
+    printf("[vec][iss][gmr] itr: %d, err: %.7e\n", ops->ops.run.itr, ops->ops.run.err);
+
+    for (int i = 0; i < h.pps.r; ++i) {
         free(h.dat[i]);
+    }
+
+    for (int i = 0; i < v.pps.r; ++i) {
+        free(v.dat[i]);
     }
 
     free(v.dat);
@@ -438,6 +462,7 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
     vec_cls(&o);
     vec_cls(&g);
     vec_cls(&t);
+    vec_cls(&c);
 
     return 0;
 }
