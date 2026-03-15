@@ -20,7 +20,7 @@ struct int_fun_ctx
 };
 
 /**
- *  @brief Cubic Hermite spline interpolation.
+ *  @brief Cubic spline interpolation.
  *
  *  Coefficient matrix stores the result in the following form:
  *
@@ -45,7 +45,7 @@ struct int_fun_ctx
 int apx_int_cub(struct vec *x, struct imtx *k);
 
 /**
- *  @brief Cubic Hermite spline interpolation function.
+ *  @brief Cubic spline interpolation function.
  *
  *  This is an `mfun` wrapper over spline interpolation
  *  function.
