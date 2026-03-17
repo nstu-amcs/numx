@@ -3,6 +3,8 @@
 
 #include "../lin.h"
 
+static double const DPH = 0.5;
+
 /**
  * @brief Approximate solution at an arbitrary point.
  */
@@ -721,6 +723,12 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
     return 0;
 }
 
+static void twk_wgt(void* ctx, double hop, struct dif_ops* ops)
+{
+    struct sim_fun_ctx *fun_ctx = (struct sim_fun_ctx*)ctx;
+    fun_ctx->sim->slv->run.wgt[0]->dat[ops->var] = hop;
+}
+
 int fem_std_lin_c2d_new(struct sim *sim, struct fem_std_ctx *ctx)
 {
     struct v2d *vtx = sim->msh->vtx.v2d.dat;
@@ -736,6 +744,10 @@ int fem_std_lin_c2d_new(struct sim *sim, struct fem_std_ctx *ctx)
         struct qud *qud = &sim->msh->qud.dat[qi];
         struct obj *obj = &sim->obj.dat[qud->pid];
         struct mat *mat = &sim->mat.dat[obj->mat];
+
+        if (mat->lam.type != VAL_FUN) {
+            continue;
+        }
 
         int v0 = qud->vtx[0];
         int v3 = qud->vtx[3];
@@ -760,11 +772,14 @@ int fem_std_lin_c2d_new(struct sim *sim, struct fem_std_ctx *ctx)
             int gk = qud->vtx[k];
 
             dif_ops.var = gk;
+            dif_ops.hop = 0.000001;
+            dif_ops.twk = twk_wgt;
             fun_ctx.vtx = gk;
             fun_ctx.qud = qi;
+            fun_ctx.ctx = mat->lam.as.fun.ctx;
 
             struct vec vw = {.dat = vtx[gk].dat, .n = 2};
-            dlam[k] = mat->lam.as.fun.dif(&fun_ctx, mat->lam.as.fun.run, &vw, NULL);
+            dlam[k] = mat->lam.as.fun.dif(&fun_ctx, mat->lam.as.fun.run, &vw, &dif_ops);
         }
 
         for (int i = 0; i < 4; ++i) {
@@ -801,10 +816,10 @@ int fem_std_lin_c2d_new(struct sim *sim, struct fem_std_ctx *ctx)
 
                 bi += bij * ctx->w0.dat[gj];
 
-                mtx_inc(&ctx->mtx, gi, gj, mij);
+                mtx_inc(&ctx->mtx, gi, gj, mij * DPH);
             }
 
-            ctx->vec.dat[gi] += bi;
+            ctx->vec.dat[gi] += bi * DPH;
         }
     }
 

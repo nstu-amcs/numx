@@ -15,7 +15,7 @@ $$
 ## Интегрирование
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 &\int_{\hat{\Omega}}\psi_{k}\nabla\psi_{j}\nabla\psi_{i} d\Omega = \\
 &\int_{\hat{\Omega}}
@@ -65,11 +65,11 @@ $$
     \frac{\partial Y_{\nu(i)}}{\partial y}
     dy
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 &\int_{\hat{\Omega}}\psi_{k}\psi_{j}\psi_{i} d\Omega = \\
 &\int_{\hat{\Omega}}
@@ -88,11 +88,11 @@ $$
     Y_{\nu(i)}
     dy
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 &\int_{\hat{\Omega}}\psi_{k}\psi_{i} d\Omega = \\
 &\int_{\hat{\Omega}}
@@ -108,11 +108,11 @@ $$
     Y_{\nu(i)}
     dy
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 &\int_{\hat{S_x}}\psi_{k}\psi_{j}\psi_{i} dS_x = \\
 &\int_{\hat{S_x}}
@@ -127,11 +127,11 @@ $$
         X_{\mu(i)}
         dx
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 &\int_{\hat{S_x}}\psi_{k}\psi_{i} dS_x = \\
 &\int_{\hat{S_x}}
@@ -143,11 +143,11 @@ $$
     X_{\mu(i)}
     dx
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 G^{nx}_{abc} = \int_{\hat{\Omega}}
     X_{a}
@@ -163,11 +163,11 @@ G^{nx}_{abc} = \int_{\hat{\Omega}}
         -\frac{1}{2} & \frac{1}{2}
     \end{pmatrix};\ a,b,c = 1,2
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 M^{nx}_{abc} = \int_{\hat{\Omega}}
     X_{a}
@@ -183,11 +183,11 @@ M^{nx}_{abc} = \int_{\hat{\Omega}}
         \frac{1}{12} & \frac{1}{4}
     \end{pmatrix};\ a,b,c = 1,2
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 $$
-\begin{align}
+\begin{aligned}
 \begin{split}
 M^{x}_{ab} = \int_{\hat{\Omega}}
     X_{a}
@@ -198,7 +198,7 @@ M^{x}_{ab} = \int_{\hat{\Omega}}
         \frac{1}{6} & \frac{1}{3}
     \end{pmatrix};\ a,b = 1,2
 \end{split}
-\end{align}
+\end{aligned}
 $$
 
 ## Локальные компоненты

@@ -145,6 +145,8 @@ static double iron_lam_dif(void *ctx, mfun fun, struct vec *vtx, struct dif_ops 
         mu = int_cub_fun(int_fun_ctx, &(struct vec){.n = 1, .dat = b});
     }
 
+    mu = mu * MU0;
+
     struct qud *qud = &sim->msh->qud.dat[sim_fun_ctx->qud];
 
     int v0 = qud->vtx[0];
@@ -180,7 +182,7 @@ static double iron_lam_dif(void *ctx, mfun fun, struct vec *vtx, struct dif_ops 
     double pdx = dx[muj][nuj];
     double pdy = dy[muj][nuj];
 
-    return -1.0 / (mu * mu) * mudb * (1.0 / b[0]) * (bx * pdy - by * pdx);
+    return -1.0 / (mu * mu) * mudb * (1.0 / b[0]) * (bx * pdy + by * pdx);
 }
 
 static void itr_cbk(void *, struct sim *sim)
@@ -262,6 +264,13 @@ static void non_cbk(void *ctx, struct non_ops *ops)
 {
     (void)ctx;
     printf("[non] itr: %d, err: %.7e\n", ops->run.itr, ops->run.err);
+}
+
+static void ini_cbk(void *ctx, struct vec* wgt)
+{
+    for (int i = 0; i < wgt->n; ++i) {
+        wgt->dat[i] = i % 2;
+    }
 }
 
 int main(int argc, char **argv)
@@ -354,7 +363,8 @@ int main(int argc, char **argv)
     sim.mat.dat[0].lam.type = VAL_FUN;
     sim.mat.dat[0].lam.as.fun.ctx = &int_ctx;
     sim.mat.dat[0].lam.as.fun.run = iron_lam;
-    sim.mat.dat[0].lam.as.fun.dif = iron_lam_dif;
+    sim.mat.dat[0].lam.as.fun.dif = dif_tpm;
+    // sim.mat.dat[0].lam.as.fun.dif = iron_lam_dif;
 
     // Check spline function
 
@@ -409,7 +419,7 @@ int main(int argc, char **argv)
     sim.slv->ops.non.ops.new = false;
     sim.slv->ops.non.ops.rlx = false;
     sim.slv->ops.non.ops.err = 1e-7;
-    sim.slv->ops.non.ops.ini_cbk.run = NULL;
+    sim.slv->ops.non.ops.ini_cbk.run = ini_cbk;
     sim.slv->ops.non.ops.itr_cbk.run = non_cbk;
 
     if ((r = sim_run(&sim))) {

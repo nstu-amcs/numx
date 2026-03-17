@@ -29,7 +29,7 @@ $$
 Эквивалентная вариационная постановка в форме уравнения Галёркина:
 
 $$
-\begin{align*}
+\begin{aligned}
 \begin{split}
 &\int_{\Omega}\lambda(u,x)\nabla{u}\nabla{v_0}d\Omega
     + \int_{\Omega}\gamma(u,x)uv_0d\Omega
@@ -38,13 +38,13 @@ $$
         + \int_{S_2}\theta(u,x)v_0dS
         + \int_{S_3}\beta(u,x)u_{\beta}(u,x)v_0dS, \forall v_0 \in H_0^1
 \end{split}
-\end{align*}
+\end{aligned}
 $$
 
 Раскладывая функции $u$ и $v_0$ по базису, переходим к конечноэлементной СЛАУ:
 
 $$
-\begin{align*}
+\begin{aligned}
 \begin{split}
 &\sum_{j=1}^{n}(\int_{\Omega}\lambda(u,x)\nabla{\psi_j}\nabla{\psi_i}d\Omega
     + \int_{\Omega}\gamma(u,x)\psi_{j}\psi_{i}\Omega
@@ -53,7 +53,7 @@ $$
         + \int_{S_2}\theta(u,x)\psi_{i}dS
         + \int_{S_3}\beta(u,x)u_{\beta}(u,x)\psi_{i}dS
 \end{split}
-\end{align*}
+\end{aligned}
 $$
 
 или, в более удобной форме записи:
