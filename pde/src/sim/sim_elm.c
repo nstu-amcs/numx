@@ -448,14 +448,11 @@ static int get_val(struct sim *sim, char *src, struct val *val)
         }
     }
 
-    val->ops.dep = false;
-    val->ops.dif = NULL;
+    val->as.fun.dif = NULL;
 
     if ((dif = strtok(0, ":"))) {
-        val->ops.dep = true;
-
         if (strcmp("num", dif))
-            val->ops.dif = dlsym(sim->ops.usr.hdl, dif);
+            val->as.fun.dif = dlsym(sim->ops.usr.hdl, dif);
     }
 
     if (f2 == NULL)

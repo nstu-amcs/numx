@@ -10,6 +10,10 @@ set(CMAKE_C_STANDARD 23)
 add_library(cgns SHARED IMPORTED)
 set_property(TARGET cgns PROPERTY IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libcgns.so")
 
+include_directories("/usr/include/petsc")
+include_directories("/usr/include/x86_64-linux-gnu/mpi")
+
+
 include(CTest)
 enable_testing()
 

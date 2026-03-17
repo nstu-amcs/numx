@@ -106,9 +106,10 @@ double int_cub_fun(void *ctx, struct vec *x)
     struct int_fun_ctx *int_fun_ctx = (struct int_fun_ctx *)ctx;
     struct vec         *ip = int_fun_ctx->x;
     struct imtx        *km = int_fun_ctx->k;
-    double              v = x->dat[0];
-    int                 i = int_fun_ctx->prv;
-    int                 n = int_fun_ctx->x->n;
+
+    double v = x->dat[0];
+    int    i = int_fun_ctx->prv;
+    int    n = int_fun_ctx->x->n;
 
     if (i == -1) {
         i = 0;
@@ -164,4 +165,69 @@ double int_cub_fun(void *ctx, struct vec *x)
     int_fun_ctx->prv = i;
 
     return a + b * r + c * r * r + d * r * r * r;
+}
+
+double int_cub_dif(void *ctx, mfun fun, struct vec *vtx, struct dif_ops *ops)
+{
+    (void)fun;
+    (void)ops;
+
+    struct int_fun_ctx *int_fun_ctx = (struct int_fun_ctx *)ctx;
+    struct vec         *ip = int_fun_ctx->x;
+    struct imtx        *km = int_fun_ctx->k;
+
+    double v = vtx->dat[0];
+    int    i = int_fun_ctx->prv;
+    int    n = int_fun_ctx->x->n;
+
+    if (i == -1) {
+        i = 0;
+    }
+
+    double x0 = ip->dat[i];
+    double x1 = ip->dat[i + 1];
+
+    while (v < x0) {
+        if (i == 0) {
+            // Hit the first interval, perform linear approximation: y = ax + b.
+
+            double y0 = km->dat[0][i];
+            double y1 = km->dat[0][i + 1];
+            double a = (y1 - y0) / (x1 - x0);
+
+            int_fun_ctx->prv = i;
+
+            return a;
+        }
+
+        i -= 1;
+        x0 = ip->dat[i];
+        x1 = ip->dat[i + 1];
+    }
+
+    while (v > x1) {
+        if (i == n - 2) {
+            // Hit the last interval, perform linear approximation: y = ax + b.
+
+            double y0 = km->dat[0][i];
+            double y1 = km->dat[0][i + 1];
+            double a = (y1 - y0) / (x1 - x0);
+
+            int_fun_ctx->prv = i;
+
+            return a;
+        }
+
+        i += 1;
+        x0 = ip->dat[i];
+        x1 = ip->dat[i + 1];
+    }
+
+    double b = km->dat[1][i];
+    double c = km->dat[2][i];
+    double d = km->dat[3][i];
+
+    int_fun_ctx->prv = i;
+
+    return b + c * 2 * (v - x0) + d * 3 * (v * v - 2 * v * x0 + x0 * x0);
 }

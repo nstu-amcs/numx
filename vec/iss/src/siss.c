@@ -1,9 +1,15 @@
 #include <errno.h>
 #include <math.h>
+#include <petscksp.h>
+#include <petscmat.h>
+#include <petscvec.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <numx/vec/iss.h>
+
+static int siss_bcg_pet_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_pet_ops ops);
+static int siss_gmr_pet_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_pet_ops ops);
 
 static int siss_bcg_unc_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_ops *o)
 {
@@ -294,6 +300,10 @@ int siss_bcg_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_bcg_op
         return -1;
     }
 
+    if (o->ops.pet) {
+        return siss_bcg_pet_slv(m, x, f, (struct iss_pet_ops){.ops = {.bcg = o}});
+    }
+
     int r = o->con.sm ? siss_bcg_con_slv(m, x, f, o) : siss_bcg_unc_slv(m, x, f, o);
 
     printf("[vec][iss][bcg] itr: %d, err: %.7e\n", o->ops.run.itr, o->ops.run.err);
@@ -310,9 +320,17 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
     assert(vf);
     assert(ops);
 
+    if (ops->ops.pet) {
+        return siss_gmr_pet_slv(sm, vx, vf, (struct iss_pet_ops){.ops = {.gmr = ops}});
+    }
+
     int m = ops->ops.max;
     int n = vf->n;
     int j = 0;
+
+    if (m > n) {
+        m = n;
+    }
 
     double e = ops->ops.err;
     double b = 0;
@@ -327,10 +345,10 @@ int siss_gmr_slv(struct smtx *sm, struct vec *vx, struct vec *vf, struct iss_gmr
         .dat = malloc(sizeof(double *) * m),
     };
 
-    struct vec o; // omega
-    struct vec g; // right-hand side
-    struct vec t; // buffer
-    struct vec c; // rotation coefficients
+    struct vec o;
+    struct vec g;
+    struct vec t;
+    struct vec c; // Givens rotation coefficients
 
     vec_new(&o, n);
     vec_new(&g, m + 1);
@@ -479,4 +497,100 @@ static void red_slv(struct imtx *r, struct vec *y, struct vec *g)
 
         y->dat[i] = s / r->dat[i][i];
     }
+}
+
+static int siss_bcg_pet_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_pet_ops ops)
+{
+    (void)m;
+    (void)x;
+    (void)f;
+    (void)ops;
+
+    return 0;
+}
+
+static int siss_gmr_pet_slv(struct smtx *m, struct vec *x, struct vec *f, struct iss_pet_ops ops)
+{
+    KSP            ksp;
+    PC             pc;
+    PetscErrorCode err;
+    PetscInt       n = m->pps.n;
+
+    Mat pm;
+    Vec px;
+    Vec pf;
+
+    err = VecCreateSeqWithArray(PETSC_COMM_SELF, 1, n, x->dat, &px);
+    CHKERRQ(err);
+
+    err = VecCreateSeqWithArray(PETSC_COMM_SELF, 1, n, f->dat, &pf);
+    CHKERRQ(err);
+
+    PetscInt *nnz = malloc(m->pps.n * sizeof(PetscInt));
+
+    for (int i = 0; i < n; ++i) {
+        nnz[i] = 1 + (PetscInt)(m->ia[i + 1] - m->ia[i]);
+    }
+
+    for (int j = 0; j < n; ++j) {
+        for (int p = m->ia[j]; p < m->ia[j + 1]; ++p) {
+            nnz[m->ja[p]] += 1;
+        }
+    }
+
+    err = MatCreateSeqAIJ(PETSC_COMM_SELF, n, n, 0, nnz, &pm);
+    CHKERRQ(err);
+    free(nnz);
+
+    for (int i = 0; i < n; ++i) {
+        MatSetValue(pm, i, i, m->dr[i], INSERT_VALUES);
+    }
+
+    for (int i = 0; i < n; ++i) {
+        for (int p = m->ia[i]; p < m->ia[i + 1]; ++p) {
+            int j = m->ja[p];
+
+            MatSetValue(pm, i, j, m->lr[p], INSERT_VALUES);
+            MatSetValue(pm, j, i, m->ur[p], INSERT_VALUES);
+        }
+    }
+
+    MatAssemblyBegin(pm, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(pm, MAT_FINAL_ASSEMBLY);
+
+    err = KSPCreate(PETSC_COMM_WORLD, &ksp);
+    CHKERRQ(err);
+    err = KSPSetOperators(ksp, pm, pm);
+    CHKERRQ(err);
+    err = KSPSetType(ksp, KSPGMRES);
+    CHKERRQ(err);
+    err = KSPGetPC(ksp, &pc);
+    CHKERRQ(err);
+    err = PCSetType(pc, PCILU);
+    CHKERRQ(err);
+    err = KSPSetTolerances(ksp, ops.ops.gmr->ops.err, 1e-50, PETSC_DEFAULT, ops.ops.gmr->ops.max);
+    CHKERRQ(err);
+    err = KSPGMRESSetRestart(ksp, ops.ops.gmr->rst);
+    CHKERRQ(err);
+    err = KSPSolve(ksp, pf, px);
+    CHKERRQ(err);
+
+    const char *res = NULL;
+
+    err = KSPGetConvergedReasonString(ksp, &res);
+    CHKERRQ(err);
+    err = KSPGetIterationNumber(ksp, &ops.ops.gmr->ops.run.itr);
+    CHKERRQ(err);
+    err = KSPGetResidualNorm(ksp, &ops.ops.gmr->ops.run.err);
+    CHKERRQ(err);
+
+    printf("[vec][iss][gmr][pet] itr: %d, err: %.7e\n", ops.ops.gmr->ops.run.itr,
+        ops.ops.gmr->ops.run.err);
+
+    err = KSPDestroy(&ksp);
+    CHKERRQ(err);
+    err = MatDestroy(&pm);
+    CHKERRQ(err);
+
+    return 0;
 }

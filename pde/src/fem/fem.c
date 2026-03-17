@@ -12,7 +12,6 @@ int fem_new(struct fem *fem)
     fem->slv.ops.non.ops.rlx = false;
     fem->slv.ops.non.ops.itr_cbk.ctx = NULL;
     fem->slv.ops.non.ops.itr_cbk.run = NULL;
-    fem->slv.ops.non.ops.dif = DIF_NUM;
     fem->slv.ops.non.ops.run.itr = 0;
     fem->slv.ops.non.ops.run.err = 0;
     fem->slv.ops.non.ops.run.rlx = 0;

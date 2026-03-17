@@ -22,6 +22,7 @@ typedef enum iss_con
 typedef struct iss_ops
 {
     enum iss_con con; // Preconditioner;
+    bool         pet;
 
     int    max; // Maximum number of iterations.
     double err; // Convergence tolerance.
@@ -64,6 +65,8 @@ typedef struct iss_rlx_ops
 typedef struct iss_gmr_ops
 {
     struct iss_ops ops;
+
+    double rst; // Iteration to restart.
 } iss_gmr_ops;
 
 typedef struct iss_bcg_ops
@@ -78,6 +81,15 @@ typedef struct iss_bcg_ops
         struct dmtx *dm;
     } con;
 } iss_bcg_ops;
+
+typedef struct iss_pet_ops
+{
+    union
+    {
+        struct iss_gmr_ops *gmr;
+        struct iss_bcg_ops *bcg;
+    } ops;
+} iss_pet_ops;
 
 int iiss_jac_slv(struct imtx *m, struct vec *x, struct vec *f, struct iss_jac_ops *ops);
 int iiss_rlx_slv(struct imtx *m, struct vec *x, struct vec *f, struct iss_rlx_ops *ops);

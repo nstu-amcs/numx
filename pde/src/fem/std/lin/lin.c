@@ -35,3 +35,16 @@ int fem_std_lin_asm(struct sim *sim, struct fem_std_ctx *ctx)
 
     return -1;
 }
+
+int fem_std_lin_new(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    switch (sim->msh->type) {
+        case MSH_C2D:
+            return fem_std_lin_c2d_new(sim, ctx);
+        case MSH_C3D:
+            return fem_std_lin_c3d_new(sim, ctx);
+    }
+
+    return -1;
+}
+

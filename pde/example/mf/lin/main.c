@@ -1,4 +1,5 @@
 #include <math.h>
+#include <petsc.h>
 #include <stdio.h>
 
 #include <numx/com/cmp.h>
@@ -153,6 +154,11 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
+    PetscErrorCode err;
+
+    err = PetscInitialize(&argc, &argv, NULL, NULL);
+    CHKERRQ(err);
+
     int r = 0;
 
     struct umsh msh;
@@ -215,10 +221,12 @@ int main(int argc, char **argv)
     strcpy(sim.ops.exp.sol, "Az");
 
     sim.slv->ops.iss.mod = ISS_GMR;
+    sim.slv->ops.iss.ops.gmr.ops.pet = true;
     sim.slv->ops.iss.ops.gmr.ops.err = 1e-7;
     sim.slv->ops.iss.ops.gmr.ops.itr.ctx = NULL;
     sim.slv->ops.iss.ops.gmr.ops.itr.run = NULL;
     sim.slv->ops.iss.ops.gmr.ops.max = 3000;
+    sim.slv->ops.iss.ops.gmr.rst = 50;
 
     sim.slv->itr_cbk.run = cbk;
 

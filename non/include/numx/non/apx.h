@@ -55,4 +55,17 @@ int apx_int_cub(struct vec *x, struct imtx *k);
  */
 double int_cub_fun(void *ctx, struct vec *x);
 
+/**
+ *  @brief Cubic spline differentiation function.
+ *
+ *  This is an `mdif` wrapper over splite interpolation
+ *  function differentiation.
+ *
+ *  @param ctx interpolation context (`int_fun_ctx`)
+ *  @param fun cubic spline function (`int_cub_fun`)
+ *  @param vtx point to differentiate at
+ *  @param ops differentiation opsions (unused)
+ */
+double int_cub_dif(void *ctx, mfun fun, struct vec *vtx, struct dif_ops *ops);
+
 #endif // NUMX_NON_APX_H

@@ -9,6 +9,7 @@
 double fem_std_lin_c2d_apx(void *ctx, struct vec *vtx)
 {
     assert(ctx);
+    assert(vtx);
 
     struct apx_fun_ctx *apx_ctx = (struct apx_fun_ctx *)ctx;
     struct v2d         *v = apx_ctx->sim->msh->vtx.v2d.dat;
@@ -710,10 +711,101 @@ static int asm_seg(struct sim *sim, struct asm_ops ops)
             }
         }
 
-        if (errno != ENOENT)
+        if (errno != ENOENT) {
             return -1;
+        }
 
         errno = 0;
+    }
+
+    return 0;
+}
+
+int fem_std_lin_c2d_new(struct sim *sim, struct fem_std_ctx *ctx)
+{
+    struct v2d *vtx = sim->msh->vtx.v2d.dat;
+
+    struct sim_fun_ctx fun_ctx = {
+        .sim = sim,
+        .vtx = -1,
+        .qud = -1,
+        .hxd = -1,
+    };
+
+    for (int qi = 0; qi < sim->msh->qud.len; ++qi) {
+        struct qud *qud = &sim->msh->qud.dat[qi];
+        struct obj *obj = &sim->obj.dat[qud->pid];
+        struct mat *mat = &sim->mat.dat[obj->mat];
+
+        int v0 = qud->vtx[0];
+        int v3 = qud->vtx[3];
+
+        double hx = vtx[v3].dat[0] - vtx[v0].dat[0];
+        double hy = vtx[v3].dat[1] - vtx[v0].dat[1];
+
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < 2; ++j) {
+                for (int k = 0; k < 2; ++k) {
+                    gnx[i][j][k] = GN[i][j][k] / hx;
+                    gny[i][j][k] = GN[i][j][k] / hy;
+                    mnx[i][j][k] = MN[i][j][k] * hx;
+                    mny[i][j][k] = MN[i][j][k] * hy;
+                }
+            }
+
+        double         dlam[4];
+        struct dif_ops dif_ops = {0};
+
+        for (int k = 0; k < 4; ++k) {
+            int gk = qud->vtx[k];
+
+            dif_ops.var = gk;
+            fun_ctx.vtx = gk;
+            fun_ctx.qud = qi;
+
+            struct vec vw = {.dat = vtx[gk].dat, .n = 2};
+            dlam[k] = mat->lam.as.fun.dif(&fun_ctx, mat->lam.as.fun.run, &vw, NULL);
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            int gi = qud->vtx[i];
+
+            int mui = MU[i];
+            int nui = NU[i];
+
+            double bi = 0;
+
+            for (int j = 0; j < 4; ++j) {
+                int gj = qud->vtx[j];
+
+                int muj = MU[j];
+                int nuj = NU[j];
+
+                double mij = 0;
+                double bij = 0;
+
+                for (int k = 0; k < 4; ++k) {
+                    int gk = qud->vtx[k];
+
+                    int muk = MU[k];
+                    int nuk = NU[k];
+
+                    double gln = gnx[muk][muj][mui] *
+                                 mny[nuk][nuj][nui] +
+                                 mnx[muk][muj][mui] *
+                                 gny[nuk][nuj][nui];
+
+                    mij += ctx->w0.dat[gk] * dlam[j] * gln;
+                    bij += ctx->w0.dat[gk] * dlam[k] * gln;
+                }
+
+                bi += bij * ctx->w0.dat[gj];
+
+                mtx_inc(&ctx->mtx, gi, gj, mij);
+            }
+
+            ctx->vec.dat[gi] += bi;
+        }
     }
 
     return 0;

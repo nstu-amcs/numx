@@ -45,6 +45,7 @@ typedef struct val
             // The `sim_fun_ctx` will be passed as context with
             // user-defined context inside.
             mfun run;
+            mdif dif;
         } fun;
 
         struct
@@ -53,12 +54,6 @@ typedef struct val
             mfun cos;
         } hmc;
     } as;
-
-    struct
-    {
-        bool dep; // field dependence
-        mfun dif; // partial derivative with respect to field
-    } ops;
 } val;
 
 /** Boundary condition. */

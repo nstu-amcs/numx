@@ -1,6 +1,5 @@
 #include <numx/com/cmp.h>
 #include <numx/com/log.h>
-#include <numx/non/dif.h>
 
 #include "../lin.h"
 
@@ -843,7 +842,7 @@ static void dif_twk_wgt(void *ctx, double hop, struct dif_ops *ops)
     ((struct sim_fun_ctx *)ctx)->sim->slv->run.wgt[0]->dat[ops->var] += hop;
 }
 
-int fem_std_lin_new(struct sim *sim, struct fem_std_ctx *ctx)
+int fem_std_lin_c3d_new(struct sim *sim, struct fem_std_ctx *ctx)
 {
     struct v3d *vtx = sim->msh->vtx.v3d.dat;
 
@@ -877,32 +876,15 @@ int fem_std_lin_new(struct sim *sim, struct fem_std_ctx *ctx)
 
         double dlam[8];
 
-        switch (sim->slv->ops.non.ops.dif) {
-            case DIF_GIV:
-                for (int k = 0; k < 8; ++k) {
-                    fun_ctx.vtx = hxd->vtx[k];
-                    fun_ctx.hxd = h;
-                    struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
-                    dlam[k] = mat->lam.ops.dif(&fun_ctx, &vw);
-                }
+        for (int k = 0; k < 8; ++k) {
+            int gk = hxd->vtx[k];
 
-                break;
-            case DIF_NUM:
-                for (int k = 0; k < 8; ++k) {
-                    int gk = hxd->vtx[k];
+            fun_ctx.vtx = hxd->vtx[k];
+            fun_ctx.hxd = h;
+            dif_ops.var = gk;
 
-                    struct vec vw = {.dat = vtx[gk].dat, .n = 3};
-
-                    dif_ops.var = gk;
-                    dif_ops.vtx = &vw;
-                    fun_ctx.vtx = gk;
-                    fun_ctx.hxd = h;
-
-                    dlam[k] = dif_tpm(
-                        &fun_ctx, (double (*)(void *, struct vec *))mat->lam.as.fun.run, &dif_ops);
-                }
-
-                break;
+            struct vec vw = {.dat = vtx[fun_ctx.vtx].dat, .n = 3};
+            dlam[k] = mat->lam.as.fun.dif(&fun_ctx, mat->lam.as.fun.run, &vw, &dif_ops);
         }
 
         for (int i = 0; i < 8; ++i) {

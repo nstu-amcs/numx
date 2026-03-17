@@ -1,13 +1,12 @@
-#include <numx/non/dif.h>
+#include <numx/non/fun.h>
 
-double dif_tpm(void *ctx, mfun fun, struct dif_ops *ops)
+double dif_tpm(void *ctx, mfun fun, struct vec *vtx, struct dif_ops *ops)
 {
     assert(fun);
     assert(ops);
 
-    struct vec *vtx = ops->vtx;
-    int         var = ops->var;
-    double      hop = ops->hop != 0 ? ops->hop : NUMX_NON_DIF_HOP;
+    int    var = ops->var;
+    double hop = ops->hop != 0 ? ops->hop : NUMX_NON_DIF_HOP;
 
     if (ops->twk)
         ops->twk(ctx, hop, ops);

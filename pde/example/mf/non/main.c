@@ -1,4 +1,5 @@
 #include <math.h>
+#include <petsc.h>
 #include <stdio.h>
 
 #include <numx/com/cmp.h>
@@ -74,9 +75,9 @@ static int bnd_r(struct umsh *msh, struct seg *s)
     return 0;
 }
 
-static double lam_iron(void *c, struct vec *v)
+static double iron_lam(void *ctx, struct vec *vtx)
 {
-    struct sim_fun_ctx *sim_fun_ctx = (struct sim_fun_ctx *)c;
+    struct sim_fun_ctx *sim_fun_ctx = (struct sim_fun_ctx *)ctx;
     struct int_fun_ctx *int_fun_ctx = (struct int_fun_ctx *)sim_fun_ctx->ctx;
     struct sim         *sim = sim_fun_ctx->sim;
 
@@ -88,13 +89,98 @@ static double lam_iron(void *c, struct vec *v)
         .var = 1,
     };
 
-    double bx = sim->slv->apx.dif(&apx_ctx, v);
+    int n = int_fun_ctx->x->n;
+
+    double bx = sim->slv->apx.dif(&apx_ctx, vtx);
     apx_ctx.var = 0;
-    double by = -sim->slv->apx.dif(&apx_ctx, v);
-    double b = sqrt(bx * bx + by * by);
-    double mu = int_cub_fun(int_fun_ctx, &(struct vec){.n = 1, .dat = &b});
+    double by = -sim->slv->apx.dif(&apx_ctx, vtx);
+    double b[] = {sqrt(bx * bx + by * by)};
+
+    double mun = int_fun_ctx->k->dat[0][n - 1];
+    double bn = int_fun_ctx->x->dat[n - 1];
+    double mu = 0;
+
+    if (b[0] > bn) {
+        mu = (bn / b[0]) * (mun - 1) + 1;
+    } else {
+        mu = int_cub_fun(int_fun_ctx, &(struct vec){.n = 1, .dat = b});
+    }
 
     return 1.0 / (mu * MU0);
+}
+
+static const int MU[4] = {0, 1, 0, 1};
+static const int NU[4] = {0, 0, 1, 1};
+
+static double iron_lam_dif(void *ctx, mfun fun, struct vec *vtx, struct dif_ops *ops)
+{
+    (void)fun;
+
+    struct sim_fun_ctx *sim_fun_ctx = (struct sim_fun_ctx *)ctx;
+    struct int_fun_ctx *int_fun_ctx = (struct int_fun_ctx *)sim_fun_ctx->ctx;
+    struct sim         *sim = sim_fun_ctx->sim;
+
+    struct apx_fun_ctx apx_ctx = {
+        .sim = sim,
+        .vtx = sim_fun_ctx->vtx,
+        .seg = sim_fun_ctx->seg,
+        .qud = sim_fun_ctx->qud,
+        .var = 1,
+    };
+
+    int n = int_fun_ctx->x->n;
+
+    double bx = sim->slv->apx.dif(&apx_ctx, vtx);
+    apx_ctx.var = 0;
+    double by = -sim->slv->apx.dif(&apx_ctx, vtx);
+    double b[] = {sqrt(bx * bx + by * by)};
+
+    double mun = int_fun_ctx->k->dat[0][n - 1];
+    double bn = int_fun_ctx->x->dat[n - 1];
+    double mu = 0;
+
+    if (b[0] > bn) {
+        mu = (bn / b[0]) * (mun - 1) + 1;
+    } else {
+        mu = int_cub_fun(int_fun_ctx, &(struct vec){.n = 1, .dat = b});
+    }
+
+    struct qud *qud = &sim->msh->qud.dat[sim_fun_ctx->qud];
+
+    int v0 = qud->vtx[0];
+    int v3 = qud->vtx[3];
+
+    double x0 = sim->msh->vtx.v2d.dat[v0].dat[0];
+    double y0 = sim->msh->vtx.v2d.dat[v0].dat[1];
+    double x1 = sim->msh->vtx.v2d.dat[v3].dat[0];
+    double y1 = sim->msh->vtx.v2d.dat[v3].dat[1];
+
+    double x = vtx->dat[0];
+    double y = vtx->dat[1];
+
+    double hx = x1 - x0;
+    double hy = y1 - y0;
+    double ha = hx * hy;
+
+    double dx[2][2] = {
+        {(x - x1) / ha, (x1 - x) / ha},
+        {(x0 - x) / ha, (x - x0) / ha},
+    };
+
+    double dy[2][2] = {
+        {(y - y1) / ha, (y0 - y) / ha},
+        {(y1 - y) / ha, (y - y0) / ha},
+    };
+
+    int lid = umsh_qud_vtx_loc(qud, ops->var);
+    int muj = MU[lid];
+    int nuj = NU[lid];
+
+    double mudb = int_cub_dif(int_fun_ctx, int_cub_fun, &(struct vec){.n = 1, .dat = b}, NULL);
+    double pdx = dx[muj][nuj];
+    double pdy = dy[muj][nuj];
+
+    return -1.0 / (mu * mu) * mudb * (1.0 / b[0]) * (bx * pdy - by * pdx);
 }
 
 static void itr_cbk(void *, struct sim *sim)
@@ -183,6 +269,11 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
+    PetscErrorCode err;
+
+    err = PetscInitialize(&argc, &argv, NULL, NULL);
+    CHKERRQ(err);
+
     int r = 0;
 
     struct umsh msh;
@@ -262,7 +353,19 @@ int main(int argc, char **argv)
 
     sim.mat.dat[0].lam.type = VAL_FUN;
     sim.mat.dat[0].lam.as.fun.ctx = &int_ctx;
-    sim.mat.dat[0].lam.as.fun.run = lam_iron;
+    sim.mat.dat[0].lam.as.fun.run = iron_lam;
+    sim.mat.dat[0].lam.as.fun.dif = iron_lam_dif;
+
+    // Check spline function
+
+    for (int i = 0; i < x.n; ++i) {
+        double b[1] = {x.dat[i]};
+        double mu = int_cub_fun(&int_ctx, &(struct vec){.n = 1, .dat = b});
+
+        if (!isclose(mu, k.dat[0][i], 1e-10)) {
+            printf("mu(%.2e) != %.2e", b[0], mu);
+        }
+    }
 
     for (int i = 0; i < sim.mat.len; ++i) {
         if (sim.mat.dat[i].lam.type == VAL_NUM) {
@@ -292,16 +395,12 @@ int main(int argc, char **argv)
     strcpy(sim.ops.exp.sol, "Az");
 
     sim.slv->ops.iss.mod = ISS_GMR;
-    sim.slv->ops.iss.ops.gmr.ops.err = 1e-7;
+    sim.slv->ops.iss.ops.gmr.ops.pet = true;
+    sim.slv->ops.iss.ops.gmr.ops.err = 1e-10;
     sim.slv->ops.iss.ops.gmr.ops.itr.ctx = NULL;
     sim.slv->ops.iss.ops.gmr.ops.itr.run = NULL;
-    sim.slv->ops.iss.ops.gmr.ops.max = 5000;
-
-    // sim.slv->ops.iss.mod = ISS_BCG;
-    // sim.slv->ops.iss.ops.bcg.ops.err = 1e-7;
-    // sim.slv->ops.iss.ops.bcg.ops.itr.run = NULL;
-    // sim.slv->ops.iss.ops.bcg.ops.max = 3000;
-    // sim.slv->ops.iss.ops.bcg.ops.con = ISS_CON_ILU;
+    sim.slv->ops.iss.ops.gmr.ops.max = 3000;
+    sim.slv->ops.iss.ops.gmr.rst = 50;
 
     sim.slv->itr_cbk.run = itr_cbk;
 
@@ -309,7 +408,7 @@ int main(int argc, char **argv)
     sim.slv->ops.non.ops.max = 10;
     sim.slv->ops.non.ops.new = false;
     sim.slv->ops.non.ops.rlx = false;
-    sim.slv->ops.non.ops.err = 1e-3;
+    sim.slv->ops.non.ops.err = 1e-7;
     sim.slv->ops.non.ops.ini_cbk.run = NULL;
     sim.slv->ops.non.ops.itr_cbk.run = non_cbk;
 
@@ -320,6 +419,8 @@ int main(int argc, char **argv)
 end:
     umsh_cls(&msh);
     sim_cls(&sim);
+    mtx_cls(&k);
+    vec_cls(&x);
 
     return r;
 }

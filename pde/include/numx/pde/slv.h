@@ -87,12 +87,6 @@ typedef struct slv
                     void (*run)(void *ctx, struct non_ops *ops);
                 } itr_cbk;
 
-                enum
-                {
-                    DIF_NUM, // Differentiate numerically.
-                    DIF_GIV, // Differentiate using given functions.
-                } dif;       // Differentiation options.
-
                 /** Runtime data made available by solver. */
                 struct
                 {

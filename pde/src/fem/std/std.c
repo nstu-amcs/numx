@@ -335,7 +335,8 @@ struct est_ctx
  */
 static double est(struct est_ctx *ctx, struct vec *wgt)
 {
-    struct vec est = {.n = wgt->n, .dat = wgt->dat};
+    struct fem *fem = (struct fem *)ctx->sim->slv;
+    struct vec  est = {.n = wgt->n, .dat = wgt->dat};
 
     if (ctx->rlx != 0) {
         vec_mul(wgt, ctx->upd, ctx->rlx);
@@ -347,7 +348,7 @@ static double est(struct est_ctx *ctx, struct vec *wgt)
     // Assemble system with the current weights.
 
     vec_swp(&est, &ctx->ctx->w0);
-    fem_std_lin_asm(ctx->sim, ctx->ctx);
+    _asm[fem->ops.bfs](ctx->sim, ctx->ctx);
     vec_swp(&est, &ctx->ctx->w0);
 
     // Estimate error of the current assembly.
@@ -445,7 +446,6 @@ static int fem_sys_slv_non(struct sim *sim, struct fem_std_ctx *ctx)
 
     for (int i = 1; i <= ops->max && cur > ops->err; ++i) {
         // If Newton's tweaks are enabled, assemble them.
-
         if (sim->slv->ops.non.ops.new) {
             if ((r = _new[fem->ops.bfs](sim, ctx))) {
                 goto end;
@@ -460,10 +460,6 @@ static int fem_sys_slv_non(struct sim *sim, struct fem_std_ctx *ctx)
 
         switch (sim->slv->ops.iss.mod) {
             case ISS_BCG:
-                if (sim->slv->ops.iss.ops.bcg.con.sm) {
-                    mtx_ilu(&ctx->mtx, &ctx->con);
-                }
-
                 if ((r = iss_bcg_slv(&ctx->mtx, &ctx->w0, &ctx->vec, &sim->slv->ops.iss.ops.bcg))) {
                     goto end;
                 }
